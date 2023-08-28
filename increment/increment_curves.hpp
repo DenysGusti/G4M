@@ -14,8 +14,7 @@ namespace g4m::increment {
 
     class IncrementCurves {
     public:
-        IncrementCurves(const span<const double> a, const double aMai) : coef{a} {
-            mai = aMai;
+        IncrementCurves(const span<const double> a, const double aMai) : coef{a}, mai{aMai} {
             calc();
         }
 
@@ -24,7 +23,7 @@ namespace g4m::increment {
             calc();
         }
 
-        void setMai(double amai) {
+        void setMai(const double amai) {
             mai = amai;
             calc();
         }

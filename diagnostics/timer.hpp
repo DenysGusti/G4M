@@ -1,8 +1,10 @@
 #ifndef G4M_EUROPE_DG_TIMER_HPP
 #define G4M_EUROPE_DG_TIMER_HPP
 
-#include <iostream>
 #include <chrono>
+#include <string>
+
+#include "../log.hpp"
 
 using namespace std;
 
@@ -13,9 +15,10 @@ namespace g4m::diagnostics {
 
     private:
         clock::time_point startTimePoint;
+        string message;
 
     public:
-        Timer() : startTimePoint{clock::now()} {}
+        explicit Timer(const string_view msg = "") : startTimePoint{clock::now()}, message{msg} {}
 
         [[nodiscard]] auto elapsed() const {
             return chrono::duration_cast<chrono::milliseconds>(clock::now() - startTimePoint);
@@ -26,8 +29,7 @@ namespace g4m::diagnostics {
         }
 
         ~Timer() {
-            // cout << "Elapsed time: " << elapsed() << '\n';
-            INFO("Elapsed time: {}", elapsed());
+            INFO("{}: elapsed time: {}", message, elapsed());
         }
     };
 }

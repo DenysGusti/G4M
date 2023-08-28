@@ -448,8 +448,8 @@ namespace g4m::StartData {
         INFO("Successfully read {} lines.", plots.size() + 1);
     }
 
-    void readHistoric(const string_view file_path, datamapType &datamap, const string_view message,
-                      const uint16_t firstYear, const uint16_t lastYear) {
+    datamapType readHistoric(const string_view file_path, const string_view message,
+                             const uint16_t firstYear, const uint16_t lastYear) {
         auto fileName = fs::path{settings.inputPath} / file_path;
 
         ifstream fp{fileName};
@@ -466,6 +466,7 @@ namespace g4m::StartData {
             FATAL("{} file is empty!!!", message);
             throw runtime_error{"Empty input file"};
         }
+
         auto year_columns = line | rv::split(',') | rv::drop_while(
                 [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
                             rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
@@ -477,6 +478,7 @@ namespace g4m::StartData {
         };
         const auto [offset_first, offset_last] = getTrimmingOffsets();
 
+        datamapType datamap;
         datamap.reserve(30);
         vector<string> s_row;
         vector<double> d_row;
@@ -500,24 +502,17 @@ namespace g4m::StartData {
             }
         }
         INFO("Successfully read {} lines.", datamap.size() + 1);
+        return datamap;
     }
 
     void readDatamaps() {
-        array<tuple<string_view, datamapType *, string_view, uint16_t, uint16_t>, 4> datamaps_to_read = {
-                {
-                        {fileName_lp0, &histLandPrice, "Land Price", 2000, 2020},
-                        {fileName_wp0, &histWoodPrice, "Wood Price", 2000, 2020},
-                        {fileName_wd0, &histWoodDemand, "Wood Demand", 1990, 2021},
-                        {fileName_rd0, &histResiduesDemand, "Residues Demand", 2000, 2020},
-                }
-        };
-        for (const auto &[csv_path, pDatamap, message, firstYear, lastYear]: datamaps_to_read)
-            readHistoric(csv_path, *pDatamap, message, firstYear, lastYear);
+        histLandPrice = readHistoric(fileName_lp0, "Land Price", 2000, 2020);
+        histWoodPrice = readHistoric(fileName_wp0, "Wood Price", 2000, 2020);
+        histWoodDemand = readHistoric(fileName_wd0, "Wood Demand", 1990, 2021);
+        histResiduesDemand = readHistoric(fileName_rd0, "Residues Demand", 2000, 2020);
     }
 
-    void readGlobiomScenarios(const string_view file_path,
-                              heterDatamapScenariosType &scenariosDatamaps,
-                              const string_view message) {
+    heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message) {
         auto fileName = fs::path{settings.inputPath} / file_path;
 
         ifstream fp{fileName};
@@ -540,6 +535,7 @@ namespace g4m::StartData {
                             rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
                             ranges::to<vector<uint16_t> >();
 
+        heterDatamapScenariosType scenariosDatamaps;
         scenariosDatamaps.reserve(3'400);
         vector<string> s_row;
         vector<double> d_row;
@@ -564,19 +560,14 @@ namespace g4m::StartData {
             }
         }
         INFO("Successfully read {} lines.", scenariosDatamaps.size() + 1);
+        return scenariosDatamaps;
     }
 
     void readGlobiom() {
-        array<tuple<string_view, heterDatamapScenariosType *, string_view>, 4> scenariosDatamaps_to_read = {
-                {
-                        {fileName_lp, &landPriceScenarios, "Land Price"},
-                        {fileName_wp, &woodDemandScenarios, "Wood Price"},
-                        {fileName_wd, &woodDemandScenarios, "Wood Demand"},
-                        {fileName_rd, &residuesDemandScenarios, "Residues Demand"},
-                }
-        };
-        for (const auto &[csv_path, pScenariosDatamaps, message]: scenariosDatamaps_to_read)
-            readGlobiomScenarios(csv_path, *pScenariosDatamaps, message);
+        landPriceScenarios = readGlobiomScenarios(fileName_lp, "Land Price");
+        woodPriceScenarios = readGlobiomScenarios(fileName_wp, "Wood Price");
+        woodDemandScenarios = readGlobiomScenarios(fileName_wd, "Wood Demand");
+        residuesDemandScenarios = readGlobiomScenarios(fileName_rd, "Residues Demand");
     }
 
     void convertUnitsDatamaps() noexcept {
@@ -819,60 +810,63 @@ namespace g4m::StartData {
             getline(fp, line);
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                size_t x = lround((stod(s_row[0]) + 180) / gridStepLon - 0.5);
-                size_t y = lround((stod(s_row[1]) + 90) / gridStepLat - 0.5);
+                size_t x = lround((stod(s_row[0]) + 180) / gridStep - 0.5);
+                size_t y = lround((stod(s_row[1]) + 90) / gridStep - 0.5);
                 nuts2id[{x, y}] = s_row[2];
             }
         }
         INFO("Successfully read {} lines.", nuts2id.size() + 1);
     }
 
-    void printData() noexcept {
-        array<pair<datamapType *, string_view>, 4> datamaps_to_print = {
-                {
-                        {&histLandPrice, "Historic Land Price"},
-                        {&histWoodPrice, "Historic Wood Price"},
-                        {&histWoodDemand, "Historic Wood Demand"},
-                        {&histResiduesDemand, "Historic Residues Demand"},
-                }
-        };
-
-        array<pair<heterDatamapScenariosType *, string_view>, 7> scenariosDatamaps_to_print = {
-                {
-                        {&landPriceScenarios, "Globiom scenarios Land Price"},
-                        {&woodPriceScenarios, "Globiom scenarios Wood Price"},
-                        {&woodDemandScenarios, "Globiom scenarios Wood Demand"},
-                        {&residuesDemandScenarios, "Globiom scenarios Residues Demand"},
-                        {&globiomAfforMaxCountryScenarios, "globiomAfforMaxCountryScenarios"},
-                        {&globiomLandCountryScenarios, "globiomLandCountryScenarios"},
-                        {&CO2PriceScenarios, "CO2PriceScenarios"}
-                }
-        };
-
+    void printPlots() noexcept {
         TRACE("Plots:");
         for (size_t i = 0; const auto &plot: plots)
             TRACE("plots[{}]:\n{}", i++, plot.str());
+    }
 
-        for (const auto &[pDatamap, message]: datamaps_to_print) {
-            TRACE("{}", message);
-            for (const auto &[id, ipol]: *pDatamap)
+    void printDatamap(const datamapType &datamap, const string_view message) noexcept {
+        TRACE("{}", message);
+        for (const auto &[id, ipol]: datamap)
+            TRACE("{}\n{}", idCountryGLOBIOM[id], ipol.str());
+    }
+
+    void printDatamapScenarios(const heterDatamapScenariosType &datamapScenarios, const string_view message) noexcept {
+        TRACE("{}", message);
+        for (const auto &[scenario, datamap]: datamapScenarios) {
+            TRACE("{}", scenario);
+            for (const auto &[id, ipol]: datamap)
                 TRACE("{}\n{}", idCountryGLOBIOM[id], ipol.str());
         }
+    }
 
-        for (const auto &[pScenariosDatamap, message]: scenariosDatamaps_to_print) {
-            TRACE("{}", message);
-            for (const auto &[scenario, datamap]: *pScenariosDatamap) {
-                TRACE("{}", scenario);
-                for (const auto &[id, ipol]: datamap)
-                    TRACE("{}\n{}", idCountryGLOBIOM[id], ipol.str());
-            }
-        }
-
+    void printCountryLandArea() noexcept {
         for (uint16_t i = 0; const auto area: countryLandArea)
             TRACE("{} area = {}", idCountryGLOBIOM[i++], area);
+    }
 
+    void printNuts2Id() noexcept {
         for (const auto &[cords, NUTS2]: nuts2id)
             TRACE("x = {}, y = {}, NUTS2 = {}", cords.first, cords.second, NUTS2);
+    }
+
+    void printData() noexcept {
+        printPlots();
+
+        printDatamap(histLandPrice, "Historic Land Price");
+        printDatamap(histWoodPrice, "Historic Wood Price");
+        printDatamap(histWoodDemand, "Historic Wood Demand");
+        printDatamap(histResiduesDemand, "Historic Residues Demand");
+
+        printDatamapScenarios(landPriceScenarios, "Globiom scenarios Land Price");
+        printDatamapScenarios(woodPriceScenarios, "Globiom scenarios Wood Price");
+        printDatamapScenarios(woodDemandScenarios, "Globiom scenarios Wood Demand");
+        printDatamapScenarios(residuesDemandScenarios, "Globiom scenarios Residues Demand");
+        printDatamapScenarios(globiomAfforMaxCountryScenarios, "globiomAfforMaxCountryScenarios");
+        printDatamapScenarios(globiomLandCountryScenarios, "globiomLandCountryScenarios");
+        printDatamapScenarios(CO2PriceScenarios, "CO2PriceScenarios");
+
+        printCountryLandArea();
+        printNuts2Id();
     }
 
     void correctNUTS2Data() noexcept {
@@ -901,6 +895,7 @@ namespace g4m::StartData {
                             ERROR("!no x = {}, y = {}, NUTS2 = {}, countryISO = {}", plot.x, plot.y, NUTS2, countryISO);
                     }
                 } else {
+                    nuts2grid.setNeighNum(2, 2);
                     auto neighbours = nuts2grid.getNeighValues(plot.x, plot.y);
                     auto it_nearbyCountry = ranges::find_if(neighbours, [countryISO](const string_view el) {
                         return el.substr(0, 2) == countryISO;

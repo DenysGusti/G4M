@@ -20,9 +20,9 @@ namespace g4m::init {
         string coeffPath;
         string inputPath;
         string outputPath;
-        set<string> parametersTable;
-        set<string> parametersTableReg;
-        set<string> parametersMap;
+        set<string, less<> > parametersTable;
+        set<string, less<> > parametersTableReg;
+        set<string, less<> > parametersMap;
         bool produceTabs{};
         bool produceMaps{};
         array<bool, 3> tabs{};
@@ -43,7 +43,7 @@ namespace g4m::init {
 
             string line;
 
-            auto fillSet = [&](set<string> &s_set) -> void {
+            auto fillSet = [&](set<string, less<> > &s_set) -> void {
                 stringstream ss{line};
                 int num{};
                 DEBUG("numSet = {}", num);

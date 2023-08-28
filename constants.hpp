@@ -11,8 +11,8 @@ namespace g4m::Constants {
     constexpr size_t adjustLength = 31;  // 21.03.2023: a period over which G4M adjusts average FM emissions (31=2020-1990+1)
     constexpr uint16_t refYear = 2023; // C-tax policies start the next year // EUCLIMIT 2022:
 
-    constexpr double gridStepLat = 0.5;   // step by latitude
-    constexpr double gridStepLon = 0.5;   // step by longitude
+    // resolution of model
+    constexpr double gridStep = 0.5;    // step by latitude and longitude
 
     constexpr string_view fileName_dat = "b2_euclimit6_bioclima_feu2020_nai2010_11052023.csv";  // as _30032023 but unfccc managed forest area increased for a number of countries
     constexpr string_view suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_"; //t4 setup; New baseline; // Reduced hurdle 0.9 //22.06.2023: defShare_correction is introduced (calc v17) //16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to o

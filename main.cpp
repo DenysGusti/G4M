@@ -13,24 +13,24 @@ using namespace g4m::application::concrete;
 
 int main(int argc, char *argv[]) {
     try {
-        Timer timer;
+        Timer timer{"main"};
         Log::Init();
         StartData::Init();
 
-        Forest_GUI_Europe_param_dw_5_3 app{argc, argv};
-        app.Run();
+//        Forest_GUI_Europe_param_dw_5_3 app{argc, argv};
+//        app.Run();
 
         // app in thread
-//        g4m::ThreadPool pool;
-//        for (size_t i = 0; i < 10'000; ++i)
-//            pool.enqueue([&] {
-//                try {
-//                    Forest_GUI_Europe_param_dw_5_3 app{argc, argv};
-//                    app.Run();
-//                } catch (const exception &e) {
-//                    cerr << e.what() << endl;
-//                }
-//            });
+        g4m::ThreadPool pool;
+        for (size_t i = 0; i < 100; ++i)
+            pool.enqueue([&] {
+                try {
+                    Forest_GUI_Europe_param_dw_5_3 app{argc, argv};
+                    app.Run();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
     } catch (const exception &e) {
         cerr << e.what() << endl;
     }

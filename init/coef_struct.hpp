@@ -34,45 +34,45 @@ namespace g4m::init {
         //** parameters
         //******************************************************************************
         // Price-index of reference country
-        Ipol<float> PriceIndexE;
+        Ipol<double> PriceIndexE;
         // Minimum Land-price [cash/ha]
-        Ipol<float> PriceLandMinR;
+        Ipol<double> PriceLandMinR;
         // Maximum Land-price [cash/ha]
-        Ipol<float> PriceLandMaxR;
+        Ipol<double> PriceLandMaxR;
         // Factor Carbon uptake (DIMA-Model)
-        Ipol<float> FCuptake;
+        Ipol<double> FCuptake;
         // Commercial timber-volume per ton of carbon [m3/tC]
         //  Ipol<float,float> FTimber;
         // HarvestingLosses (Share of losses during harvest)
-        Ipol<float> HarvLoos;
+        Ipol<double> HarvLoos;
         // Carbon price [Cash/tC] (9/25)
-        Ipol<float> PriceC;
+        Ipol<double> PriceC;
         // Share of Long-living products [0-1]
-        Ipol<float> FracLongProd;
+        Ipol<double> FracLongProd;
         // Decrease rate of long living products
-        Ipol<float> decRateL;
+        Ipol<double> decRateL;
         // Decrease rate of short living products
-        Ipol<float> decRateS;
+        Ipol<double> decRateS;
         // Share of SlashBurn deforestation [0-1]
-        Ipol<float> SlashBurn;
+        Ipol<double> SlashBurn;
         // Frequency of aid payments (PRICECAID) [Years]
-        Ipol<float> FreqAid;
+        Ipol<double> FreqAid;
         // Aid Carbon Price [Cash/tC/FREQAID] (6)
-        Ipol<float> PriceCAid;
+        Ipol<double> PriceCAid;
         // Maximum rotation time im Years
-        Ipol<float> MaxRotInter;
+        Ipol<double> MaxRotInter;
         // Minimum rotation time im Years
-        Ipol<float> MinRotInter;
+        Ipol<double> MinRotInter;
         // Baseline
-        Ipol<float> baseline;
+        Ipol<double> baseline;
         // Maximum Timber-price [cash/m3]
-        Ipol<float> PriceTimberMaxR;
+        Ipol<double> PriceTimberMaxR;
         // Minimum Timber-price [cash/m3]
-        Ipol<float> PriceTimberMinR;
+        Ipol<double> PriceTimberMinR;
         // Planting costs in reference country [Cash/ha]
-        Ipol<float> PlantingCostsR;
+        Ipol<double> PlantingCostsR;
         // Standardised Population-density [1-10]
-        Ipol<float> sPopDens;
+        Ipol<double> sPopDens;
 
         // reading coefficients
         void readCoef(const string_view fileName) {
@@ -114,45 +114,45 @@ namespace g4m::init {
                 else if (tmp_s == "SOC")
                     SOC = static_cast<uint16_t>(val);
                 else if (tmp_s == "PRICELANDMINR")
-                    PriceLandMinR.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PriceLandMinR.data[tmp_d] = val;
                 else if (tmp_s == "PRICELANDMAXR")
-                    PriceLandMaxR.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PriceLandMaxR.data[tmp_d] = val;
                 else if (tmp_s == "FCUPTAKE")
-                    FCuptake.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    FCuptake.data[tmp_d] = val;
 //                else if (tmp_s == "FTIMBER")
-//                    FTimber.data[static_cast<float>(tmp_d)] = val;
+//                    FTimber.data[tmp_d] = val;
                 else if (tmp_s == "HARVLOOS")
-                    HarvLoos.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    HarvLoos.data[tmp_d] = val;
                 else if (tmp_s == "PRICEC")
-                    PriceC.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PriceC.data[tmp_d] = val;
                 else if (tmp_s == "FRACLONGPROD")
-                    FracLongProd.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    FracLongProd.data[tmp_d] = val;
                 else if (tmp_s == "DECRATEL")
-                    decRateL.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    decRateL.data[tmp_d] = val;
                 else if (tmp_s == "DECRATES")
-                    decRateS.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    decRateS.data[tmp_d] = val;
                 else if (tmp_s == "SLASHBURN")
-                    SlashBurn.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    SlashBurn.data[tmp_d] = val;
                 else if (tmp_s == "FREQAID")
-                    FreqAid.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    FreqAid.data[tmp_d] = val;
                 else if (tmp_s == "PRICECAID")
-                    PriceCAid.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PriceCAid.data[tmp_d] = val;
                 else if (tmp_s == "MAXROTINTER")
-                    MaxRotInter.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    MaxRotInter.data[tmp_d] = val;
                 else if (tmp_s == "MINROTINTER")
-                    MinRotInter.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    MinRotInter.data[tmp_d] = val;
                 else if (tmp_s == "BASELINE")
-                    baseline.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    baseline.data[tmp_d] = val;
                 else if (tmp_s == "PRICETIMBERMAXR")
-                    PriceTimberMaxR.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PriceTimberMaxR.data[tmp_d] = val;
                 else if (tmp_s == "PRICETIMBERMINR")
-                    PriceTimberMinR.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PriceTimberMinR.data[tmp_d] = val;
                 else if (tmp_s == "PRICEINDEXE")
-                    PriceIndexE.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PriceIndexE.data[tmp_d] = val;
                 else if (tmp_s == "PLANTINGCOSTSR")
-                    PlantingCostsR.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    PlantingCostsR.data[tmp_d] = val;
                 else if (tmp_s == "SPOPDENS")
-                    sPopDens.data[static_cast<float>(tmp_d)] = static_cast<float>(val);
+                    sPopDens.data[tmp_d] = val;
                 else
                     WARN("Unused data: {}\t{}", tmp_s, tmp_d);
             }

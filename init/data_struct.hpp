@@ -106,9 +106,9 @@ namespace g4m::init {
                 } else {
                     // integral vars
                     if (name == "X")
-                        x = lround((cell + 180) / gridStepLon - 0.5);
+                        x = lround((cell + 180) / gridStep - 0.5);
                     else if (name == "Y")
-                        y = lround((cell + 90) / gridStepLat - 0.5);
+                        y = lround((cell + 90) / gridStep - 0.5);
                     else if (name == "SIMUID")
                         simuID = static_cast<size_t>(cell);
                     else if (name == "COUNTRY")
