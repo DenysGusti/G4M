@@ -41,16 +41,17 @@ namespace g4m::application::concrete {
 
     class Forest_GUI_Europe_param_dw_5_3 : public Application {
     public:
-        Forest_GUI_Europe_param_dw_5_3(const int argc, const char *const argv[]) : Application{argc, argv} {}
-
-        explicit Forest_GUI_Europe_param_dw_5_3(const span<const string_view> &args_) : Application{args_} {}
+        explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> &args_) : Application{args_} {
+            Log::Init(appName);
+        }
 
         void Run() final {
-            Timer timer{format("{}_{}", full_scenario, inputPriceC)};
-            INFO("Application {}_{} is running", full_scenario, inputPriceC);
+            Timer timer{appName};
+            INFO("Application {} is running", appName);
             INFO("Scenario to read in: {}", full_scenario);
             INFO("Scenario to read GL: {}", full_scenario_gl);
 
+            mergeDatamaps();
             correctBelgium();
 
             CountryData countriesForestArea;
@@ -61,17 +62,17 @@ namespace g4m::application::concrete {
         int inputPriceC = stoi(args[4]);
         string full_scenario = c_scenario[0] + '_' + c_scenario[1] + '_' + c_scenario[2];
         string full_scenario_gl = full_scenario;
+        string appName = full_scenario + '_' + args[4];
         string local_suffix = string{suffix} + full_scenario + (inputPriceC == 0 ? "_Pco2_0" : "");
         string suffix0 = string{suffix} + c_scenario[1] + "_" + c_scenario[2];
 
-        // !!! don't change order of initialization, because mergeDatamap will throw access violation reading location
-        datamapType appLandPrice = mergeDatamap(histLandPrice, landPriceScenarios, "Land Price");
-        datamapType appWoodPrice = mergeDatamap(histWoodPrice, woodPriceScenarios, "Wood Price");
-        datamapType appWoodDemand = mergeDatamap(histWoodDemand, woodDemandScenarios, "Wood Demand");
-        datamapType appResiduesDemand = mergeDatamap(histResiduesDemand, residuesDemandScenarios, "Residues Demand");
+        datamapType appLandPrice;
+        datamapType appWoodPrice;
+        datamapType appWoodDemand;
+        datamapType appResiduesDemand;
 
         // wood from outside forests in Belgium to cover the inconsistency between FAOSTAT removals and Forest Europe increment and felling
-        Ipol<double> woodSupplement = appWoodDemand[20];
+        Ipol<double> woodSupplement;
 
         const size_t resLatitude = lround(180 / gridStep);
 
@@ -99,7 +100,8 @@ namespace g4m::application::concrete {
         datamapType mergeDatamap(datamapType histDatamap, const heterDatamapScenariosType &scenariosDatamaps,
                                  const string_view message) {
             if (!scenariosDatamaps.contains(full_scenario_gl)) {
-                ERROR("{} is not filled in, check scenarios!!!, full_scenario_gl = {}", message, full_scenario_gl);
+                ERROR("{} is not filled in, check scenarios!!!, full_scenario_gl = {}",
+                      message, full_scenario_gl);
                 throw runtime_error{"no scenario in datamapScenarios"};
             }
 
@@ -118,7 +120,15 @@ namespace g4m::application::concrete {
             return datamapDest;
         }
 
+        void mergeDatamaps() {
+            appLandPrice = mergeDatamap(histLandPrice, landPriceScenarios, "Land Price");
+            appWoodPrice = mergeDatamap(histWoodPrice, woodPriceScenarios, "Wood Price");
+            appWoodDemand = mergeDatamap(histWoodDemand, woodDemandScenarios, "Wood Demand");
+            appResiduesDemand = mergeDatamap(histResiduesDemand, residuesDemandScenarios, "Residues Demand");
+        }
+
         void correctBelgium() noexcept {
+            woodSupplement = appWoodDemand[20];
             // 05.04.2023: we assume that 14% of round-wood comes from outside forest
             // the Forest Europe net increment and felling values are less than FAOSTAT round-wood
             const double forestWood = 0.86;

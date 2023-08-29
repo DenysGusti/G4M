@@ -18,7 +18,7 @@ namespace g4m::diagnostics {
         string message;
 
     public:
-        explicit Timer(const string_view msg = "") : startTimePoint{clock::now()}, message{msg} {}
+        explicit Timer(const string_view msg) : startTimePoint{clock::now()}, message{msg} {}
 
         [[nodiscard]] auto elapsed() const {
             return chrono::duration_cast<chrono::milliseconds>(clock::now() - startTimePoint);

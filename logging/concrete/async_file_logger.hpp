@@ -17,14 +17,16 @@
 
 using namespace std;
 using namespace g4m::logging::abstract;
+namespace fs = filesystem;
 
 namespace g4m::logging::concrete {
 
     class AsyncFileLogger final : public ALogger {
     public:
-        explicit AsyncFileLogger(string_view file_name) : file{filesystem::path{file_name}} {
-            logger_thread = jthread{bind_front(&AsyncFileLogger::fileWorker, this)};
-        }
+        explicit AsyncFileLogger(const string_view file_name) : AsyncFileLogger(fs::path{file_name}) {}
+
+        explicit AsyncFileLogger(const fs::path &file_path) :
+                file{file_path}, logger_thread{bind_front(&AsyncFileLogger::fileWorker, this)} {}
 
         ~AsyncFileLogger() override {
             logger_thread.request_stop();
@@ -38,7 +40,7 @@ namespace g4m::logging::concrete {
         mutex mtx;
         condition_variable cv;
         jthread logger_thread;
-        queue<string> log_queue;
+        queue <string> log_queue;
 
         void log(const LogLevel level, const string_view message, const source_location &source) final {
             if (!(level & filter))

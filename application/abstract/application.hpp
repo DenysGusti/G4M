@@ -11,22 +11,24 @@ namespace g4m::application::abstract {
 
     class Application {
     public:
+        static vector <string> CreateArgsFromArgcArgv(const int argc, const char *const argv[]) noexcept {
+            vector<string> arguments;
+            arguments.reserve(argc);
+            for (size_t i = 0; i < argc; ++i)
+                arguments.emplace_back(argv[i]);
+            return arguments;
+        }
+
         Application() = default;
 
-        explicit Application(const span<const string_view> &args_) : args{args_.begin(), args_.end()} {}
-
-        Application(const int argc, const char *const argv[]) {
-            args.reserve(argc);
-            for (size_t i = 0; i < argc; ++i)
-                args.emplace_back(argv[i]);
-        };
+        Application(const span<const string> &args_) : args{args_.begin(), args_.end()} {}
 
         virtual void Run() = 0;
 
         virtual ~Application() = default;
 
     protected:
-        vector<string> args;
+        vector <string> args;
     };
 
 }

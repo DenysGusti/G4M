@@ -20,7 +20,7 @@ namespace g4m::increment {
                  const double atStep, const double asdNatStep, const double asdTabMax,
                  const double asdTabStep, const double aTimeframe = -1)
                 : ic{a, 1}, maiHi{max(0., aMaiMax)}, maiStep{aMaiStep}, tHi{max(0., atMax)}, tStep{atStep},
-                  sdNatStep{asdNatStep}, sdTabHi{asdTabMax}, sdTabStep{asdTabStep} {
+                  sdNatStep{asdNatStep}, sdTabHi{asdTabMax}, sdTabStep{asdTabStep}, timeframe{aTimeframe} {
             if (tStep <= 0. && tHi > 0)
                 tStep = tHi / 100;
 
@@ -39,7 +39,6 @@ namespace g4m::increment {
             if (sdTabHi > 0 && sdTabStep > 0)
                 nsdTab = 1 + static_cast<size_t>(ceil(sdTabHi / sdTabStep));
 
-            timeframe = aTimeframe;
             abm.assign(nt * nmai, 0);
             abmT.assign(nt * nmai, 0);
             abmSdTab.assign(nt * nmai * nsdTab, 0);  // sd below 1 is not used

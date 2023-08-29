@@ -17,20 +17,22 @@ int main(int argc, char *argv[]) {
         Log::Init();
         StartData::Init();
 
-//        Forest_GUI_Europe_param_dw_5_3 app{argc, argv};
-//        app.Run();
+        // 1 scenario
+        Forest_GUI_Europe_param_dw_5_3 app{Application::CreateArgsFromArgcArgv(argc, argv)};
+        app.Run();
 
-        // app in thread
+        // multiple scenarios
         g4m::ThreadPool pool;
-        for (size_t i = 0; i < 100; ++i)
-            pool.enqueue([&] {
-                try {
-                    Forest_GUI_Europe_param_dw_5_3 app{argc, argv};
-                    app.Run();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
+//        for (size_t i = 0; i < 8; ++i)
+//            pool.enqueue([&] {
+//                try {
+//                    Forest_GUI_Europe_param_dw_5_3 app{Application::CreateArgsFromArgcArgv(argc, argv)};
+//                    app.Run();
+//                } catch (const exception &e) {
+//                    cerr << e.what() << endl;
+//                }
+//            });
+
     } catch (const exception &e) {
         cerr << e.what() << endl;
     }
