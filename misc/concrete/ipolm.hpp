@@ -78,8 +78,7 @@ namespace g4m::misc::concrete {
                         pos += mul;
 
                     if (pos >= regions) {
-                        cerr << format("out of range problem: pos = {}, regions = {}", pos, regions)
-                             << endl;  // or to logger
+                        ERROR("out of range problem: pos = {}, regions = {}", pos, regions);
                         return 0;
                     }
 

@@ -16,7 +16,7 @@ namespace g4m::increment {
     class IncrementTab {
     public:
         IncrementTab
-                (const array<double, 47> &a, const double aMaiMax, const double aMaiStep, const double atMax,
+                (const span<const double> a, const double aMaiMax, const double aMaiStep, const double atMax,
                  const double atStep, const double asdNatStep, const double asdTabMax,
                  const double asdTabStep, const double aTimeframe = -1)
                 : ic{a, 1}, maiHi{max(0., aMaiMax)}, maiStep{aMaiStep}, tHi{max(0., atMax)}, tStep{atStep},
@@ -71,7 +71,7 @@ namespace g4m::increment {
             fillTables();
         }
 
-        int setCoef(const array<double, 47> &a) {
+        int setCoef(const span<const double> a) {
             ic.setCoef(a);
         }
 

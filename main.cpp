@@ -20,9 +20,10 @@ int main(int argc, char *argv[]) {
         // 1 scenario
         Forest_GUI_Europe_param_dw_5_3 app{Application::CreateArgsFromArgcArgv(argc, argv)};
         app.Run();
+        LOG_DEBUG("Dynamic allocation: {} bytes", s_AllocationMetrics.CurrentUsage());
 
         // multiple scenarios
-        g4m::ThreadPool pool;
+//        g4m::ThreadPool pool;
 //        for (size_t i = 0; i < 8; ++i)
 //            pool.enqueue([&] {
 //                try {

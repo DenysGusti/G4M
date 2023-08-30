@@ -29,7 +29,7 @@ namespace g4m::misc::concrete {
             data.assign(reduce(n.cbegin(), n.cend(), size_t{1}, multiplies<>{}), 0);
         }
 
-        FFIpolM(const IpolM<T> &t, const span<const T> zoom_, const T add = 0.5) : zoom{zoom_} {
+        FFIpolM(const IpolM<T> &t, const span<const T> zoom_, const T add = 0.5) : zoom{zoom_.begin(), zoom_.end()} {
             vector<T> idxMin = t.minKey();
             vector<T> idxMax = t.maxKey();
 
@@ -49,7 +49,7 @@ namespace g4m::misc::concrete {
             fillMap(t, key, 0, 0, 1, add);
         }
 
-        explicit FFIpolM(const IpolM<T> &t, const T add = 0.5) : FFIpolM(t, vector<T>{t.minKey().size(), 1}, add) {}
+        explicit FFIpolM(const IpolM<T> &t, const T add = 0.5) : FFIpolM(t, vector<T>(t.minKey().size(), 1), add) {}
 
         bool insert(const span<const size_t> indices, const T value) {
             if (indices.size() != dim) {
@@ -123,7 +123,7 @@ namespace g4m::misc::concrete {
             for (size_t i = 0; i < n[aDim]; ++i) {
                 key[aDim] = (intercept[aDim] + i) / zoom[aDim] + add;
                 if (aDim + 1 < dim) {
-                    fillMap(key, idx_ + i * mul, aDim + 1, mul * n[aDim], add);
+                    fillMap(t, key, idx_ + i * mul, aDim + 1, mul * n[aDim], add);
                 } else {
                     data[idx_ + i * mul] = t(key);
                 }

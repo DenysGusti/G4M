@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <ranges>
 #include <optional>
+#include <memory>
 
 #include "../init/settings.hpp"
 #include "../init/country_species.hpp"
@@ -16,16 +17,20 @@
 #include "../init/data_grid.hpp"
 
 #include "../misc/concrete/ipol.hpp"
+#include "../misc/concrete/ipolm.hpp"
+#include "../misc/concrete/ffipol.hpp"
 
 #include "../diagnostics/heterogeneous_lookup.hpp"
 
 #include "../constants.hpp"
 #include "../arrays/arrays.hpp"
 #include "../log.hpp"
+#include "../increment/increment_tab.hpp"
 
 using namespace std;
 
 using namespace g4m::init;
+using namespace g4m::increment;
 using namespace g4m::Arrays;
 using namespace g4m::Constants;
 namespace fs = filesystem;
@@ -84,8 +89,10 @@ namespace g4m::StartData {
     unordered_map<uint8_t, string> idCountryGLOBIOM;
     unordered_map<string, uint8_t, string_hash, equal_to<>> countryGLOBIOMId;
 
+    vector<IncrementTab> species{};
+
     vector<DataStruct> plots;  // structure with data plots[<elNum>].<variable>[year]
-    map<pair<size_t, size_t >, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
+    map <pair<size_t, size_t>, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
 
     using datamapType = unordered_map<uint8_t, Ipol < double>>;
     using heterDatamapScenariosType = unordered_map<string, datamapType, string_hash, equal_to<>>;
@@ -105,7 +112,23 @@ namespace g4m::StartData {
 
     heterDatamapScenariosType CO2PriceScenarios;
 
-    DataGrid<string> nuts2grid;
+    DataGrid <string> nuts2grid;
+
+    Ipol<double> sws;       // Schnittholzanteil an Vfm
+    Ipol<double> hlv;       // 1-Ernteverluste Vornutzung
+    Ipol<double> hle;       // 1-Ernteverluste Endnutzung
+    IpolM<double> cov;      // costs Vornutzung
+    IpolM<double> coe;      // costs Endnutzung
+    IpolM<double> dov;      // do Vornutzung
+    IpolM<double> doe;      // do Endnutzung
+    Ipol<double> sdMaxH;    // sdMaxH
+    Ipol<double> sdMinH;    // sdMinH
+
+    FFIpol<double> ffsws; // sawn-wood share of harvested wood depending on dbh
+    FFIpol<double> ffhlv; // 1-harvesting losses thinning (Vornutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
+    FFIpol<double> ffhle; // 1-harvesting losses final felling (Endnutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
+    FFIpol<double> ffsdMaxH; // stocking degree depending on max tree height
+    FFIpol<double> ffsdMinH; // stocking degree depending on max (min?) tree height
 }
 
 #endif

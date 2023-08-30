@@ -3,11 +3,9 @@
 
 #include <iostream>
 #include <array>
-#include <tuple>
 #include <string>
 #include <set>
 #include <unordered_set>
-#include <random>
 
 #include "../../log.hpp"
 #include "../../diagnostics/debugging.hpp"
@@ -25,6 +23,8 @@
 #include "../../structs/dat.hpp"
 
 #include "../../increment/age_struct.hpp"
+
+#include "../../misc/concrete/ffipolm.hpp"
 
 using namespace std;
 
@@ -46,7 +46,6 @@ namespace g4m::application::concrete {
         }
 
         void Run() final {
-            Timer timer{appName};
             INFO("Application {} is running", appName);
             INFO("Scenario to read in: {}", full_scenario);
             INFO("Scenario to read GL: {}", full_scenario_gl);
@@ -58,13 +57,15 @@ namespace g4m::application::concrete {
         }
 
     protected:
+        string appName = format("{}_{}_{}_{}", args[1], args[2], args[3], args[4]);
+        Timer timer{appName};
+
         array<string, 3> c_scenario = {args[1], args[2], args[3]};
         int inputPriceC = stoi(args[4]);
         string full_scenario = c_scenario[0] + '_' + c_scenario[1] + '_' + c_scenario[2];
         string full_scenario_gl = full_scenario;
-        string appName = full_scenario + '_' + args[4];
         string local_suffix = string{suffix} + full_scenario + (inputPriceC == 0 ? "_Pco2_0" : "");
-        string suffix0 = string{suffix} + c_scenario[1] + "_" + c_scenario[2];
+        string suffix0 = string{suffix} + c_scenario[1] + '_' + c_scenario[2];
 
         datamapType appLandPrice;
         datamapType appWoodPrice;
@@ -96,6 +97,15 @@ namespace g4m::application::concrete {
 
         DataGrid<double> MaxNPVGrid{resLatitude};
         DataGrid<double> salvageLogging{resLatitude}; // salvage logging wood
+
+        // Thinning costs (depending on d and removed volume per hectare) in relation to standing timber (Vorratsfestmeter)
+        FFIpolM<double> ffcov{cov};
+        // Harvesting costs depending on d and vol
+        FFIpolM<double> ffcoe{coe};
+        // Do thinning (depending on d and removed volume per hectare) in relation to standing timber (Vorratsfestmeter)
+        FFIpolM<double> ffdov{dov};
+        // Do final felling (depending on d and stocking volume per hectare)
+        FFIpolM<double> ffdoe{doe};
 
         datamapType mergeDatamap(datamapType histDatamap, const heterDatamapScenariosType &scenariosDatamaps,
                                  const string_view message) {

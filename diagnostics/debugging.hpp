@@ -4,9 +4,9 @@
 #include <iostream>
 
 #if PR_DEBUG == 1
-#define LOG_DEBUG(x) do { cout << x << endl; } while(false)
+#define LOG_DEBUG(...) do { cout << format(__VA_ARGS__) << '\n'; } while(false)
 #elif defined(PR_RELEASE)
-#define LOG_DEBUG(x)
+#define LOG_DEBUG(...)
 #endif
 
 
@@ -18,7 +18,7 @@ namespace g4m::diagnostics {
         uint64_t TotalAllocated = 0;
         uint64_t TotalFreed = 0;
 
-        [[nodiscard]] uint64_t CurrentUsage() const {
+        [[nodiscard]] uint64_t CurrentUsage() const noexcept {
             return TotalAllocated - TotalFreed;
         }
     };

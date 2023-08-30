@@ -21,7 +21,7 @@ namespace g4m::application::abstract {
 
         Application() = default;
 
-        Application(const span<const string> &args_) : args{args_.begin(), args_.end()} {}
+        explicit Application(const span<const string> &args_) : args{args_.begin(), args_.end()} {}
 
         virtual void Run() = 0;
 
