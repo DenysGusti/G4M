@@ -32,9 +32,11 @@ namespace g4m::Arrays {
     constexpr array<double, numberOfCountries> defor_bm_em_unfccc_MtCO2 = initDefor_bm_em_unfccc_MtCO2(); // deforestation biomass emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
     constexpr array<double, numberOfCountries> defor_dom_em_unfccc_MtCO2 = initDefor_dom_em_unfccc_MtCO2(); // deforestation DOM emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
     constexpr array<double, numberOfCountries> harvestedWoodUse = initHarvestedWoodUse();
+    constexpr array<double, numberOfCountries> maiCoefficients = initMaiCoefficients();
 
     constinit array<double, numberOfCountries> FM_sink_stat = initFM_sink_stat();
     constinit array<double, numberOfCountries> countryLandArea = initCountryLandArea();  // country terrestrial land area, kha, read in from the GLOBIOM country LC file
+    constinit array<double, numberOfCountries> MAI_CountryUprotect = initMAI_CountryUprotect();
 
     constexpr array<uint8_t, 30> eu28OrderCode = initEu28OrderCode();  // country G4M code for EU28 countries + Norway + Switzerland for the FM sink data from the UNFCC
     constexpr array<uint8_t, 42> annex1OrderCode = initAnnex1OrderCode(); // country G4M code for the Annex-1 countries the FM sink data from the UNFCC

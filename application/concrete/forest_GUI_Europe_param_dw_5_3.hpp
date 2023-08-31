@@ -45,13 +45,14 @@ namespace g4m::application::concrete {
             Log::Init(appName);
         }
 
-        void Run() final {
+        void Run() override {
             INFO("Application {} is running", appName);
             INFO("Scenario to read in: {}", full_scenario);
             INFO("Scenario to read GL: {}", full_scenario_gl);
 
             mergeDatamaps();
             correctBelgium();
+            initMaiClimateShifters();
 
             CountryData countriesForestArea;
         }
@@ -86,8 +87,7 @@ namespace g4m::application::concrete {
         DataGrid<double> thinningForestNew{resLatitude};
         DataGrid<double> thinningForest10{resLatitude};
         DataGrid<double> thinningForest30{resLatitude};
-
-        DataGrid<float> OforestShGrid{resLatitude};
+        DataGrid<double> OforestShGrid{resLatitude};
 
         DataGrid<char> decisionGrid{resLatitude};
         DataGrid<char> managedForest{resLatitude};
@@ -106,6 +106,8 @@ namespace g4m::application::concrete {
         FFIpolM<double> ffdov{dov};
         // Do final felling (depending on d and stocking volume per hectare)
         FFIpolM<double> ffdoe{doe};
+
+        simuIdType appMaiClimateShifters;
 
         datamapType mergeDatamap(datamapType histDatamap, const heterDatamapScenariosType &scenariosDatamaps,
                                  const string_view message) {
@@ -144,6 +146,15 @@ namespace g4m::application::concrete {
             const double forestWood = 0.86;
             appWoodDemand[20] *= forestWood;  // Belgium
             woodSupplement *= 1 - forestWood;
+        }
+
+        void initMaiClimateShifters() {
+            if (!maiClimateShifters.contains(c_scenario[2])) {
+                WARN("maiClimateShifters doesn't contain c_scenario[2]: {}", c_scenario[2]);
+                return;
+            }
+
+            appMaiClimateShifters = maiClimateShifters[c_scenario[2]];
         }
     };
 }

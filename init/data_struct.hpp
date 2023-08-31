@@ -14,9 +14,9 @@ using namespace g4m::misc::concrete;
 namespace g4m::init {
 
     struct DataStruct {
-        size_t x = 0;
-        size_t y = 0;
-        size_t simuID = 0;
+        uint32_t x = 0;
+        uint32_t y = 0;
+        uint32_t simuID = 0;
 
         uint8_t country = 0;
         uint8_t IIASA_region = 0;
@@ -110,7 +110,7 @@ namespace g4m::init {
                     else if (name == "Y")
                         y = lround((cell + 90) / gridStep - 0.5);
                     else if (name == "SIMUID")
-                        simuID = static_cast<size_t>(cell);
+                        simuID = static_cast<uint32_t>(cell);
                     else if (name == "COUNTRY")
                         country = static_cast<uint8_t>(cell);
                     else if (name == "IIASA_REGION")

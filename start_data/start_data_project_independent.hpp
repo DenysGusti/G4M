@@ -688,7 +688,7 @@ namespace g4m::StartData {
             throw runtime_error{"Empty input file"};
         }
 
-        size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
+        const size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
         auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
                       ranges::to<vector<string> >();
 
@@ -810,8 +810,8 @@ namespace g4m::StartData {
             getline(fp, line);
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                size_t x = lround((stod(s_row[0]) + 180) / gridStep - 0.5);
-                size_t y = lround((stod(s_row[1]) + 90) / gridStep - 0.5);
+                uint32_t x = lround((stod(s_row[0]) + 180) / gridStep - 0.5);
+                uint32_t y = lround((stod(s_row[1]) + 90) / gridStep - 0.5);
                 nuts2id[{x, y}] = s_row[2];
             }
         }
@@ -849,24 +849,45 @@ namespace g4m::StartData {
             TRACE("x = {}, y = {}, NUTS2 = {}", cords.first, cords.second, NUTS2);
     }
 
+    void printSimuId(const simuIdType &simuIdDatamap, const string_view message) noexcept {
+        TRACE("{}", message);
+        for (const auto &[id, ipol]: simuIdDatamap)
+            TRACE("{}\n{}", id, ipol.str());
+    }
+
+    void printSimuIdScenarios(const heterSimuIdScenariosType &simuIdScenarios, const string_view message) noexcept {
+        TRACE("{}", message);
+        for (const auto &[scenario, simuIdDatamap]: simuIdScenarios) {
+            TRACE("{}", scenario);
+            for (const auto &[simu_id, ipol]: simuIdDatamap)
+                TRACE("{}\n{}", simu_id, ipol.str());
+        }
+    }
+
     void printData() noexcept {
-        printPlots();
+//        printPlots();
+//
+//        printDatamap(histLandPrice, "Historic Land Price");
+//        printDatamap(histWoodPrice, "Historic Wood Price");
+//        printDatamap(histWoodDemand, "Historic Wood Demand");
+//        printDatamap(histResiduesDemand, "Historic Residues Demand");
+//
+//        printDatamapScenarios(landPriceScenarios, "Globiom scenarios Land Price");
+//        printDatamapScenarios(woodPriceScenarios, "Globiom scenarios Wood Price");
+//        printDatamapScenarios(woodDemandScenarios, "Globiom scenarios Wood Demand");
+//        printDatamapScenarios(residuesDemandScenarios, "Globiom scenarios Residues Demand");
+//        printDatamapScenarios(globiomAfforMaxCountryScenarios, "globiomAfforMaxCountryScenarios");
+//        printDatamapScenarios(globiomLandCountryScenarios, "globiomLandCountryScenarios");
+//        printDatamapScenarios(CO2PriceScenarios, "CO2PriceScenarios");
+//
+//        printCountryLandArea();
+//        printNuts2Id();
+//
+//        printSimuIdScenarios(maiClimateShifters, "maiClimateShifters");
 
-        printDatamap(histLandPrice, "Historic Land Price");
-        printDatamap(histWoodPrice, "Historic Wood Price");
-        printDatamap(histWoodDemand, "Historic Wood Demand");
-        printDatamap(histResiduesDemand, "Historic Residues Demand");
-
-        printDatamapScenarios(landPriceScenarios, "Globiom scenarios Land Price");
-        printDatamapScenarios(woodPriceScenarios, "Globiom scenarios Wood Price");
-        printDatamapScenarios(woodDemandScenarios, "Globiom scenarios Wood Demand");
-        printDatamapScenarios(residuesDemandScenarios, "Globiom scenarios Residues Demand");
-        printDatamapScenarios(globiomAfforMaxCountryScenarios, "globiomAfforMaxCountryScenarios");
-        printDatamapScenarios(globiomLandCountryScenarios, "globiomLandCountryScenarios");
-        printDatamapScenarios(CO2PriceScenarios, "CO2PriceScenarios");
-
-        printCountryLandArea();
-        printNuts2Id();
+        printSimuId(disturbWind, "disturbWind");
+        printSimuId(disturbFire, "disturbFire");
+        printSimuId(disturbBiotic, "disturbBiotic");
     }
 
     void correctNUTS2Data() noexcept {
@@ -1022,6 +1043,223 @@ namespace g4m::StartData {
         ffsdMaxH = FFIpol<double>{sdMaxH};
     }
 
+    void correctMAI() noexcept {
+        for (auto &plot: plots)
+            // Test only some regions and some countries
+            if (regions.contains(plot.polesReg) && countriesList.contains(plot.country) &&
+                plot.protect.data.at(2000) == 0) {  // if there is no lerp, why not simple map then?
+                // forest with specified age structure
+                plot.MAIE.data[2000] *= maiCoefficients[plot.country];
+                plot.MAIN.data[2000] *= maiCoefficients[plot.country];
+            }
+    }
+
+    void calculateAverageMAI() noexcept {
+        INFO("calculating average MAI");
+        array<double, numberOfCountries> forestAreaCountry{};
+        for (const auto &plot: plots)
+            // Test only some regions and some countries
+            if (regions.contains(plot.polesReg) && countriesList.contains(plot.country) &&
+                plot.protect.data.at(2000) == 0) {
+                double forestArea0 = plot.landArea * 100 * clamp(plot.forest, 0., 1.);
+                if (forestArea0 > 0) {
+                    // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
+                    MAI_CountryUprotect[plot.country - 1] += plot.MAIE.data.at(2000) * forestArea0;
+                    forestAreaCountry[plot.country - 1] += forestArea0;
+                }
+            }
+
+        for (auto &&[MAI, area]: rv::zip(MAI_CountryUprotect, forestAreaCountry))
+            if (area > 0)
+                MAI /= area;
+
+        for (size_t i = 0; i < MAI_CountryUprotect.size(); ++i)
+            if (MAI_CountryUprotect[i] > 0)
+                DEBUG("MAI_CountryUprotect[{}] = {}", i, MAI_CountryUprotect[i]);
+
+        INFO("calculated average MAI");
+    }
+
+    void initPlotsSimuID() noexcept {
+        for (const auto &plot: plots)
+            plotsSimuID[{plot.x, plot.y}] = plot.simuID;
+    }
+
+    void readMAIClimate() {
+        if (!MAIClimateShift) {
+            INFO("MAIClimateShift is turned off");
+            return;
+        }
+
+        if (fileName_maic.empty()) {
+            WARN("No MAI climate data!!!!");
+            return;
+        }
+        auto fileName = fs::path{settings.inputPath} / fileName_maic;
+
+        ifstream fp{fileName};
+        if (!fp.is_open()) {
+            FATAL("Cannot read {}", fileName.string());
+            throw runtime_error{"Cannot read input file"};
+        }
+
+        INFO("> Reading the MAI climate data ... {}", fileName.string());
+        string line;
+        getline(fp, line);
+
+        if (line.empty()) {
+            FATAL("MAI climate country data is empty!!!");
+            throw runtime_error{"Empty input file"};
+        }
+
+        // ...1,ClimaScen,ANYRCP,lon,lat,Year,G4MOutput,value
+        maiClimateShifters.reserve(96);  // 2'373'408 / 24'723 = 96
+
+        vector<string> s_row;
+        string scenario_name;
+        uint32_t line_num = 2;
+
+        for (; fp; ++line_num) {
+            getline(fp, line);
+
+            if (!line.empty() && line[0] != '#') {
+                s_row = line | rv::split(',') | ranges::to<vector<string> >();
+
+                if (s_row[6] == "mai")
+                    if (uint16_t year = stoi(s_row[5]); year <= coef.eYear) {
+
+                        uint32_t x = lround((stod(s_row[3]) + 180) / gridStep - 0.5);
+                        uint32_t y = lround((stod(s_row[4]) + 90) / gridStep - 0.5);
+
+                        if (auto g4mId = plotsSimuID.find({x, y}); g4mId != plotsSimuID.end()) {
+                            scenario_name = s_row[2] + '_' + s_row[1] | rv::transform(::toupper) | ranges::to<string>();
+                            double value = stod(s_row[7]);
+                            maiClimateShifters[scenario_name][g4mId->second].data[year] = value;
+                        }
+                    }
+            }
+        }
+
+        INFO("Successfully read {} lines.", line_num);
+    }
+
+    // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
+    void scaleMAIClimate2020() noexcept {
+        if (!scaleMAIClimate) {
+            INFO("scaleMAIClimate is turned off");
+            return;
+        }
+
+        INFO("Scaling MAI climate shifters to the 2020 value!");
+        for (auto &[scenario, MAI]: maiClimateShifters)
+            for (auto &[simu_id, ipol]: MAI) {
+                double reciprocal_value_2020 = 1 / ipol.data[2020];
+                ipol *= reciprocal_value_2020;
+            }
+    }
+
+    void applyMAIClimateShifters() noexcept {
+        if (!MAIClimateShift) {
+            INFO("MAIClimateShift is turned off");
+            return;
+        }
+
+        for (auto &plot: plots)
+            // Test only some regions and some countries
+            if (regions.contains(plot.polesReg) && countriesList.contains(plot.country)) {
+                double maie = plot.MAIE.data[2000];
+                double main = plot.MAIN.data[2000];
+                double npp = plot.NPP.data[2000];
+
+                plot.decHerb.data[2020] = plot.decHerb.data[2000];
+                plot.decWood.data[2020] = plot.decWood.data[2000];
+                plot.decSOC.data[2020] = plot.decSOC.data[2000];
+
+                for (const auto &[scenario, MAI]: maiClimateShifters)
+                    if (MAI.contains(plot.simuID))
+                        for (const auto [year, value]: MAI.at(plot.simuID).data) {
+                            plot.MAIE.data[year] = maie * value;
+                            plot.MAIN.data[year] = main * value;
+                            plot.NPP.data[year] = npp * value;
+                        }
+            }
+    }
+
+    void readDisturbances() {
+        if (!disturbanceTrend) {
+            INFO("disturbanceTrend is turned off");
+            return;
+        }
+
+        if (fileName_disturbance.empty()) {
+            WARN("No disturbance projection data!!!!");
+            return;
+        }
+        auto fileName = fs::path{settings.inputPath} / fileName_disturbance;
+
+        ifstream fp{fileName};
+        if (!fp.is_open()) {
+            FATAL("Cannot read {}", fileName.string());
+            throw runtime_error{"Cannot read input file"};
+        }
+
+        INFO("> Reading the disturbance data ... {}", fileName.string());
+        string line;
+        getline(fp, line);
+
+        if (line.empty()) {
+            FATAL("Disturbance data is empty!!!");
+            throw runtime_error{"Empty input file"};
+        }
+
+        // "","lon","lat","Year","Agent","value"
+        disturbWind.reserve(22'000);
+        disturbFire.reserve(22'000);
+        disturbBiotic.reserve(22'000);
+
+        vector<string> s_row;
+        uint32_t line_num = 2;
+
+        for (; fp; ++line_num) {
+            getline(fp, line);
+            erase(line, '"');  // trimming double quotes
+
+            if (!line.empty() && line[0] != '#') {
+                s_row = line | rv::split(',') | ranges::to<vector<string> >();
+
+                if (uint16_t year = stoi(s_row[3]); year <= coef.eYear) {
+
+                    uint32_t x = lround((stod(s_row[1]) + 180) / gridStep - 0.5);
+                    uint32_t y = lround((stod(s_row[2]) + 90) / gridStep - 0.5);
+
+                    if (auto g4mId = plotsSimuID.find({x, y}); g4mId != plotsSimuID.end()) {
+                        double value = stod(s_row[5]);
+
+                        if (s_row[4] == "wind")
+                            disturbWind[g4mId->second].data[year] = value;
+                        else if (s_row[4] == "fire")
+                            disturbFire[g4mId->second].data[year] = value;
+                        else if (s_row[4] == "biotic")
+                            disturbBiotic[g4mId->second].data[year] = value;
+                        else
+                            WARN("Unknown agent type: {}, line: {}", s_row[4], line_num);
+                    }
+                }
+            }
+        }
+
+        INFO("Successfully read {} lines.", line_num);
+    }
+
+    void add2020Disturbances() noexcept {
+        for (auto &[id, ipol]: disturbWind)
+            ipol.data[2020] = ipol.data[2030] / 1.025;
+        for (auto &[id, ipol]: disturbFire)
+            ipol.data[2020] = ipol.data[2030] / 1.05;
+        for (auto &[id, ipol]: disturbBiotic)
+            ipol.data[2020] = ipol.data[2030] / 1.05;
+    }
+
 // Lists of countries, regions and mixed to be considered
     void Init() {
         settings.readSettings("settings_Europe_dw_v02.ini");
@@ -1046,11 +1284,19 @@ namespace g4m::StartData {
         readGlobiomLandCountry();
         readCO2price();
         readNUTS2();
-//        printData();
         nuts2grid.fillFromNUTS(nuts2id);
         correctNUTS2Data();
         defineSpecies();
         setupFMP();
+        correctMAI();
+        calculateAverageMAI();
+        initPlotsSimuID();
+        readMAIClimate();
+        scaleMAIClimate2020();
+        applyMAIClimateShifters();
+        readDisturbances();
+        add2020Disturbances();
+        printData();
     }
 }
 

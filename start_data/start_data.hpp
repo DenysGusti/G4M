@@ -89,10 +89,10 @@ namespace g4m::StartData {
     unordered_map<uint8_t, string> idCountryGLOBIOM;
     unordered_map<string, uint8_t, string_hash, equal_to<>> countryGLOBIOMId;
 
-    vector<IncrementTab> species{};
+    vector<IncrementTab> species;
 
     vector<DataStruct> plots;  // structure with data plots[<elNum>].<variable>[year]
-    map <pair<size_t, size_t>, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
+    map <pair<uint32_t, uint32_t>, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
 
     using datamapType = unordered_map<uint8_t, Ipol < double>>;
     using heterDatamapScenariosType = unordered_map<string, datamapType, string_hash, equal_to<>>;
@@ -129,6 +129,16 @@ namespace g4m::StartData {
     FFIpol<double> ffhle; // 1-harvesting losses final felling (Endnutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
     FFIpol<double> ffsdMaxH; // stocking degree depending on max tree height
     FFIpol<double> ffsdMinH; // stocking degree depending on max (min?) tree height
+
+    map <pair<uint32_t, uint32_t>, uint32_t> plotsSimuID;  // <[x, y], simuID>
+
+    using simuIdType = unordered_map<uint32_t, Ipol < double>>;
+    using heterSimuIdScenariosType = unordered_map<string, simuIdType, string_hash, equal_to<>>;
+
+    heterSimuIdScenariosType maiClimateShifters;  // MAI climate shifters
+    simuIdType disturbWind;     // wood damage due to windfalls, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType disturbFire;     // wood damage due to biotic agents (mostly bark beetle), m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType disturbBiotic;   // wood damage due to fire, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
 }
 
 #endif

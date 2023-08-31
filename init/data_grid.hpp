@@ -42,7 +42,7 @@ namespace g4m::init {
             gridCountries.assign(bottomRight.x - topLeft.x, vector<uint8_t>(bottomRight.y - topLeft.y, 0));
         }
 
-        void fillFromNUTS(const map<pair<size_t, size_t>, string> &NUTS2_dict) requires is_same_v<T, string> {
+        void fillFromNUTS(const map<pair<uint32_t, uint32_t>, string> &NUTS2_dict) requires is_same_v<T, string> {
             for (const auto &[coords, NUTS2]: NUTS2_dict)
                 grid[0][coords.first - topLeft.x][coords.second - topLeft.y] = NUTS2;
         }

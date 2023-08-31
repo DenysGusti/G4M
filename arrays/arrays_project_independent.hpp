@@ -1500,6 +1500,44 @@ namespace g4m::Arrays {
         countryRegion[244] = 0;
         return countryRegion;
     }
+
+    consteval array<double, numberOfCountries> initMaiCoefficients() noexcept {
+        array<double, numberOfCountries> maiCoefficients{};
+        maiCoefficients.fill(1);
+        maiCoefficients[17] = 1.15 * 0.9927 * 0.9952 * 1.0015;
+        maiCoefficients[20] = 1.04 * 1.01 * 1.0056 * 1.002;
+        maiCoefficients[24] = 1.01 * 0.998 * 0.998;
+        maiCoefficients[56] = 0.91 * 1.0292 * 0.996;
+        maiCoefficients[57] = 1.11 * 1.012 * 1.00186;
+        maiCoefficients[58] = 0.953864624 * 1.151 * 1.012 * 1.0044;
+        maiCoefficients[61] = 0.936692813 * 1.004 * 1.001;
+        maiCoefficients[68] = 0.802 * 1.023 * 1.224 * 0.99;
+        maiCoefficients[69] = 0.975 * 0.971 * 1.0427 * 0.975 * 1.0015;
+        maiCoefficients[71] = 0.937165466 * 1.11 * 1.0069;
+        maiCoefficients[74] = 0.979 * 0.9975;
+        maiCoefficients[78] = 0.87690769 * 1.142 * 1.0294 * 1.022;
+        maiCoefficients[87] = 1.0073 * 0.9259 * 1.02;
+        maiCoefficients[97] = 1.11 * 0.89 * 1.06898 * 0.98 * 0.99881;
+        maiCoefficients[99] = 0.926 * 1.0461 * 0.991;
+        maiCoefficients[103] = 1.096244868 * 1.147 * 1.0272 * 0.9991;
+        maiCoefficients[108] = 1.111 * 0.961960892 * 1.00925 * 1.0024;
+        maiCoefficients[128] = 0.845117989 * 1.134 * 0.97099 * 1.00997;
+        maiCoefficients[129] = 2.015 * 0.7 * 0.816;
+        maiCoefficients[130] = 0.67 * 2.04 * 0.7887 * 0.9899;
+        maiCoefficients[161] = 0.960952497 * 0.834 * 0.9163 * 0.962 * 0.98;
+        maiCoefficients[174] = 1.012 * 1.004 * 1.00196;
+        maiCoefficients[177] = 0.96 * 1.175 * 1.006 * 0.9989;
+        maiCoefficients[183] = 1.069 * 0.98 * 0.994 * 1.13;
+        maiCoefficients[202] = 0.974 * 0.9876 * 0.9984;
+        maiCoefficients[203] = 1.347 * 1.173 * 1.037 * 1.013;
+        maiCoefficients[204] = 1.218 * 1.03579 * 1.018;
+        return maiCoefficients;
+    }
+
+    consteval array<double, numberOfCountries> initMAI_CountryUprotect() noexcept {
+        array<double, numberOfCountries> MAI_CountryUprotect{};
+        return MAI_CountryUprotect;
+    }
 }
 
 #endif
