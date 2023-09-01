@@ -53,8 +53,13 @@ namespace g4m::application::concrete {
             mergeDatamaps();
             correctBelgium();
             initMaiClimateShifters();
+            modifyDisturbances();
 
-            CountryData countriesForestArea;
+            cohort_all.reserve(plots.size());
+            newCohort_all.reserve(plots.size());
+            cohort10_all.reserve(plots.size());
+            cohort30_all.reserve(plots.size());
+            cohort_primary_all.reserve(plots.size());
         }
 
     protected:
@@ -108,6 +113,20 @@ namespace g4m::application::concrete {
         FFIpolM<double> ffdoe{doe};
 
         simuIdType appMaiClimateShifters;
+        simuIdType appDisturbWind = disturbWind;
+        simuIdType appDisturbFire = disturbFire;
+        simuIdType appDisturbBiotic = disturbBiotic;
+
+        array<double, numberOfCountries> harvestResiduesSoilEmissions{};    // Soil loss emissions resulting from extraction of harvest residues, MtCO2/year
+        array<double, numberOfCountries> residueHarvest{};                  // Extraction of harvest residues, tC
+
+        vector<AgeStruct> cohort_all;
+        vector<AgeStruct> newCohort_all;
+        vector<AgeStruct> cohort10_all;
+        vector<AgeStruct> cohort30_all;
+        vector<AgeStruct> cohort_primary_all;
+
+        vector<Dat> dat_all;
 
         datamapType mergeDatamap(datamapType histDatamap, const heterDatamapScenariosType &scenariosDatamaps,
                                  const string_view message) {
@@ -149,12 +168,32 @@ namespace g4m::application::concrete {
         }
 
         void initMaiClimateShifters() {
+            // TODO to test uppercase and lowercase
             if (!maiClimateShifters.contains(c_scenario[2])) {
                 WARN("maiClimateShifters doesn't contain c_scenario[2]: {}", c_scenario[2]);
                 return;
             }
 
             appMaiClimateShifters = maiClimateShifters[c_scenario[2]];
+        }
+
+        void modifyDisturbances() noexcept {
+            if (!disturbanceClimateSensitive) {
+                INFO("disturbanceClimateSensitive is turned off");
+                return;
+            }
+            if (c_scenario[2].contains("7p0")) {
+                for (auto &[id, ipol]: appDisturbFire)
+                    ipol *= 2;
+                for (auto &[id, ipol]: appDisturbBiotic)
+                    ipol *= 2;
+            } else if (c_scenario[2].contains("8p5")) {
+                for (auto &[id, ipol]: appDisturbFire)
+                    ipol *= 2.5;
+                for (auto &[id, ipol]: appDisturbBiotic)
+                    ipol *= 2.5;
+            } else
+                INFO("c_scenario[2] ({}) doesn't contain \"7p0\" or \"8p5\"", c_scenario[2]);
         }
     };
 }

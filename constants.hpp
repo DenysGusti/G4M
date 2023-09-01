@@ -36,19 +36,22 @@ namespace g4m::Constants {
 
     constexpr string_view fileName_maic = "shifters_g4m_v2.csv";  // MAI climate shifters
     constexpr string_view fileName_disturbance = "disturbances_g4m_m3ha_29062023.csv";  // disturbance damage
+    constexpr string_view fileName_disturbanceExtreme = "disturbances_g4m_m3ha_29062023.csv";  // disturbance damage
 
     constexpr bool MAIClimateShift = true;      // Apply the MAI climate shifters starting from MAIclimateShiftYear
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIshifter_year = MAIshifter_year/MAIshifter_2000, so the 2000 value = 1);
     constexpr bool disturbanceTrend = true;     // Do we take into account the trend in increasing damage from disturbances? If true, use the disturbance projections input data
     constexpr bool disturbanceExtreme = true;   // Do we simulate the worst historical disturbance in disturbanceExtremeYear?
 
-    constexpr bool disturbanceClimateSensitive = false; // Do the disturbances depend on the RCP scenario? If True the damaged wood doubles for RCP7 and 2.5 for the RCP8. Works with disturbanceTrend = true;
+    constexpr bool disturbanceClimateSensitive = true; // Do the disturbances depend on the RCP scenario? If True the damaged wood doubles for RCP7 and 2.5 for the RCP8. Works with disturbanceTrend = true;
+    constexpr bool scaleDisturbance2020 = true;
+
+    constexpr bool fmpol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
 
 //    constexpr bool forest10_policyKey = true;   // true == set-aside
 //    constexpr bool forest30_policyKey = false;
 //    constexpr bool multifunction10Key = false;
 //    constexpr bool multifunction30Key = false;
-//    constexpr bool scaleDisturbance2020 = false;
 }
 
 #endif

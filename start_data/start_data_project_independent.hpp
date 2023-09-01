@@ -398,23 +398,32 @@ namespace g4m::StartData {
         }
     }
 
-    void readInputDet() {
-        auto fileName = fs::path{settings.inputPath} / fileName_dat;
+    ifstream checkFile(const string_view fileName) {
+        auto filePath = fs::path{settings.inputPath} / fileName;
+        ifstream fp{filePath};
 
-        ifstream fp{fileName};
         if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
+            FATAL("Cannot read input file: {} !", filePath.string());
+            throw runtime_error{format("Cannot read input file: {} !", filePath.string())};
         }
 
-        INFO("> Reading the rest of input data... {}", fileName.string());
         string line;
         getline(fp, line);
 
         if (line.empty()) {
-            FATAL("Data input file is empty!!!");
-            throw runtime_error{"Empty input file"};
+            FATAL("Empty input file: {} !", filePath.string());
+            throw runtime_error{format("Empty input file: {} !", filePath.string())};
         }
+
+        fp.seekg(0, ios::beg);
+        return fp;
+    }
+
+    void readInputDet() {
+        INFO("> Reading the rest of input data...");
+        ifstream fp = checkFile(fileName_dat);
+        string line;
+        getline(fp, line);
 
         auto get_HeaderName_YearFromHeaderColumn = [](const string &s) -> pair<string, optional<uint16_t> > {
             size_t num_pos = s.find_first_of("012345789");
@@ -450,22 +459,10 @@ namespace g4m::StartData {
 
     datamapType readHistoric(const string_view file_path, const string_view message,
                              const uint16_t firstYear, const uint16_t lastYear) {
-        auto fileName = fs::path{settings.inputPath} / file_path;
-
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the Historic {} 2000-2020... {}", message, fileName.string());
+        INFO("> Reading the Historic {} 2000-2020...", message);
+        ifstream fp = checkFile(file_path);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("{} file is empty!!!", message);
-            throw runtime_error{"Empty input file"};
-        }
 
         auto year_columns = line | rv::split(',') | rv::drop_while(
                 [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
@@ -513,22 +510,10 @@ namespace g4m::StartData {
     }
 
     heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message) {
-        auto fileName = fs::path{settings.inputPath} / file_path;
-
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the Globiom Scenarios {}... {}", message, fileName.string());
+        INFO("> Reading the Globiom Scenarios {}...", message);
+        ifstream fp = checkFile(file_path);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("{} file is empty!!!", message);
-            throw runtime_error{"Empty input file"};
-        }
 
         auto year_columns = line | rv::split(',') | rv::drop_while(
                 [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
@@ -589,25 +574,14 @@ namespace g4m::StartData {
 
     void readGlobiomLandCountryCalibrate_calcCountryLandArea() {
         if (fileName_gl_country_0.empty()) {
-            WARN("No GLOBIOM LC country data for 2000-2020 !!!!");
+            WARN("No GLOBIOM LC country data for 2000-2020!!!!");
             return;
         }
-        auto fileName = fs::path{settings.inputPath} / fileName_gl_country_0;
 
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the GLOBIOM land country data for 2000-2020... {}", fileName.string());
+        INFO("> Reading the GLOBIOM land country data for 2000-2020...");
+        ifstream fp = checkFile(fileName_gl_country_0);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("GLOBIOM land country data for 2000-2020 is empty!!!");
-            throw runtime_error{"Empty input file"};
-        }
 
         size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
         auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
@@ -671,22 +645,11 @@ namespace g4m::StartData {
             WARN("No GLOBIOM LC country data!!!!");
             return;
         }
-        auto fileName = fs::path{settings.inputPath} / fileName_gl_country;
 
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the GLOBIOM land country data ... {}", fileName.string());
+        INFO("> Reading the GLOBIOM land country data...");
+        ifstream fp = checkFile(fileName_gl_country);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("GLOBIOM land country data is empty!!!");
-            throw runtime_error{"Empty input file"};
-        }
 
         const size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
         auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
@@ -737,22 +700,10 @@ namespace g4m::StartData {
     }
 
     void readCO2price() {
-        auto fileName = fs::path{settings.inputPath} / fileName_co2p;
-
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the CO2 prices... {}", fileName.string());
+        INFO("> Reading the CO2 prices...");
+        ifstream fp = checkFile(fileName_co2p);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("CO2 prices file is empty!!!");
-            throw runtime_error{"Empty input file"};
-        }
 
         auto year_columns = line | rv::split(',') | rv::drop_while(
                 [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
@@ -788,22 +739,10 @@ namespace g4m::StartData {
     }
 
     void readNUTS2() {
-        auto fileName = fs::path{settings.inputPath} / fileName_nuts2;
-
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the NUTS2... {}", fileName.string());
+        INFO("> Reading the NUTS2...");
+        ifstream fp = checkFile(fileName_nuts2);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("NUTS2 file is empty!!!");
-            throw runtime_error{"Empty input file"};
-        }
 
         vector<string> s_row;
         while (fp) {
@@ -884,10 +823,13 @@ namespace g4m::StartData {
 //        printNuts2Id();
 //
 //        printSimuIdScenarios(maiClimateShifters, "maiClimateShifters");
-
-        printSimuId(disturbWind, "disturbWind");
-        printSimuId(disturbFire, "disturbFire");
-        printSimuId(disturbBiotic, "disturbBiotic");
+//
+//        printSimuId(disturbWind, "disturbWind");
+//        printSimuId(disturbFire, "disturbFire");
+//        printSimuId(disturbBiotic, "disturbBiotic");
+        printSimuId(disturbWindExtreme, "disturbWindExtreme");
+        printSimuId(disturbFireExtreme, "disturbFireExtreme");
+        printSimuId(disturbBioticExtreme, "disturbBioticExtreme");
     }
 
     void correctNUTS2Data() noexcept {
@@ -1095,22 +1037,11 @@ namespace g4m::StartData {
             WARN("No MAI climate data!!!!");
             return;
         }
-        auto fileName = fs::path{settings.inputPath} / fileName_maic;
 
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the MAI climate data ... {}", fileName.string());
+        INFO("> Reading the MAI climate data...");
+        ifstream fp = checkFile(fileName_maic);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("MAI climate country data is empty!!!");
-            throw runtime_error{"Empty input file"};
-        }
 
         // ...1,ClimaScen,ANYRCP,lon,lat,Year,G4MOutput,value
         maiClimateShifters.reserve(96);  // 2'373'408 / 24'723 = 96
@@ -1132,7 +1063,9 @@ namespace g4m::StartData {
                         uint32_t y = lround((stod(s_row[4]) + 90) / gridStep - 0.5);
 
                         if (auto g4mId = plotsSimuID.find({x, y}); g4mId != plotsSimuID.end()) {
-                            scenario_name = s_row[2] + '_' + s_row[1] | rv::transform(::toupper) | ranges::to<string>();
+                            // TODO to test uppercase and lowercase
+                            // scenario_name = s_row[2] + '_' + s_row[1] | rv::transform(::tolower) | ranges::to<string>();
+                            scenario_name = s_row[2] + '_' + s_row[1];
                             double value = stod(s_row[7]);
                             maiClimateShifters[scenario_name][g4mId->second].data[year] = value;
                         }
@@ -1195,22 +1128,11 @@ namespace g4m::StartData {
             WARN("No disturbance projection data!!!!");
             return;
         }
-        auto fileName = fs::path{settings.inputPath} / fileName_disturbance;
 
-        ifstream fp{fileName};
-        if (!fp.is_open()) {
-            FATAL("Cannot read {}", fileName.string());
-            throw runtime_error{"Cannot read input file"};
-        }
-
-        INFO("> Reading the disturbance data ... {}", fileName.string());
+        INFO("> Reading the disturbance data...");
+        ifstream fp = checkFile(fileName_disturbance);
         string line;
         getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("Disturbance data is empty!!!");
-            throw runtime_error{"Empty input file"};
-        }
 
         // "","lon","lat","Year","Agent","value"
         disturbWind.reserve(22'000);
@@ -1228,7 +1150,6 @@ namespace g4m::StartData {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
 
                 if (uint16_t year = stoi(s_row[3]); year <= coef.eYear) {
-
                     uint32_t x = lround((stod(s_row[1]) + 180) / gridStep - 0.5);
                     uint32_t y = lround((stod(s_row[2]) + 90) / gridStep - 0.5);
 
@@ -1258,6 +1179,79 @@ namespace g4m::StartData {
             ipol.data[2020] = ipol.data[2030] / 1.05;
         for (auto &[id, ipol]: disturbBiotic)
             ipol.data[2020] = ipol.data[2030] / 1.05;
+    }
+
+    void scaleDisturbance(simuIdType &disturbance, const uint16_t scaleYear) {
+        for (auto &[id, ipol]: disturbance)
+            ipol += -ipol.data[scaleYear];
+    }
+
+    void scaleDisturbances2020() noexcept {
+        if (!scaleDisturbance2020) {
+            INFO("scaleDisturbance2020 is turned off");
+            return;
+        }
+
+        const uint16_t scaleYear = 2020;
+        scaleDisturbance(disturbWind, scaleYear);
+        scaleDisturbance(disturbFire, scaleYear);
+        scaleDisturbance(disturbBiotic, scaleYear);
+
+        INFO("Disturbances are scaled to the {} value!", scaleYear);
+    }
+
+    void readDisturbancesExtreme() {
+        if (!disturbanceExtreme) {
+            INFO("disturbanceExtreme is turned off");
+            return;
+        }
+
+        if (fileName_disturbanceExtreme.empty()) {
+            WARN("No extreme disturbance projection data!!!!");
+            return;
+        }
+
+        INFO("> Reading the extreme disturbance data ...");
+        ifstream fp = checkFile(fileName_disturbanceExtreme);
+        string line;
+        getline(fp, line);
+
+        // "","lon","lat","Year","Agent","value"
+        disturbWind.reserve(25'000);
+        disturbFire.reserve(25'000);
+        disturbBiotic.reserve(25'000);
+
+        vector<string> s_row;
+        uint32_t line_num = 2;
+
+        for (; fp; ++line_num) {
+            getline(fp, line);
+            erase(line, '"');  // trimming double quotes
+
+            if (!line.empty() && line[0] != '#') {
+                s_row = line | rv::split(',') | ranges::to<vector<string> >();
+
+                if (uint16_t year = stoi(s_row[3]); year <= coef.eYear) {
+                    uint32_t x = lround((stod(s_row[1]) + 180) / gridStep - 0.5);
+                    uint32_t y = lround((stod(s_row[2]) + 90) / gridStep - 0.5);
+
+                    if (auto g4mId = plotsSimuID.find({x, y}); g4mId != plotsSimuID.end()) {
+                        double value = stod(s_row[5]);
+
+                        if (s_row[4] == "wind")
+                            disturbWindExtreme[g4mId->second].data[year] = value;
+                        else if (s_row[4] == "fire")
+                            disturbFireExtreme[g4mId->second].data[year] = value;
+                        else if (s_row[4] == "biotic")
+                            disturbBioticExtreme[g4mId->second].data[year] = value;
+                        else
+                            WARN("Unknown agent type: {}, line: {}", s_row[4], line_num);
+                    }
+                }
+            }
+        }
+
+        INFO("Successfully read {} lines.", line_num);
     }
 
 // Lists of countries, regions and mixed to be considered
@@ -1296,6 +1290,8 @@ namespace g4m::StartData {
         applyMAIClimateShifters();
         readDisturbances();
         add2020Disturbances();
+        scaleDisturbances2020();
+        readDisturbancesExtreme();
         printData();
     }
 }
