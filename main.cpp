@@ -18,16 +18,18 @@ int main(int argc, char *argv[]) {
         StartData::Init();
 
         // 1 scenario
-        Forest_GUI_Europe_param_dw_5_3 app{Application::CreateArgsFromArgcArgv(argc, argv)};
+        Forest_GUI_Europe_param_dw_5_3 app{
+                Application::ConvertToUppercase(Application::CreateArgsFromArgcArgv(argc, argv))};
         app.Run();
-        LOG_DEBUG("Dynamic allocation: {} bytes", s_AllocationMetrics.CurrentUsage());
+//        LOG_DEBUG("Dynamic allocation: {} bytes", s_AllocationMetrics.CurrentUsage());
 
         // multiple scenarios
 //        g4m::ThreadPool pool;
-//        for (size_t i = 0; i < 8; ++i)
+//        for (int i = 0; i < 100; ++i)
 //            pool.enqueue([&] {
 //                try {
-//                    Forest_GUI_Europe_param_dw_5_3 app{Application::CreateArgsFromArgcArgv(argc, argv)};
+//                    Forest_GUI_Europe_param_dw_5_3 app{
+//                            Application::ConvertToUppercase(Application::CreateArgsFromArgcArgv(argc, argv))};
 //                    app.Run();
 //                } catch (const exception &e) {
 //                    cerr << e.what() << endl;

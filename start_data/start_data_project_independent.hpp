@@ -1,8 +1,15 @@
 #ifndef G4M_EUROPE_DG_START_DATA_PROJECT_INDEPENDENT_HPP
 #define G4M_EUROPE_DG_START_DATA_PROJECT_INDEPENDENT_HPP
 
-#include "start_data.hpp"
 #include "start_data_project_dependent.hpp"
+#include "../data_io/reading.hpp"
+#include "../data_io/printing.hpp"
+#include "../increment/dima.hpp"
+#include "../thread_pool.hpp"
+
+using namespace g4m;
+using namespace g4m::DataIO::reading;
+using namespace g4m::DataIO::printing;
 
 namespace g4m::StartData {
 
@@ -398,170 +405,7 @@ namespace g4m::StartData {
         }
     }
 
-    ifstream checkFile(const string_view fileName) {
-        auto filePath = fs::path{settings.inputPath} / fileName;
-        ifstream fp{filePath};
-
-        if (!fp.is_open()) {
-            FATAL("Cannot read input file: {} !", filePath.string());
-            throw runtime_error{format("Cannot read input file: {} !", filePath.string())};
-        }
-
-        string line;
-        getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("Empty input file: {} !", filePath.string());
-            throw runtime_error{format("Empty input file: {} !", filePath.string())};
-        }
-
-        fp.seekg(0, ios::beg);
-        return fp;
-    }
-
-    void readInputDet() {
-        INFO("> Reading the rest of input data...");
-        ifstream fp = checkFile(fileName_dat);
-        string line;
-        getline(fp, line);
-
-        auto get_HeaderName_YearFromHeaderColumn = [](const string &s) -> pair<string, optional<uint16_t> > {
-            size_t num_pos = s.find_first_of("012345789");
-            if (num_pos == string::npos)
-                return {s, {}};
-            return {s.substr(0, num_pos), stoi(s.substr(num_pos, s.length()))};
-        };
-
-        auto header_columns = line | rv::transform(::toupper) | rv::split(',') | ranges::to<vector<string> >();
-        vector<pair<string, optional<uint16_t> > > header;
-        header.reserve(header_columns.size());
-        for (const auto &header_column: header_columns)
-            header.push_back(get_HeaderName_YearFromHeaderColumn(header_column));
-
-        plots.reserve(3'000);
-        vector<double> line_cells;
-        while (fp) {
-            getline(fp, line);
-            if (!line.empty() && line[0] != '#') {
-                line_cells = line | rv::split(',') |
-                             rv::transform([](const auto &cell) {  // subrange
-                                 if (cell.empty()) {
-                                     ERROR("!!! CSV line {} empty cell, substituted by 0", plots.size() + 2);
-                                     return 0.;
-                                 }
-                                 return stod(string{cell.begin(), cell.end()});
-                             }) | ranges::to<vector<double> >();
-                plots.emplace_back(header, line_cells);
-            }
-        }
-        INFO("Successfully read {} lines.", plots.size() + 1);
-    }
-
-    datamapType readHistoric(const string_view file_path, const string_view message,
-                             const uint16_t firstYear, const uint16_t lastYear) {
-        INFO("> Reading the Historic {} 2000-2020...", message);
-        ifstream fp = checkFile(file_path);
-        string line;
-        getline(fp, line);
-
-        auto year_columns = line | rv::split(',') | rv::drop_while(
-                [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
-                            rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
-                            ranges::to<vector<uint16_t> >();
-
-        auto getTrimmingOffsets = [&]() -> pair<size_t, size_t> {
-            return {distance(year_columns.begin(), ranges::lower_bound(year_columns, firstYear)),
-                    distance(year_columns.begin(), prev(ranges::upper_bound(year_columns, lastYear)))};
-        };
-        const auto [offset_first, offset_last] = getTrimmingOffsets();
-
-        datamapType datamap;
-        datamap.reserve(30);
-        vector<string> s_row;
-        vector<double> d_row;
-        while (fp) {
-            getline(fp, line);
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                d_row = s_row | rv::drop(s_row.size() - year_columns.size() + offset_first) |
-                        rv::take(offset_last + 1) |
-                        rv::transform([&](const auto &cell) {  // subrange
-                            if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", datamap.size() + 2);
-                                return 0.;
-                            }
-                            return stod(string{cell.begin(), cell.end()});
-                        }) | ranges::to<vector<double> >();
-                if (countryGLOBIOMId.contains(s_row[0]))
-                    datamap[countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
-                else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], datamap.size() + 2);
-            }
-        }
-        INFO("Successfully read {} lines.", datamap.size() + 1);
-        return datamap;
-    }
-
-    void readDatamaps() {
-        histLandPrice = readHistoric(fileName_lp0, "Land Price", 2000, 2020);
-        histWoodPrice = readHistoric(fileName_wp0, "Wood Price", 2000, 2020);
-        histWoodDemand = readHistoric(fileName_wd0, "Wood Demand", 1990, 2021);
-        histResiduesDemand = readHistoric(fileName_rd0, "Residues Demand", 2000, 2020);
-    }
-
-    heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message) {
-        INFO("> Reading the Globiom Scenarios {}...", message);
-        ifstream fp = checkFile(file_path);
-        string line;
-        getline(fp, line);
-
-        auto year_columns = line | rv::split(',') | rv::drop_while(
-                [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
-                            rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
-                            ranges::to<vector<uint16_t> >();
-
-        heterDatamapScenariosType scenariosDatamaps;
-        scenariosDatamaps.reserve(3'400);
-        vector<string> s_row;
-        vector<double> d_row;
-        string scenario_name;
-        while (fp) {
-            getline(fp, line);
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                d_row = s_row | rv::drop(s_row.size() - year_columns.size()) |
-                        rv::transform([&](const auto &cell) {  // subrange
-                            if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", scenariosDatamaps.size() + 2);
-                                return 0.;
-                            }
-                            return stod(string{cell.begin(), cell.end()});
-                        }) | ranges::to<vector<double> >();
-                scenario_name = s_row[3] + '_' + s_row[4] + '_' + s_row[5];
-                if (countryGLOBIOMId.contains(s_row[0]))
-                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
-                else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], scenariosDatamaps.size() + 2);
-            }
-        }
-        INFO("Successfully read {} lines.", scenariosDatamaps.size() + 1);
-        return scenariosDatamaps;
-    }
-
-    void readGlobiom() {
-        landPriceScenarios = readGlobiomScenarios(fileName_lp, "Land Price");
-        woodPriceScenarios = readGlobiomScenarios(fileName_wp, "Wood Price");
-        woodDemandScenarios = readGlobiomScenarios(fileName_wd, "Wood Demand");
-        residuesDemandScenarios = readGlobiomScenarios(fileName_rd, "Residues Demand");
-    }
-
     void convertUnitsDatamaps() noexcept {
-        for (auto &[id, ipol]: histWoodDemand)
-            for (auto &[key, value]: ipol.data)
-                value *= 1'000;
-        for (auto &[id, ipol]: histResiduesDemand)
-            for (auto &[key, value]: ipol.data)
-                value *= 250;
         for (auto &[scenario, datamap]: woodDemandScenarios)
             for (auto &[id, ipol]: datamap)
                 for (auto &[key, value]: ipol.data)
@@ -572,305 +416,57 @@ namespace g4m::StartData {
                     value *= 250;
     }
 
-    void readGlobiomLandCountryCalibrate_calcCountryLandArea() {
-        if (fileName_gl_country_0.empty()) {
-            WARN("No GLOBIOM LC country data for 2000-2020!!!!");
-            return;
-        }
-
-        INFO("> Reading the GLOBIOM land country data for 2000-2020...");
-        ifstream fp = checkFile(fileName_gl_country_0);
-        string line;
-        getline(fp, line);
-
-        size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
-        auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
-                      ranges::to<vector<string> >();
-
-        auto s_bauScenario = string{bauScenario};
-        globiomAfforMaxCountryScenarios[s_bauScenario].reserve(250);
-        globiomLandCountryScenarios[s_bauScenario].reserve(250);
-
-        vector<string> s_row;
-        vector<double> d_row;
-
-        uint32_t line_num = 2;
-        for (; fp; ++line_num) {
-            getline(fp, line);
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                uint16_t year = stoi(s_row[first_data_column - 1]);
-
-                if (year <= 2020) {
-                    d_row = s_row | rv::drop(first_data_column) |
-                            rv::transform([&](const auto &cell) {  // subrange
-                                if (cell.empty()) {
-                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num);
-                                    return 0.;
-                                }
-                                return stod(string{cell.begin(), cell.end()});
-                            }) | ranges::to<vector<double> >();
-
-                    if (countryGLOBIOMId.contains(s_row[0])) {
-                        uint8_t id = countryGLOBIOMId[s_row[0]];
-                        double gl_tmp = 0;
-                        double gl_tot = 0;
-
-                        for (const auto &[type, cell]: rv::zip(header, d_row)) {
-                            if (year == 2000 && type == "FOREST")
-                                gl_tot = cell;
-                            else if (type == "NATURAL") {
-                                globiomAfforMaxCountryScenarios[s_bauScenario][id].data[year] = cell;
-                                if (year == 2000)
-                                    gl_tot += cell;
-                            } else if (type == "ARABLE" || type == "WETLAND" || type == "BLOCKED")
-                                gl_tmp += cell;
-                        }
-
-                        globiomLandCountryScenarios[s_bauScenario][id].data[year] = gl_tmp;
-                        if (year == 2000)
-                            countryLandArea[id] = gl_tot + gl_tmp;
-                    } else
-                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num);
-                }
-            }
-        }
-
-        INFO("Successfully read {} lines.", line_num);
-    }
-
-    void readGlobiomLandCountry() {
-        if (fileName_gl_country.empty()) {
-            WARN("No GLOBIOM LC country data!!!!");
-            return;
-        }
-
-        INFO("> Reading the GLOBIOM land country data...");
-        ifstream fp = checkFile(fileName_gl_country);
-        string line;
-        getline(fp, line);
-
-        const size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
-        auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
-                      ranges::to<vector<string> >();
-
-        globiomAfforMaxCountryScenarios.reserve(27'500);
-        globiomLandCountryScenarios.reserve(27'500);
-
-        vector<string> s_row;
-        vector<double> d_row;
-        string scenario_name;
-        uint32_t line_num = 2;
-        for (; fp; ++line_num) {
-            getline(fp, line);
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                uint16_t year = stoi(s_row[first_data_column - 1]);
-
-                if (year > 2020 && year <= coef.eYear) {
-                    d_row = s_row | rv::drop(first_data_column) |
-                            rv::transform([&](const auto &cell) {  // subrange
-                                if (cell.empty()) {
-                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num);
-                                    return 0.;
-                                }
-                                return stod(string{cell.begin(), cell.end()});
-                            }) | ranges::to<vector<double> >();
-
-                    if (countryGLOBIOMId.contains(s_row[0])) {
-                        uint8_t id = countryGLOBIOMId[s_row[0]];
-                        scenario_name = s_row[1] + '_' + s_row[2] + '_' + s_row[3];
-                        double gl_tmp = 0;
-                        for (const auto &[type, cell]: rv::zip(header, d_row)) {
-                            if (type == "NATURAL") {
-                                globiomAfforMaxCountryScenarios[scenario_name][id].data[year] = cell;
-                            } else if (type == "ARABLE" || type == "WETLAND" || type == "BLOCKED")
-                                gl_tmp += cell;
-                        }
-                        globiomLandCountryScenarios[scenario_name][id].data[year] = gl_tmp;
-                    } else
-                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num);
-                }
-            }
-        }
-
-        INFO("Successfully read {} lines.", line_num);
-    }
-
-    void readCO2price() {
-        INFO("> Reading the CO2 prices...");
-        ifstream fp = checkFile(fileName_co2p);
-        string line;
-        getline(fp, line);
-
-        auto year_columns = line | rv::split(',') | rv::drop_while(
-                [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
-                            rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
-                            ranges::to<vector<uint16_t> >();
-        size_t idx_ge_refYear = distance(year_columns.begin(), ranges::lower_bound(year_columns, refYear));
-        CO2PriceScenarios.reserve(3'400);
-        vector<string> s_row;
-        vector<double> d_row;
-        string scenario_name;
-        while (fp) {
-            getline(fp, line);
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                d_row = s_row | rv::drop(s_row.size() - year_columns.size()) |
-                        rv::transform([&](const auto &cell) {  // subrange
-                            if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", CO2PriceScenarios.size() + 2);
-                                return 0.;
-                            }
-                            return stod(string{cell.begin(), cell.end()});
-                        }) | ranges::to<vector<double> >();
-                scenario_name = s_row[3] + '_' + s_row[4] + '_' + s_row[5];
-
-                if (countryGLOBIOMId.contains(s_row[0])) {
-                    CO2PriceScenarios[scenario_name][countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
-                    CO2PriceScenarios[scenario_name][countryGLOBIOMId[s_row[0]]].data[refYear] = d_row[idx_ge_refYear];
-                } else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], CO2PriceScenarios.size() + 2);
-            }
-        }
-        INFO("Successfully read {} lines.", CO2PriceScenarios.size() + 1);
-    }
-
-    void readNUTS2() {
-        INFO("> Reading the NUTS2...");
-        ifstream fp = checkFile(fileName_nuts2);
-        string line;
-        getline(fp, line);
-
-        vector<string> s_row;
-        while (fp) {
-            getline(fp, line);
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                uint32_t x = lround((stod(s_row[0]) + 180) / gridStep - 0.5);
-                uint32_t y = lround((stod(s_row[1]) + 90) / gridStep - 0.5);
-                nuts2id[{x, y}] = s_row[2];
-            }
-        }
-        INFO("Successfully read {} lines.", nuts2id.size() + 1);
-    }
-
-    void printPlots() noexcept {
-        TRACE("Plots:");
-        for (size_t i = 0; const auto &plot: plots)
-            TRACE("plots[{}]:\n{}", i++, plot.str());
-    }
-
-    void printDatamap(const datamapType &datamap, const string_view message) noexcept {
-        TRACE("{}", message);
-        for (const auto &[id, ipol]: datamap)
-            TRACE("{}\n{}", idCountryGLOBIOM[id], ipol.str());
-    }
-
-    void printDatamapScenarios(const heterDatamapScenariosType &datamapScenarios, const string_view message) noexcept {
-        TRACE("{}", message);
-        for (const auto &[scenario, datamap]: datamapScenarios) {
-            TRACE("{}", scenario);
-            for (const auto &[id, ipol]: datamap)
-                TRACE("{}\n{}", idCountryGLOBIOM[id], ipol.str());
-        }
-    }
-
-    void printCountryLandArea() noexcept {
-        for (uint16_t i = 0; const auto area: countryLandArea)
-            TRACE("{} area = {}", idCountryGLOBIOM[i++], area);
-    }
-
-    void printNuts2Id() noexcept {
-        for (const auto &[cords, NUTS2]: nuts2id)
-            TRACE("x = {}, y = {}, NUTS2 = {}", cords.first, cords.second, NUTS2);
-    }
-
-    void printSimuId(const simuIdType &simuIdDatamap, const string_view message) noexcept {
-        TRACE("{}", message);
-        for (const auto &[id, ipol]: simuIdDatamap)
-            TRACE("{}\n{}", id, ipol.str());
-    }
-
-    void printSimuIdScenarios(const heterSimuIdScenariosType &simuIdScenarios, const string_view message) noexcept {
-        TRACE("{}", message);
-        for (const auto &[scenario, simuIdDatamap]: simuIdScenarios) {
-            TRACE("{}", scenario);
-            for (const auto &[simu_id, ipol]: simuIdDatamap)
-                TRACE("{}\n{}", simu_id, ipol.str());
-        }
-    }
-
-    void printData() noexcept {
-//        printPlots();
-//
-//        printDatamap(histLandPrice, "Historic Land Price");
-//        printDatamap(histWoodPrice, "Historic Wood Price");
-//        printDatamap(histWoodDemand, "Historic Wood Demand");
-//        printDatamap(histResiduesDemand, "Historic Residues Demand");
-//
-//        printDatamapScenarios(landPriceScenarios, "Globiom scenarios Land Price");
-//        printDatamapScenarios(woodPriceScenarios, "Globiom scenarios Wood Price");
-//        printDatamapScenarios(woodDemandScenarios, "Globiom scenarios Wood Demand");
-//        printDatamapScenarios(residuesDemandScenarios, "Globiom scenarios Residues Demand");
-//        printDatamapScenarios(globiomAfforMaxCountryScenarios, "globiomAfforMaxCountryScenarios");
-//        printDatamapScenarios(globiomLandCountryScenarios, "globiomLandCountryScenarios");
-//        printDatamapScenarios(CO2PriceScenarios, "CO2PriceScenarios");
-//
-//        printCountryLandArea();
-//        printNuts2Id();
-//
-//        printSimuIdScenarios(maiClimateShifters, "maiClimateShifters");
-//
-//        printSimuId(disturbWind, "disturbWind");
-//        printSimuId(disturbFire, "disturbFire");
-//        printSimuId(disturbBiotic, "disturbBiotic");
-        printSimuId(disturbWindExtreme, "disturbWindExtreme");
-        printSimuId(disturbFireExtreme, "disturbFireExtreme");
-        printSimuId(disturbBioticExtreme, "disturbBioticExtreme");
-    }
-
     void correctNUTS2Data() noexcept {
         for (const auto &plot: plots)
             // Test only some regions and some countries
-            if (regions.contains(plot.polesReg) && countriesList.contains(plot.country) &&
-                plot.protect.data.at(2000) == 0) {  // if there is no lerp, why not simple map then?
-                // locate the struct with asID == asID within the country
-                string_view countryISO = countryOrderISO2[countryCodeOrder[plot.country - 1]];
+            // plot.protect.data.at(2000) == 0)
+        {
+            // locate the struct with asID == asID within the country
+            string_view countryISO = countryOrderISO2[countryCodeOrder[plot.country - 1]];
+            if (countryISO == "GB")
+                countryISO = "UK";
 
-                if (auto it_nuts2 = nuts2id.find({plot.x, plot.y}); it_nuts2 != nuts2id.end()) {
-                    auto &[coords, NUTS2] = *it_nuts2;
-                    if (countryISO == "GB")
-                        countryISO = "UK";
-                    if (NUTS2.substr(0, 2) != countryISO) {
-                        nuts2grid.setNeighNum(2, 2);
-                        auto neighbours = nuts2grid.getNeighValues(plot.x, plot.y);
-                        auto it_nearbyCountry = ranges::find_if(neighbours, [countryISO](const string_view el) {
-                            return el.substr(0, 2) == countryISO;
-                        });
-                        if (it_nearbyCountry != neighbours.end()) {
-                            DEBUG("x = {}, y = {}, NUTS2 = {}, *it_nearbyCountry = {}, countryISO = {}",
-                                  plot.x, plot.y, NUTS2, *it_nearbyCountry, countryISO);
-                            NUTS2 = *it_nearbyCountry;
-                        } else
-                            ERROR("!no x = {}, y = {}, NUTS2 = {}, countryISO = {}", plot.x, plot.y, NUTS2, countryISO);
+            auto findNeighbour = [&](const uint32_t radius) -> optional<string> {
+                nuts2grid.setNeighNum(radius, radius);
+                auto neighbours = nuts2grid.getNeighValues(plot.x, plot.y);
+                auto it_nearbyCountry = ranges::find_if(neighbours, [countryISO](const string_view el) {
+                    return el.substr(0, 2) == countryISO;
+                });
+                if (it_nearbyCountry == neighbours.end())
+                    return {};
+                return *it_nearbyCountry;
+            };
+
+            const uint32_t MAX_RADIUS = 3;  // 3 for remote islands
+
+            if (auto it_nuts2 = nuts2id.find({plot.x, plot.y}); it_nuts2 != nuts2id.end()) {
+                auto &[coords, NUTS2] = *it_nuts2;
+
+                if (NUTS2.substr(0, 2) != countryISO)
+                    for (uint32_t radius = 1; radius <= MAX_RADIUS; ++radius) {
+                        optional<string> opt_neighbour = findNeighbour(radius);
+                        if (opt_neighbour) {
+                            NUTS2 = *opt_neighbour;
+                            DEBUG("x = {}, y = {}, NUTS2 = {}, countryISO = {}, *opt_neighbour = {}, radius = {}",
+                                  plot.x, plot.y, NUTS2, countryISO, *opt_neighbour, radius);
+                            break;
+                        } else if (radius == MAX_RADIUS)
+                            ERROR("!No x = {}, y = {}, NUTS2 = {}, countryISO = {}",
+                                  plot.x, plot.y, NUTS2, countryISO);
                     }
-                } else {
-                    nuts2grid.setNeighNum(2, 2);
-                    auto neighbours = nuts2grid.getNeighValues(plot.x, plot.y);
-                    auto it_nearbyCountry = ranges::find_if(neighbours, [countryISO](const string_view el) {
-                        return el.substr(0, 2) == countryISO;
-                    });
-                    if (it_nearbyCountry != neighbours.end()) {
-                        DEBUG("x = {}, y = {}, *it_nearbyCountry = {}, countryISO = {}",
-                              plot.x, plot.y, *it_nearbyCountry, countryISO);
-                        nuts2id[{plot.x, plot.y}] = *it_nearbyCountry;
-                    } else
-                        ERROR("!no x = {}, y = {}, countryISO = {}", plot.x, plot.y, countryISO);
+
+            } else
+                for (uint32_t radius = 1; radius <= MAX_RADIUS; ++radius) {
+                    optional<string> opt_neighbour = findNeighbour(radius);
+                    if (opt_neighbour) {
+                        nuts2id[{plot.x, plot.y}] = *opt_neighbour;
+                        DEBUG("x = {}, y = {}, countryISO = {}, *opt_neighbour = {}, radius = {}",
+                              plot.x, plot.y, countryISO, *opt_neighbour, radius);
+                        break;
+                    } else if (radius == MAX_RADIUS)
+                        ERROR("!No x = {}, y = {}, countryISO = {}", plot.x, plot.y, countryISO);
                 }
-            }
+        }
     }
 
     // Setup forest increment table
@@ -983,13 +579,17 @@ namespace g4m::StartData {
         ffhle = FFIpol<double>{hle};
         ffsdMinH = FFIpol<double>{sdMinH};
         ffsdMaxH = FFIpol<double>{sdMaxH};
+
+        ffcov = FFIpolM<double>{cov};
+        ffcoe = FFIpolM<double>{coe};
+        ffdov = FFIpolM<double>{dov};
+        ffdoe = FFIpolM<double>{doe};
     }
 
     void correctMAI() noexcept {
         for (auto &plot: plots)
             // Test only some regions and some countries
-            if (regions.contains(plot.polesReg) && countriesList.contains(plot.country) &&
-                plot.protect.data.at(2000) == 0) {  // if there is no lerp, why not simple map then?
+            if (plot.protect.data.at(2000) == 0) {  // if there is no lerp, why not simple map then?
                 // forest with specified age structure
                 plot.MAIE.data[2000] *= maiCoefficients[plot.country];
                 plot.MAIN.data[2000] *= maiCoefficients[plot.country];
@@ -1000,9 +600,7 @@ namespace g4m::StartData {
         INFO("calculating average MAI");
         array<double, numberOfCountries> forestAreaCountry{};
         for (const auto &plot: plots)
-            // Test only some regions and some countries
-            if (regions.contains(plot.polesReg) && countriesList.contains(plot.country) &&
-                plot.protect.data.at(2000) == 0) {
+            if (plot.protect.data.at(2000) == 0) {
                 double forestArea0 = plot.landArea * 100 * clamp(plot.forest, 0., 1.);
                 if (forestArea0 > 0) {
                     // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
@@ -1023,57 +621,14 @@ namespace g4m::StartData {
     }
 
     void initPlotsSimuID() noexcept {
+        plotsSimuID.reserve(plots.size());
         for (const auto &plot: plots)
-            plotsSimuID[{plot.x, plot.y}] = plot.simuID;
+            plotsSimuID.insert(plot.simuID);
     }
 
-    void readMAIClimate() {
-        if (!MAIClimateShift) {
-            INFO("MAIClimateShift is turned off");
-            return;
-        }
-
-        if (fileName_maic.empty()) {
-            WARN("No MAI climate data!!!!");
-            return;
-        }
-
-        INFO("> Reading the MAI climate data...");
-        ifstream fp = checkFile(fileName_maic);
-        string line;
-        getline(fp, line);
-
-        // ...1,ClimaScen,ANYRCP,lon,lat,Year,G4MOutput,value
-        maiClimateShifters.reserve(96);  // 2'373'408 / 24'723 = 96
-
-        vector<string> s_row;
-        string scenario_name;
-        uint32_t line_num = 2;
-
-        for (; fp; ++line_num) {
-            getline(fp, line);
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-
-                if (s_row[6] == "mai")
-                    if (uint16_t year = stoi(s_row[5]); year <= coef.eYear) {
-
-                        uint32_t x = lround((stod(s_row[3]) + 180) / gridStep - 0.5);
-                        uint32_t y = lround((stod(s_row[4]) + 90) / gridStep - 0.5);
-
-                        if (auto g4mId = plotsSimuID.find({x, y}); g4mId != plotsSimuID.end()) {
-                            // TODO to test uppercase and lowercase
-                            // scenario_name = s_row[2] + '_' + s_row[1] | rv::transform(::tolower) | ranges::to<string>();
-                            scenario_name = s_row[2] + '_' + s_row[1];
-                            double value = stod(s_row[7]);
-                            maiClimateShifters[scenario_name][g4mId->second].data[year] = value;
-                        }
-                    }
-            }
-        }
-
-        INFO("Successfully read {} lines.", line_num);
+    void initPlotsXY_SimuID() noexcept {
+        for (const auto &plot: plots)
+            plotsXY_SimuID[{plot.x, plot.y}] = plot.simuID;
     }
 
     // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
@@ -1084,7 +639,7 @@ namespace g4m::StartData {
         }
 
         INFO("Scaling MAI climate shifters to the 2020 value!");
-        for (auto &[scenario, MAI]: maiClimateShifters)
+        for (auto &[scenario, MAI]: maiClimateShiftersScenarios)
             for (auto &[simu_id, ipol]: MAI) {
                 double reciprocal_value_2020 = 1 / ipol.data[2020];
                 ipol *= reciprocal_value_2020;
@@ -1097,79 +652,23 @@ namespace g4m::StartData {
             return;
         }
 
-        for (auto &plot: plots)
-            // Test only some regions and some countries
-            if (regions.contains(plot.polesReg) && countriesList.contains(plot.country)) {
-                double maie = plot.MAIE.data[2000];
-                double main = plot.MAIN.data[2000];
-                double npp = plot.NPP.data[2000];
+        for (auto &plot: plots) {
+            double maie = plot.MAIE.data.at(2000);
+            double main = plot.MAIN.data.at(2000);
+            double npp = plot.NPP.data.at(2000);
 
-                plot.decHerb.data[2020] = plot.decHerb.data[2000];
-                plot.decWood.data[2020] = plot.decWood.data[2000];
-                plot.decSOC.data[2020] = plot.decSOC.data[2000];
+            plot.decHerb.data[2020] = plot.decHerb.data.at(2000);
+            plot.decWood.data[2020] = plot.decWood.data.at(2000);
+            plot.decSOC.data[2020] = plot.decSOC.data.at(2000);
 
-                for (const auto &[scenario, MAI]: maiClimateShifters)
-                    if (MAI.contains(plot.simuID))
-                        for (const auto [year, value]: MAI.at(plot.simuID).data) {
-                            plot.MAIE.data[year] = maie * value;
-                            plot.MAIN.data[year] = main * value;
-                            plot.NPP.data[year] = npp * value;
-                        }
-            }
-    }
-
-    void readDisturbances() {
-        if (!disturbanceTrend) {
-            INFO("disturbanceTrend is turned off");
-            return;
-        }
-
-        if (fileName_disturbance.empty()) {
-            WARN("No disturbance projection data!!!!");
-            return;
-        }
-
-        INFO("> Reading the disturbance data...");
-        ifstream fp = checkFile(fileName_disturbance);
-        string line;
-        getline(fp, line);
-
-        // "","lon","lat","Year","Agent","value"
-        disturbWind.reserve(22'000);
-        disturbFire.reserve(22'000);
-        disturbBiotic.reserve(22'000);
-
-        vector<string> s_row;
-        uint32_t line_num = 2;
-
-        for (; fp; ++line_num) {
-            getline(fp, line);
-            erase(line, '"');  // trimming double quotes
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-
-                if (uint16_t year = stoi(s_row[3]); year <= coef.eYear) {
-                    uint32_t x = lround((stod(s_row[1]) + 180) / gridStep - 0.5);
-                    uint32_t y = lround((stod(s_row[2]) + 90) / gridStep - 0.5);
-
-                    if (auto g4mId = plotsSimuID.find({x, y}); g4mId != plotsSimuID.end()) {
-                        double value = stod(s_row[5]);
-
-                        if (s_row[4] == "wind")
-                            disturbWind[g4mId->second].data[year] = value;
-                        else if (s_row[4] == "fire")
-                            disturbFire[g4mId->second].data[year] = value;
-                        else if (s_row[4] == "biotic")
-                            disturbBiotic[g4mId->second].data[year] = value;
-                        else
-                            WARN("Unknown agent type: {}, line: {}", s_row[4], line_num);
+            for (const auto &[scenario, MAI]: maiClimateShiftersScenarios)
+                if (MAI.contains(plot.simuID))
+                    for (const auto [year, value]: MAI.at(plot.simuID).data) {
+                        plot.MAIE.data[year] = maie * value;
+                        plot.MAIN.data[year] = main * value;
+                        plot.NPP.data[year] = npp * value;
                     }
-                }
-            }
         }
-
-        INFO("Successfully read {} lines.", line_num);
     }
 
     void add2020Disturbances() noexcept {
@@ -1200,61 +699,148 @@ namespace g4m::StartData {
         INFO("Disturbances are scaled to the {} value!", scaleYear);
     }
 
-    void readDisturbancesExtreme() {
-        if (!disturbanceExtreme) {
-            INFO("disturbanceExtreme is turned off");
-            return;
-        }
-
-        if (fileName_disturbanceExtreme.empty()) {
-            WARN("No extreme disturbance projection data!!!!");
-            return;
-        }
-
-        INFO("> Reading the extreme disturbance data ...");
-        ifstream fp = checkFile(fileName_disturbanceExtreme);
-        string line;
-        getline(fp, line);
-
-        // "","lon","lat","Year","Agent","value"
-        disturbWind.reserve(25'000);
-        disturbFire.reserve(25'000);
-        disturbBiotic.reserve(25'000);
-
-        vector<string> s_row;
-        uint32_t line_num = 2;
-
-        for (; fp; ++line_num) {
-            getline(fp, line);
-            erase(line, '"');  // trimming double quotes
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-
-                if (uint16_t year = stoi(s_row[3]); year <= coef.eYear) {
-                    uint32_t x = lround((stod(s_row[1]) + 180) / gridStep - 0.5);
-                    uint32_t y = lround((stod(s_row[2]) + 90) / gridStep - 0.5);
-
-                    if (auto g4mId = plotsSimuID.find({x, y}); g4mId != plotsSimuID.end()) {
-                        double value = stod(s_row[5]);
-
-                        if (s_row[4] == "wind")
-                            disturbWindExtreme[g4mId->second].data[year] = value;
-                        else if (s_row[4] == "fire")
-                            disturbFireExtreme[g4mId->second].data[year] = value;
-                        else if (s_row[4] == "biotic")
-                            disturbBioticExtreme[g4mId->second].data[year] = value;
-                        else
-                            WARN("Unknown agent type: {}, line: {}", s_row[4], line_num);
-                    }
-                }
-            }
-        }
-
-        INFO("Successfully read {} lines.", line_num);
+    void initGlobiomLandGlobal() noexcept {
+        for (auto &plot: plots)
+            plot.initForestArrange();
     }
 
-// Lists of countries, regions and mixed to be considered
+    void initManagedForestGlobal() {
+        DataGrid<double> rotationForestInit;
+        array<double, numberOfCountries> woodHarvest{};
+        array<double, numberOfCountries> woodLost{};
+
+        double sawnW = 0;      // MG: get harvestable sawn-wood for the set (old) forest tC/ha for final cut.
+        double restW = 0;      // MG: get harvestable rest-wood for the set (old) forest tC/ha for final cut.
+        double sawnThW = 0;    // MG: get harvestable sawn-wood for the set (old) forest tC/ha for thinning.
+        double restThW = 0;    // MG: get harvestable rest-wood for the set (old) forest tC/ha for thinning.
+        double bmH = 0;        // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
+        double bmTh = 0;       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for thinning
+        double harvRes = 0;    // MG: usable harvest residues for the set (old) forest tC/ha
+
+        for (auto &plot: plots) {
+            double forestShare0 = max(0., plot.forest);
+            plot.forestsArrangement();
+            OforestShGrid.country(plot.x, plot.y) = plot.country;
+            double maxAffor = 1 - plot.GLOBIOM_reserved.data.at(2000);
+
+            if (forestShare0 > maxAffor) {
+                optional<double> opt_dfor = plot.initForestArea(forestShare0 - maxAffor);
+                if (opt_dfor)
+                    simuIdDfor[plot.simuID] = *opt_dfor;  // subtraction later in initManagedForestLocal
+                forestShare0 = maxAffor;
+            }
+
+            OforestShGrid(plot.x, plot.y) = forestShare0;
+            OforestShGrid.update1YearForward();  // populate the OforestShGridPrev with forestShare0 data
+            double forestArea0 = plot.landArea * 100 * forestShare0; // all forest area in the cell, ha
+
+            int biomassRot = 0;     // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
+            int biomassRotTh = 0;   // MG: rotation time fitted to get certain biomass under certain MAI (with thinning)
+            double harvWood = 0;    // MG: harvestable wood, m3
+            double abBiomassO = 0;
+            // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
+            // Max mean annual increment of New forest (with uniform age structure and managed with rotation length maximizing MAI)
+            double MAI = max(0., forestShare0 > 0 ? plot.MAIE(coef.bYear) : plot.MAIN(coef.bYear));
+            double defIncome = 0;
+
+            int rotUnmanaged = 0;
+            int rotMAI = 0;
+            int rotMaxBm = 0;
+            int rotMaxBmTh = 0;
+            int rotHarvFin = 0;
+            int rotHarvAve = 0;
+
+            if (plot.protect.data.at(2000) == 1)
+                plot.managedFlag = false;
+
+            maiForest(plot.x, plot.y) = MAI;
+            double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
+
+            if (plot.CAboveHa > 0 && maiForest(plot.x, plot.y) > 0) {
+                if (plot.speciesType == 0)
+                    DEBUG("plot.speciesType = {}", plot.speciesType);
+                // rotation time to get current biomass (without thinning)
+                biomassRot = static_cast<int>(species[plot.speciesType - 1].getU(plot.CAboveHa, MAI));
+                // rotation time to get current biomass (with thinning)
+                biomassRotTh = static_cast<int>(species[plot.speciesType - 1].getUT(plot.CAboveHa, MAI));
+            }
+
+            if (maiForest(plot.x, plot.y) > 0) {
+                rotMAI = static_cast<int>(species[plot.speciesType - 1].getTOptT(MAI, optimMAI));
+                rotMaxBm = static_cast<int>(species[plot.speciesType - 1].getTOpt(MAI, optimMaxBm));
+                rotMaxBmTh = static_cast<int>(species[plot.speciesType - 1].getTOptT(MAI, optimMaxBm));
+            }
+
+            DIMA decision{1990, plot.NPP, plot.sPopDens, plot.sAgrSuit, plot.priceIndex, coef.priceIndexE, plot.R,
+                          coef.priceC, coef.plantingCostsR, coef.priceLandMinR, coef.priceLandMaxR, coef.maxRotInter,
+                          coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd, coef.baseline,
+                          plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR, coef.fCUptake, plot.GDP,
+                          coef.harvLoos, forestShare0, woodPriceScenarios[s_bauScenario][plot.country],
+                          static_cast<double>(rotMAI), harvMAI};
+
+            int rotation = 0;
+            if (plot.protect.data.at(2000) < 1) {
+                rotation = max(biomassRotTh + 1, rotMAI);
+
+                double pDefIncome =
+                        plot.CAboveHa * (decision.priceTimber() * plot.fTimber(coef.bYear) * (1 - coef.harvLoos));
+                // Immediate Pay if deforested (Slash and Burn)
+                double sDefIncome = pDefIncome;
+                defIncome =
+                        pDefIncome * (1 - plot.slashBurn(coef.bYear)) + sDefIncome * plot.slashBurn(coef.bYear);
+
+                if (plot.managedFlag) {
+                    thinningForest(plot.x, plot.y) = 1;
+                    rotationType(plot.x, plot.y) = 11;
+
+                    if (MAI > MAI_CountryUprotect[plot.country - 1])
+                        managedForest(plot.x, plot.y) = 3;
+                    else {
+                        if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal() + defIncome)
+                            managedForest(plot.x, plot.y) = 2;
+                        else
+                            managedForest(plot.x, plot.y) = 1;
+                    }
+
+                } else {
+                    thinningForest(plot.x, plot.y) = -1;
+                    rotationType(plot.x, plot.y) = 10;
+
+                    if (MAI > MAI_CountryUprotect[plot.country - 1])
+                        managedForest(plot.x, plot.y) = 0;
+                    else {
+                        if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal() + defIncome)
+                            managedForest(plot.x, plot.y) = -1;
+                        else
+                            managedForest(plot.x, plot.y) = -2;
+                    }
+                }
+
+            } else {
+                thinningForest(plot.x, plot.y) = -1;
+                rotation = biomassRot + 1;
+            }
+
+            rotationForest(plot.x, plot.y) = rotation;
+            rotationForestInit(plot.x, plot.y) = rotation;
+            thinningForest10(plot.x, plot.y) = -1;
+            thinningForest30(plot.x, plot.y) = thinningForest(plot.x, plot.y);
+        }
+    }
+
+    void initLoop() noexcept {
+        INFO("Start initialising cohorts");
+        cohort_all.reserve(plots.size());
+        newCohort_all.reserve(plots.size());
+        cohort10_all.reserve(plots.size());
+        cohort30_all.reserve(plots.size());
+        cohort_primary_all.reserve(plots.size());
+    }
+
+    void initZeroProdArea() noexcept {
+
+    }
+
     void Init() {
         settings.readSettings("settings_Europe_dw_v02.ini");
         coef.readCoef(settings.coeffPath);
@@ -1270,29 +856,95 @@ namespace g4m::StartData {
         setCountriesWoodProdStat();
         setCountriesfmEmission_unfccc();
         calcAvgFM_sink_stat();
-        readInputDet();
-        readDatamaps();
-        readGlobiom();
-        convertUnitsDatamaps();
-        readGlobiomLandCountryCalibrate_calcCountryLandArea();
-        readGlobiomLandCountry();
-        readCO2price();
-        readNUTS2();
-        nuts2grid.fillFromNUTS(nuts2id);
-        correctNUTS2Data();
-        defineSpecies();
-        setupFMP();
-        correctMAI();
-        calculateAverageMAI();
+
+        readPlots();
         initPlotsSimuID();
-        readMAIClimate();
-        scaleMAIClimate2020();
-        applyMAIClimateShifters();
-        readDisturbances();
-        add2020Disturbances();
-        scaleDisturbances2020();
-        readDisturbancesExtreme();
-        printData();
+        initPlotsXY_SimuID();
+
+        {
+            ThreadPool pool;
+            pool.enqueue([&] {
+                try {
+                    Log::Init("globiom_datamaps");
+                    readGlobiom();      // created dicts
+                    readDatamaps();     // adds bau scenario to dicts
+                    convertUnitsDatamaps();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
+            pool.enqueue([&] {
+                try {
+                    Log::Init("globiom_land");
+                    readGlobiomLandCalibrate();
+                    readGlobiomLand();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
+            pool.enqueue([&] {
+                try {
+                    Log::Init("globiom_land_country");
+                    readGlobiomLandCountryCalibrate_calcCountryLandArea();
+                    readGlobiomLandCountry();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
+            pool.enqueue([&] {
+                try {
+                    Log::Init("CO2_price");
+                    readCO2price();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
+            pool.enqueue([&] {
+                try {
+                    Log::Init("NUTS2");
+                    readNUTS2();
+                    nuts2grid.fillFromNUTS(nuts2id);
+                    correctNUTS2Data();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
+            pool.enqueue(defineSpecies);
+            pool.enqueue(setupFMP);
+            pool.enqueue([&] {
+                Log::Init("MAI");
+                correctMAI();
+                calculateAverageMAI();
+                readMAIClimate();
+                scaleMAIClimate2020();
+                applyMAIClimateShifters();
+            });
+            pool.enqueue([&] {
+                try {
+                    Log::Init("disturbances");
+                    readDisturbances();
+                    add2020Disturbances();
+                    scaleDisturbances2020();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
+            pool.enqueue([&] {
+                try {
+                    Log::Init("disturbances_extreme");
+                    readDisturbancesExtreme();
+                } catch (const exception &e) {
+                    cerr << e.what() << endl;
+                }
+            });
+        }
+
+        // start calculations
+        initGlobiomLandGlobal();
+        initManagedForestGlobal();
+        initZeroProdArea();
+
+//        printData();
     }
 }
 

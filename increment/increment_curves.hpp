@@ -23,7 +23,7 @@ namespace g4m::increment {
             calc();
         }
 
-        void setMai(const double amai) {
+        void setMai(const double amai) noexcept {
             mai = amai;
             calc();
         }
@@ -93,7 +93,7 @@ namespace g4m::increment {
         }
 
         // Tree height
-        [[nodiscard]] double getH(const double t) const {
+        [[nodiscard]] double getH(const double t) const noexcept {
             if (t <= 0)
                 return 0;
 
@@ -102,7 +102,7 @@ namespace g4m::increment {
         }
 
         // Tree diameter at maximum stand density
-        [[nodiscard]] double getD(const double t) const {
+        [[nodiscard]] double getD(const double t) const noexcept {
             if (t <= th13 || mai <= 0)
                 return 0;
 
@@ -113,12 +113,12 @@ namespace g4m::increment {
         }
 
         // diameter multiplier for stocking degree v/vMax
-        [[nodiscard]] double getDmul(const double bg) const {
+        [[nodiscard]] double getDmul(const double bg) const noexcept {
             return 2 - pow(clamp(bg, 0., 1.), coef.dmul);
         }
 
         // increment multiplier for stocking degree v/vMax
-        [[nodiscard]] double getImul(const double bg, const double t) const {
+        [[nodiscard]] double getImul(const double bg, const double t) const noexcept {
             if (bg <= 0)
                 return 0;
             if (bg >= 1 && t <= 0)
@@ -144,7 +144,7 @@ namespace g4m::increment {
         double th13 = 0;
         double tcpMax = 0;
 
-        void calcK() {
+        void calcK() noexcept {
             k = min(0., coef.k[0] + coef.k[1] * exp(coef.k[2] * pow(mai, coef.k[3])));
         }
 
@@ -152,7 +152,7 @@ namespace g4m::increment {
             tcpMax = k < 0 ? max(0., mai * tMax * exp(0.25 / k)) : 0;
         }
 
-        void calcTMax() {
+        void calcTMax() noexcept {
             tMax = max(0., coef.tMax[0] + coef.tMax[1] / (1 + exp(coef.tMax[2] + coef.tMax[3] * mai)));
         }
 
@@ -160,7 +160,7 @@ namespace g4m::increment {
             tOpt = k < 0 ? max(0., tMax * exp(0.5 / k)) : 0;
         }
 
-        void calcTh13() {
+        void calcTh13() noexcept {
             if (mai <= 0)
                 th13 = numeric_limits<double>::infinity();
             else {
@@ -170,7 +170,7 @@ namespace g4m::increment {
             }
         }
 
-        void calc() {
+        void calc() noexcept {
             calcK();
             calcTMax();
             calcTcpMax();

@@ -694,7 +694,7 @@ namespace g4m::Arrays {
         countryOrderISO2[177] = "PR";
         countryOrderISO2[178] = "QA";
         countryOrderISO2[179] = "RE";
-        countryOrderISO2[180] = "RE";
+        countryOrderISO2[180] = "RO";
         countryOrderISO2[181] = "RU";
         countryOrderISO2[182] = "RW";
         countryOrderISO2[183] = "SH";

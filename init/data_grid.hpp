@@ -56,19 +56,19 @@ namespace g4m::init {
 
         //  https://en.cppreference.com/w/cpp/compiler_support/23
         //  wait for P2128R6 in MSVC, update to C++23 and change () to []
-        const T &operator()(const size_t x, const size_t y, const size_t year = 0) const {
+        [[nodiscard]] const T &operator()(const size_t x, const size_t y, const size_t year = 0) const {
             accessGridGuard(x, y, year);
             return grid[year][x - topLeft.x][y - topLeft.y];
         }
 
         // possibly () after P2128R6
-        T &country(const size_t x, const size_t y) {
+        uint8_t &country(const size_t x, const size_t y) {
             accessCountryGuard(x, y);
             return gridCountries[x - topLeft.x][y - topLeft.y];
         }
 
         // possibly () after P2128R6
-        const T &country(const size_t x, const size_t y) const {
+        [[nodiscard]] const uint8_t &country(const size_t x, const size_t y) const {
             accessCountryGuard(x, y);
             return gridCountries[x - topLeft.x][y - topLeft.y];
         }

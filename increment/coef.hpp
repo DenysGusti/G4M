@@ -28,6 +28,7 @@ namespace g4m::increment {
                 FATAL("wrong size of coefficients array: {} instead of 48", a.size());
                 throw invalid_argument{"wrong array size"};
             }
+
             copy(a.begin(), a.begin() + 4, k.begin());
             copy(a.begin() + 4, a.begin() + 8, tMax.begin());
             copy(a.begin() + 8, a.begin() + 23, maxDens.begin());

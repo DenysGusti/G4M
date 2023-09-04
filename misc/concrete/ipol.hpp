@@ -147,6 +147,9 @@ namespace g4m::misc::concrete {
             if (data.empty())
                 return 0;
 
+            if (const auto presentIt = data.find(i); presentIt != data.end())
+                return presentIt->second;
+
             const auto itUp = data.lower_bound(i);
 
             if (itUp == data.end())
@@ -159,6 +162,7 @@ namespace g4m::misc::concrete {
 
             const auto [i0, v0] = *itLo;
             const auto [i1, v1] = *itUp;
+
             return lerp(v0, v1, (i - i0) / (i1 - i0));  // interpolate intermediate value
         }
 

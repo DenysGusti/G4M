@@ -58,7 +58,7 @@ namespace g4m {
 
         void ThreadLoop(const stop_token &stoken) {
             for (function<void()> job; true; job()) {
-                unique_lock<mutex> lock(queue_mutex);
+                unique_lock<mutex> lock{queue_mutex};
                 mutex_condition.wait(lock, [&] { return !jobs.empty() || stoken.stop_requested(); });
                 if (jobs.empty() && stoken.stop_requested())
                     return;

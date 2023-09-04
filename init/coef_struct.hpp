@@ -34,145 +34,134 @@ namespace g4m::init {
         //** parameters
         //******************************************************************************
         // Price-index of reference country
-        Ipol<double> PriceIndexE;
+        double priceIndexE = 0;
         // Minimum Land-price [cash/ha]
-        Ipol<double> PriceLandMinR;
+        double priceLandMinR = 0;
         // Maximum Land-price [cash/ha]
-        Ipol<double> PriceLandMaxR;
+        double priceLandMaxR = 0;
         // Factor Carbon uptake (DIMA-Model)
-        Ipol<double> FCuptake;
-        // Commercial timber-volume per ton of carbon [m3/tC]
-        //  Ipol<float,float> FTimber;
+        double fCUptake = 0;
+//        // Commercial timber-volume per ton of carbon [m3/tC]
+//        double fTimber = 0;  // not used, but okay
         // HarvestingLosses (Share of losses during harvest)
-        Ipol<double> HarvLoos;
+        double harvLoos = 0;
         // Carbon price [Cash/tC] (9/25)
-        Ipol<double> PriceC;
+        double priceC = 0;
         // Share of Long-living products [0-1]
-        Ipol<double> FracLongProd;
+        double fracLongProd = 0;
         // Decrease rate of long living products
-        Ipol<double> decRateL;
+        double decRateL = 0;
         // Decrease rate of short living products
-        Ipol<double> decRateS;
+        double decRateS = 0;
         // Share of SlashBurn deforestation [0-1]
-        Ipol<double> SlashBurn;
+        double slashBurn = 0;
         // Frequency of aid payments (PRICECAID) [Years]
-        Ipol<double> FreqAid;
+        double freqAid = 0;
         // Aid Carbon Price [Cash/tC/FREQAID] (6)
-        Ipol<double> PriceCAid;
+        double priceCAid = 0;
         // Maximum rotation time im Years
-        Ipol<double> MaxRotInter;
+        double maxRotInter = 0;
         // Minimum rotation time im Years
-        Ipol<double> MinRotInter;
+        double minRotInter = 0;
         // Baseline
-        Ipol<double> baseline;
+        double baseline = 0;
         // Maximum Timber-price [cash/m3]
-        Ipol<double> PriceTimberMaxR;
+        double priceTimberMaxR = 0;
         // Minimum Timber-price [cash/m3]
-        Ipol<double> PriceTimberMinR;
+        double priceTimberMinR = 0;
         // Planting costs in reference country [Cash/ha]
-        Ipol<double> PlantingCostsR;
+        double plantingCostsR = 0;
         // Standardised Population-density [1-10]
-        Ipol<double> sPopDens;
+        double sPopDens = 0;
 
         // reading coefficients
         void readCoef(const string_view fileName) {
+            INFO("> Reading coefficients...");
             // Opening a file
             ifstream fp{filesystem::path{fileName}};
+
             if (!fp.is_open()) {
                 FATAL("Cannot read {}", fileName);
                 throw runtime_error{"Cannot read setting file"};
             }
 
-            INFO("> Reading coefficients...");
+            vector<string> s_args;
+
             for (string line, buf; fp;) {
                 getline(fp, line);
-                //Jump over lines starting with #
+
+                // Jump over lines starting with #
                 if (line.empty() || line[0] == '#')
                     continue;
 
-                ranges::transform(line, line.begin(), ::toupper);
-                stringstream ss{line};
-                double val = 0;
-                ss >> buf;
-                const auto [tmp_s, tmp_d] = getNumber(buf);
-                ss >> val;
+                s_args = line | rv::transform(::toupper) | rv::split(' ') | ranges::to<vector<string> >();
 
-                if (tmp_s == "BYEAR")
-                    bYear = static_cast<uint16_t>(val);
-                else if (tmp_s == "EYEAR")
-                    eYear = static_cast<uint16_t>(val);
-                else if (tmp_s == "CELLSINTERACT")
-                    cellsInteract = static_cast<int16_t>(val);
-                else if (tmp_s == "INCLAFFOR")
-                    inclAffor = static_cast<int16_t>(val);
-                else if (tmp_s == "NOPAY")
-                    noPay = static_cast<int16_t>(val);
-                else if (tmp_s == "UBIOMASS")
-                    uBiomass = static_cast<int16_t>(val);
-                else if (tmp_s == "LITTER")
-                    litter = static_cast<int16_t>(val);
-                else if (tmp_s == "SOC")
-                    SOC = static_cast<uint16_t>(val);
-                else if (tmp_s == "PRICELANDMINR")
-                    PriceLandMinR.data[tmp_d] = val;
-                else if (tmp_s == "PRICELANDMAXR")
-                    PriceLandMaxR.data[tmp_d] = val;
-                else if (tmp_s == "FCUPTAKE")
-                    FCuptake.data[tmp_d] = val;
-//                else if (tmp_s == "FTIMBER")
-//                    FTimber.data[tmp_d] = val;
-                else if (tmp_s == "HARVLOOS")
-                    HarvLoos.data[tmp_d] = val;
-                else if (tmp_s == "PRICEC")
-                    PriceC.data[tmp_d] = val;
-                else if (tmp_s == "FRACLONGPROD")
-                    FracLongProd.data[tmp_d] = val;
-                else if (tmp_s == "DECRATEL")
-                    decRateL.data[tmp_d] = val;
-                else if (tmp_s == "DECRATES")
-                    decRateS.data[tmp_d] = val;
-                else if (tmp_s == "SLASHBURN")
-                    SlashBurn.data[tmp_d] = val;
-                else if (tmp_s == "FREQAID")
-                    FreqAid.data[tmp_d] = val;
-                else if (tmp_s == "PRICECAID")
-                    PriceCAid.data[tmp_d] = val;
-                else if (tmp_s == "MAXROTINTER")
-                    MaxRotInter.data[tmp_d] = val;
-                else if (tmp_s == "MINROTINTER")
-                    MinRotInter.data[tmp_d] = val;
-                else if (tmp_s == "BASELINE")
-                    baseline.data[tmp_d] = val;
-                else if (tmp_s == "PRICETIMBERMAXR")
-                    PriceTimberMaxR.data[tmp_d] = val;
-                else if (tmp_s == "PRICETIMBERMINR")
-                    PriceTimberMinR.data[tmp_d] = val;
-                else if (tmp_s == "PRICEINDEXE")
-                    PriceIndexE.data[tmp_d] = val;
-                else if (tmp_s == "PLANTINGCOSTSR")
-                    PlantingCostsR.data[tmp_d] = val;
-                else if (tmp_s == "SPOPDENS")
-                    sPopDens.data[tmp_d] = val;
+                if (s_args.size() != 2) {  // no ipol is currently used
+                    WARN("Unused data: {}", line);
+                    continue;
+                }
+
+                double value = stod(s_args[1]);
+
+                if (s_args[0] == "BYEAR")
+                    bYear = static_cast<uint16_t>(value);
+                else if (s_args[0] == "EYEAR")
+                    eYear = static_cast<uint16_t>(value);
+                else if (s_args[0] == "CELLSINTERACT")
+                    cellsInteract = static_cast<int16_t>(value);
+                else if (s_args[0] == "INCLAFFOR")
+                    inclAffor = static_cast<int16_t>(value);
+                else if (s_args[0] == "NOPAY")
+                    noPay = static_cast<int16_t>(value);
+                else if (s_args[0] == "UBIOMASS")
+                    uBiomass = static_cast<int16_t>(value);
+                else if (s_args[0] == "LITTER")
+                    litter = static_cast<int16_t>(value);
+                else if (s_args[0] == "SOC")
+                    SOC = static_cast<uint16_t>(value);
+                else if (s_args[0] == "PRICELANDMINR")
+                    priceLandMinR = value;
+                else if (s_args[0] == "PRICELANDMAXR")
+                    priceLandMaxR = value;
+                else if (s_args[0] == "FCUPTAKE")
+                    fCUptake = value;
+//                else if (s_args[0] == "FTIMBER")
+//                    fTimber = value;
+                else if (s_args[0] == "HARVLOOS")
+                    harvLoos = value;
+                else if (s_args[0] == "PRICEC")
+                    priceC = value;
+                else if (s_args[0] == "FRACLONGPROD")
+                    fracLongProd = value;
+                else if (s_args[0] == "DECRATEL")
+                    decRateL = value;
+                else if (s_args[0] == "DECRATES")
+                    decRateS = value;
+                else if (s_args[0] == "SLASHBURN")
+                    slashBurn = value;
+                else if (s_args[0] == "FREQAID")
+                    freqAid = value;
+                else if (s_args[0] == "PRICECAID")
+                    priceCAid = value;
+                else if (s_args[0] == "MAXROTINTER")
+                    maxRotInter = value;
+                else if (s_args[0] == "MINROTINTER")
+                    minRotInter = value;
+                else if (s_args[0] == "BASELINE")
+                    baseline = value;
+                else if (s_args[0] == "PRICETIMBERMAXR")
+                    priceTimberMaxR = value;
+                else if (s_args[0] == "PRICETIMBERMINR")
+                    priceTimberMinR = value;
+                else if (s_args[0] == "PRICEINDEXE")
+                    priceIndexE = value;
+                else if (s_args[0] == "PLANTINGCOSTSR")
+                    plantingCostsR = value;
+                else if (s_args[0] == "SPOPDENS")
+                    sPopDens = value;
                 else
-                    WARN("Unused data: {}\t{}", tmp_s, tmp_d);
+                    WARN("Unused data: {}", line);
             }
-        }
-
-    private:
-        // Returns a pair of string, double;
-        [[nodiscard]] static pair<string, double> getNumber(const string_view str) noexcept {
-            string text;
-            string number;
-            for (const auto c: str) {
-                if (c >= '0' && c <= '9' || c == '.')
-                    number += c;
-                else if (c != '[' && c != ']')
-                    text += c;
-            }
-            double x = 0;
-            stringstream ss{number};
-            ss >> x;
-            return {text, x};
         }
     };
 }

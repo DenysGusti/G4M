@@ -19,9 +19,15 @@ namespace g4m::application::abstract {
             return arguments;
         }
 
+        static vector <string> ConvertToUppercase(vector<string> args_) noexcept {
+            return args_ | rv::transform(
+                    [](string &arg) { return arg | rv::transform(::toupper) | ranges::to<string>(); }) |
+                   ranges::to<vector<string> >();
+        }
+
         Application() = default;
 
-        explicit Application(const span<const string> &args_) : args{args_.begin(), args_.end()} {}
+        explicit Application(const span<const string> args_) : args{args_.begin(), args_.end()} {}
 
         virtual void Run() = 0;
 

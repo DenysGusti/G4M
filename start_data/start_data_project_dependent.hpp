@@ -71,7 +71,7 @@ namespace g4m::StartData {
         countryRegList.insert(17);          // Lithuania
         countryRegList.insert(18);          // Luxembourg
         countryRegList.insert(19);          // Malta
-        countryRegList.insert(20);          // "Netherlands"
+        countryRegList.insert(20);          // Netherlands
         countryRegList.insert(21);          // Poland
         countryRegList.insert(22);          // Portugal
         countryRegList.insert(23);          // Romania

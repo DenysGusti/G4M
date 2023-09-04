@@ -45,7 +45,7 @@ namespace g4m::init {
         double deadWood = 0;
         double oldGrowthForest_ten = 0;
         double oldGrowthForest_thirty = 0;
-        double strictProtected = 0;
+        double strictProtected = 0;  // PRIMARYFOREST
         double forestAll = 0;
         double forest_correction = 0;
         double GL_correction = 0;
@@ -236,6 +236,55 @@ namespace g4m::init {
         friend ostream &operator<<(ostream &os, const DataStruct &obj) {
             os << obj.str();
             return os;
+        }
+
+        void initForestArrange() noexcept {
+            if (strictProtected > 0) {
+                oldGrowthForest_ten = max(oldGrowthForest_ten, strictProtected);
+                oldGrowthForest_thirty = max(oldGrowthForest_thirty, strictProtected);
+            }
+            oldGrowthForest_thirty = max(oldGrowthForest_thirty, oldGrowthForest_ten);
+
+            if (oldGrowthForest_thirty > forest) {
+                oldGrowthForest_thirty = forest;
+                oldGrowthForest_ten = min(oldGrowthForest_ten, oldGrowthForest_thirty);
+                strictProtected = min(strictProtected, oldGrowthForest_ten);
+            }
+        }
+
+        void forestsArrangement() noexcept {
+            forest = max(0., forest - oldGrowthForest_thirty);  // Now it's just a "usual" old forest
+            oldGrowthForest_thirty -= oldGrowthForest_ten;  // forest10 includes primary forest
+            oldGrowthForest_ten -= forest; // Now forest10 is just additional to the primary forest to be protected
+        }
+
+        [[nodiscard]] optional<double> initForestArea(double dfor) noexcept {
+            if (forest >= dfor) {
+                forest -= dfor;
+                return {};
+            } else if (forest + oldGrowthForest_thirty >= dfor) {
+                dfor -= forest;
+                forest = 0;
+                oldGrowthForest_thirty -= dfor;
+                return {};
+            } else if (forest + oldGrowthForest_thirty + oldGrowthForest_ten >= dfor) {
+                dfor -= forest + oldGrowthForest_thirty;
+                forest = 0;
+                oldGrowthForest_thirty = 0;
+                oldGrowthForest_ten -= dfor;
+                return {};
+            } else {
+                dfor -= forest + oldGrowthForest_thirty + oldGrowthForest_ten;
+                forest = 0;
+                oldGrowthForest_thirty = 0;
+                oldGrowthForest_ten = 0;
+                GLOBIOM_reserved.data[2000] -= dfor;
+                return {dfor};  // postponed dfor subtraction
+
+                GLOBIOM_reserved.data.emplace(2010, -dfor);  // new key?
+                GLOBIOM_reserved.data.emplace(2020, -dfor);  // new key?
+                GLOBIOM_reserved.data.emplace(2030, -dfor);  // new key?
+            }
         }
     };
 }
