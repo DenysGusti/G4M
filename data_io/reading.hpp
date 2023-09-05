@@ -76,7 +76,7 @@ namespace g4m::DataIO::reading {
                           plots.back().polesReg, plots.back().country);
             }
         }
-        INFO("Successfully read {} lines.", plots.size() + 1);
+        INFO("Successfully read {} lines.", line_num);
     }
 
     datamapType readHistoric(const string_view file_path, const string_view message,
@@ -675,7 +675,7 @@ namespace g4m::DataIO::reading {
                 line_cells = line | rv::split(',') |
                              rv::transform([](const auto &cell) {  // subrange
                                  if (cell.empty()) {
-                                     ERROR("!!! CSV line {} empty cell, substituted by 0", plots.size() + 2);
+                                     ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                      return 0.;
                                  }
                                  return stod(string{cell.begin(), cell.end()});

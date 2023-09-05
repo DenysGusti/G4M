@@ -14,10 +14,6 @@
 
 #include "../../start_data/start_data.hpp"
 
-#include "../../init/settings.hpp"
-#include "../../init/data_struct.hpp"
-#include "../../init/coef_struct.hpp"
-#include "../../init/data_grid.hpp"
 #include "../../structs/lw_price.hpp"
 #include "../../structs/harvest_residues.hpp"
 
