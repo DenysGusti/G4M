@@ -43,7 +43,7 @@ namespace g4m::Constants {
     constexpr string_view fileName_disturbance = "disturbances_g4m_m3ha_29062023.csv";  // disturbance damage
     constexpr string_view fileName_disturbanceExtreme = "disturbances_g4m_m3ha_29062023.csv";  // disturbance damage
 
-    constexpr string_view fileName_ageStruct = "ageStructData_EUCLIMIT2020_15092022.txt";  // As ageStructData_EUCLIMIT2020_03012021, but IR and DE are corrected according to the countries' comments in 2022
+    constexpr string_view fileName_ageStruct = "ageStructData_EUCLIMIT2020_15092022.csv";  // As ageStructData_EUCLIMIT2020_03012021, but IR and DE are corrected according to the countries' comments in 2022
 
     constexpr bool MAIClimateShift = true;      // Apply the MAI climate shifters starting from MAIClimateShiftYear
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);

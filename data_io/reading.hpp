@@ -53,9 +53,9 @@ namespace g4m::DataIO::reading {
             header.push_back(get_HeaderName_YearFromHeaderColumn(header_column));
 
         plots.reserve(3'000);
-        vector<double> line_cells;
-        while (fp) {
+        for (vector<double> line_cells; !fp.eof();) {
             getline(fp, line);
+
             if (!line.empty() && line[0] != '#') {
                 line_cells = line | rv::split(',') |
                              rv::transform([](const auto &cell) {  // subrange
@@ -98,10 +98,11 @@ namespace g4m::DataIO::reading {
 
         datamapType datamap;
         datamap.reserve(30);
-        vector<string> s_row;
+
         vector<double> d_row;
-        while (fp) {
+        for (vector<string> s_row; !fp.eof();) {
             getline(fp, line);
+
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
                 d_row = s_row | rv::drop(s_row.size() - year_columns.size() + offset_first) |
@@ -143,11 +144,12 @@ namespace g4m::DataIO::reading {
 
         heterDatamapScenariosType scenariosDatamaps;
         scenariosDatamaps.reserve(3'400);
-        vector<string> s_row;
+
         vector<double> d_row;
         string scenario_name;
-        while (fp) {
+        for (vector<string> s_row; !fp.eof();) {
             getline(fp, line);
+
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
                 d_row = s_row | rv::drop(s_row.size() - year_columns.size()) |
@@ -195,11 +197,10 @@ namespace g4m::DataIO::reading {
         globiomAfforMaxScenarios[s_bauScenario].reserve(3'100);
         globiomLandScenarios[s_bauScenario].reserve(3'100);
 
-        vector<string> s_row;
         vector<double> d_row;
 
-        uint32_t line_num = 2;
-        for (; fp; ++line_num) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
@@ -254,11 +255,10 @@ namespace g4m::DataIO::reading {
         globiomAfforMaxScenarios.reserve(27'500);
         globiomLandScenarios.reserve(27'500);
 
-        vector<string> s_row;
         vector<double> d_row;
         string scenario_name;
-        uint32_t line_num = 2;
-        for (; fp; ++line_num) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
@@ -315,11 +315,10 @@ namespace g4m::DataIO::reading {
         globiomAfforMaxCountryScenarios[s_bauScenario].reserve(250);
         globiomLandCountryScenarios[s_bauScenario].reserve(250);
 
-        vector<string> s_row;
         vector<double> d_row;
 
-        uint32_t line_num = 2;
-        for (; fp; ++line_num) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
@@ -382,11 +381,10 @@ namespace g4m::DataIO::reading {
         globiomAfforMaxCountryScenarios.reserve(27'500);
         globiomLandCountryScenarios.reserve(27'500);
 
-        vector<string> s_row;
         vector<double> d_row;
         string scenario_name;
-        uint32_t line_num = 2;
-        for (; fp; ++line_num) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
@@ -436,10 +434,10 @@ namespace g4m::DataIO::reading {
                             ranges::to<vector<uint16_t> >();
         size_t idx_ge_refYear = distance(year_columns.begin(), ranges::lower_bound(year_columns, refYear));
         CO2PriceScenarios.reserve(3'400);
-        vector<string> s_row;
+
         vector<double> d_row;
         string scenario_name;
-        while (fp) {
+        for (vector<string> s_row; !fp.eof(); ) {
             getline(fp, line);
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
@@ -470,8 +468,7 @@ namespace g4m::DataIO::reading {
         string line;
         getline(fp, line);
 
-        vector<string> s_row;
-        while (fp) {
+        for (vector<string> s_row; !fp.eof();) {
             getline(fp, line);
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
@@ -502,11 +499,10 @@ namespace g4m::DataIO::reading {
         // ...1,ClimaScen,ANYRCP,lon,lat,Year,G4MOutput,value
         maiClimateShiftersScenarios.reserve(96);  // 2'373'408 / 24'723 = 96
 
-        vector<string> s_row;
         string scenario_name;
-        uint32_t line_num = 2;
+        uint32_t line_num = 1;
 
-        for (; fp; ++line_num) {
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
@@ -552,10 +548,9 @@ namespace g4m::DataIO::reading {
         disturbFire.reserve(22'000);
         disturbBiotic.reserve(22'000);
 
-        vector<string> s_row;
-        uint32_t line_num = 2;
+        uint32_t line_num = 1;
 
-        for (; fp; ++line_num) {
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
             erase(line, '"');  // trimming double quotes
 
@@ -607,10 +602,9 @@ namespace g4m::DataIO::reading {
         disturbFire.reserve(25'000);
         disturbBiotic.reserve(25'000);
 
-        vector<string> s_row;
         uint32_t line_num = 2;
 
-        for (; fp; ++line_num) {
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
             erase(line, '"');  // trimming double quotes
 
@@ -639,6 +633,38 @@ namespace g4m::DataIO::reading {
         }
 
         INFO("Successfully read {} lines.", line_num);
+    }
+
+    unordered_map<uint8_t, vector<double> > readAgeStructData() {
+        INFO("> Reading the age struct data...");
+        ifstream fp = checkFile(fileName_ageStruct);
+
+        string line;
+        getline(fp, line);
+
+        unordered_map<uint8_t, vector<double> > ageStructData;
+        ageStructData.reserve(36);
+
+        uint32_t line_num = 1;
+
+        for (vector<double> line_cells; !fp.eof(); ++line_num) {
+            getline(fp, line);
+
+            if (!line.empty() && line[0] != '#') {
+                line_cells = line | rv::split(',') |
+                             rv::transform([](const auto &cell) {  // subrange
+                                 if (cell.empty()) {
+                                     ERROR("!!! CSV line {} empty cell, substituted by 0", plots.size() + 2);
+                                     return 0.;
+                                 }
+                                 return stod(string{cell.begin(), cell.end()});
+                             }) | ranges::to<vector<double> >();
+                ageStructData[static_cast<uint8_t>(line_cells[0])] = {line_cells.begin() + 1, line_cells.end()};
+            }
+        }
+
+        INFO("Successfully read {} lines.", line_num);
+        return ageStructData;
     }
 }
 

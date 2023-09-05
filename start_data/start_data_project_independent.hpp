@@ -835,6 +835,7 @@ namespace g4m::StartData {
         cohort10_all.reserve(plots.size());
         cohort30_all.reserve(plots.size());
         cohort_primary_all.reserve(plots.size());
+        unordered_map<uint8_t, vector<double> > ageStructData = readAgeStructData();
     }
 
     void initZeroProdArea() noexcept {
@@ -863,6 +864,7 @@ namespace g4m::StartData {
 
         {
             ThreadPool pool;
+
             pool.enqueue([&] {
                 try {
                     Log::Init("globiom_datamaps");
@@ -873,6 +875,7 @@ namespace g4m::StartData {
                     cerr << e.what() << endl;
                 }
             });
+
             pool.enqueue([&] {
                 try {
                     Log::Init("globiom_land");
@@ -882,6 +885,7 @@ namespace g4m::StartData {
                     cerr << e.what() << endl;
                 }
             });
+
             pool.enqueue([&] {
                 try {
                     Log::Init("globiom_land_country");
@@ -891,6 +895,7 @@ namespace g4m::StartData {
                     cerr << e.what() << endl;
                 }
             });
+
             pool.enqueue([&] {
                 try {
                     Log::Init("CO2_price");
@@ -899,6 +904,7 @@ namespace g4m::StartData {
                     cerr << e.what() << endl;
                 }
             });
+
             pool.enqueue([&] {
                 try {
                     Log::Init("NUTS2");
@@ -909,8 +915,11 @@ namespace g4m::StartData {
                     cerr << e.what() << endl;
                 }
             });
+
             pool.enqueue(defineSpecies);
+
             pool.enqueue(setupFMP);
+
             pool.enqueue([&] {
                 Log::Init("MAI");
                 correctMAI();
@@ -919,6 +928,7 @@ namespace g4m::StartData {
                 scaleMAIClimate2020();
                 applyMAIClimateShifters();
             });
+
             pool.enqueue([&] {
                 try {
                     Log::Init("disturbances");
@@ -929,6 +939,7 @@ namespace g4m::StartData {
                     cerr << e.what() << endl;
                 }
             });
+
             pool.enqueue([&] {
                 try {
                     Log::Init("disturbances_extreme");
@@ -942,6 +953,7 @@ namespace g4m::StartData {
         // start calculations
         initGlobiomLandGlobal();
         initManagedForestGlobal();
+        initLoop();
         initZeroProdArea();
 
 //        printData();
