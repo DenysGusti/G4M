@@ -1,6 +1,8 @@
 #ifndef G4M_EUROPE_DG_START_DATA_PROJECT_INDEPENDENT_HPP
 #define G4M_EUROPE_DG_START_DATA_PROJECT_INDEPENDENT_HPP
 
+#include <future>
+
 #include "start_data_project_dependent.hpp"
 #include "../data_io/reading.hpp"
 #include "../data_io/printing.hpp"
@@ -843,112 +845,104 @@ namespace g4m::StartData {
     }
 
     void Init() {
-        settings.readSettings("settings_Europe_dw_v02.ini");
-        coef.readCoef(settings.coeffPath);
-        yearsToConsider(1990, 2070);
-        regionsToConsider();
-        countryRegionsToConsider();
-        countriesFmcpolToConsider();
-        countriesToConsider();
-        setCountryData();
-        setCountrySpecies();
+        future<void> settings_future = async([&] {
+            Log::Init("settings");
+            settings.readSettings("settings_Europe_dw_v02.ini");
+        });
+
         setIdCountryGLOBIOM();
         setCountryGLOBIOMId();
+        settings_future.get();
+
+        future<void> coef_future = async([&] {
+            Log::Init("coef");
+            coef.readCoef(settings.coeffPath);
+        });
+
+        future<void> NUTS2_future = async([&] {
+            Log::Init("NUTS2");
+            readNUTS2();
+        });
+
+        future<void> plots_future = async([&] {
+            Log::Init("plots");
+            regionsToConsider();
+            countriesToConsider();
+            readPlots();
+            initPlotsSimuID();
+            initPlotsXY_SimuID();
+        });
+
+        coef_future.get();
+
+        future<void> globiom_datamaps_future = async([&] {
+            Log::Init("globiom_datamaps");
+            readGlobiom();      // created dicts
+            readDatamaps();     // adds bau scenario to dicts
+            convertUnitsDatamaps();
+        });
+
+        future<void> CO2_price_future = async([&] {
+            Log::Init("CO2_price");
+            readCO2price();
+        });
+
+        plots_future.get();
+        NUTS2_future.get();
+
+        future<void> MAI_future = async([&] {
+            Log::Init("MAI");
+            correctMAI();
+            calculateAverageMAI();
+            readMAIClimate();
+            scaleMAIClimate2020();
+            applyMAIClimateShifters();
+        });
+
+        future<void> globiom_land_future = async([&] {
+            Log::Init("globiom_land");
+            readGlobiomLandCalibrate();
+            readGlobiomLand();
+        });
+
+        future<void> globiom_land_country_future = async([&] {
+            Log::Init("globiom_land_country");
+            readGlobiomLandCountryCalibrate_calcCountryLandArea();
+            readGlobiomLandCountry();
+        });
+
+        future<void> disturbances_future = async([&] {
+            Log::Init("disturbances");
+            readDisturbances();
+            add2020Disturbances();
+            scaleDisturbances2020();
+        });
+
+        future<void> disturbances_extreme_future = async([&] {
+            Log::Init("disturbances_extreme");
+            readDisturbancesExtreme();
+        });
+
+        yearsToConsider(1990, 2070);
+        countryRegionsToConsider();
+        countriesFmcpolToConsider();
         setCountriesWoodProdStat();
         setCountriesfmEmission_unfccc();
         calcAvgFM_sink_stat();
+        defineSpecies();
+        setupFMP();
+        setCountryData();
+        setCountrySpecies();
+        nuts2grid.fillFromNUTS(nuts2id);
+        correctNUTS2Data();
 
-        readPlots();
-        initPlotsSimuID();
-        initPlotsXY_SimuID();
-
-        {
-            ThreadPool pool;
-
-            pool.enqueue([&] {
-                try {
-                    Log::Init("globiom_datamaps");
-                    readGlobiom();      // created dicts
-                    readDatamaps();     // adds bau scenario to dicts
-                    convertUnitsDatamaps();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
-
-            pool.enqueue([&] {
-                try {
-                    Log::Init("globiom_land");
-                    readGlobiomLandCalibrate();
-                    readGlobiomLand();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
-
-            pool.enqueue([&] {
-                try {
-                    Log::Init("globiom_land_country");
-                    readGlobiomLandCountryCalibrate_calcCountryLandArea();
-                    readGlobiomLandCountry();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
-
-            pool.enqueue([&] {
-                try {
-                    Log::Init("CO2_price");
-                    readCO2price();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
-
-            pool.enqueue([&] {
-                try {
-                    Log::Init("NUTS2");
-                    readNUTS2();
-                    nuts2grid.fillFromNUTS(nuts2id);
-                    correctNUTS2Data();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
-
-            pool.enqueue(defineSpecies);
-
-            pool.enqueue(setupFMP);
-
-            pool.enqueue([&] {
-                Log::Init("MAI");
-                correctMAI();
-                calculateAverageMAI();
-                readMAIClimate();
-                scaleMAIClimate2020();
-                applyMAIClimateShifters();
-            });
-
-            pool.enqueue([&] {
-                try {
-                    Log::Init("disturbances");
-                    readDisturbances();
-                    add2020Disturbances();
-                    scaleDisturbances2020();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
-
-            pool.enqueue([&] {
-                try {
-                    Log::Init("disturbances_extreme");
-                    readDisturbancesExtreme();
-                } catch (const exception &e) {
-                    cerr << e.what() << endl;
-                }
-            });
-        }
+        CO2_price_future.get();
+        globiom_land_country_future.get();
+        globiom_datamaps_future.get();
+        disturbances_future.get();
+        disturbances_extreme_future.get();
+        globiom_land_future.get();
+        MAI_future.get();
 
         // start calculations
         initGlobiomLandGlobal();

@@ -40,7 +40,7 @@ namespace g4m::application::concrete {
     public:
         explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args_) : Application{args_} {
             Log::Init(appName);
-            mergeDatamaps();
+            mergeObligatoryDatamaps();
             mergeOptionalDatamaps();
             mergeOptionalSimuIds();
             correctBelgium();
@@ -95,7 +95,9 @@ namespace g4m::application::concrete {
             // Swiss project 21.04.2022, Nicklas Forsell
             datamapType datamapDest = datamapScenarios.at(full_scenario);
             datamapType histDatamap = datamapScenarios.at(s_bauScenario);
-            datamapDest.merge(histDatamap);
+
+            for (auto&[id, ipol]: datamapDest)
+                ipol.data.merge(histDatamap.at(id).data);
 
             TRACE("Merged {}:", message);
             for (const auto &[id, ipol]: datamapDest)
@@ -134,7 +136,9 @@ namespace g4m::application::concrete {
 
             simuIdType simuIdDest = simuIdScenarios.at(full_scenario);
             simuIdType histSimuId = simuIdScenarios.at(s_bauScenario);
-            simuIdDest.merge(histSimuId);
+
+            for (auto&[id, ipol]: simuIdDest)
+                ipol.data.merge(histSimuId.at(id).data);
 
             TRACE("Merged {}:", message);
             for (const auto &[id, ipol]: simuIdDest)
@@ -147,11 +151,11 @@ namespace g4m::application::concrete {
             return simuIdDest;
         }
 
-        void mergeDatamaps() {
-            appLandPrice = mergeDatamap(landPriceScenarios, "Land Price");
-            appWoodPrice = mergeDatamap(woodPriceScenarios, "Wood Price");
-            appWoodDemand = mergeDatamap(woodDemandScenarios, "Wood Demand");
-            appResiduesDemand = mergeDatamap(residuesDemandScenarios, "Residues Demand");
+        void mergeObligatoryDatamaps() {
+            appLandPrice = mergeObligatoryDatamap(landPriceScenarios, "Land Price");
+            appWoodPrice = mergeObligatoryDatamap(woodPriceScenarios, "Wood Price");
+            appWoodDemand = mergeObligatoryDatamap(woodDemandScenarios, "Wood Demand");
+            appResiduesDemand = mergeObligatoryDatamap(residuesDemandScenarios, "Residues Demand");
         }
 
         void mergeOptionalDatamaps() {
@@ -166,7 +170,7 @@ namespace g4m::application::concrete {
         }
 
         void correctBelgium() noexcept {
-            woodSupplement = appWoodDemand[20];
+            woodSupplement = appWoodDemand.at(20);
             // 05.04.2023: we assume that 14% of round-wood comes from outside forest
             // the Forest Europe net increment and felling values are less than FAOSTAT round-wood
             const double forestWood = 0.86;

@@ -53,14 +53,15 @@ namespace g4m::DataIO::reading {
             header.push_back(get_HeaderName_YearFromHeaderColumn(header_column));
 
         plots.reserve(3'000);
-        for (vector<double> line_cells; !fp.eof();) {
+        uint32_t line_num = 1;
+        for (vector<double> line_cells; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
                 line_cells = line | rv::split(',') |
-                             rv::transform([](const auto &cell) {  // subrange
+                             rv::transform([&](const auto &cell) {  // subrange
                                  if (cell.empty()) {
-                                     ERROR("!!! CSV line {} empty cell, substituted by 0", plots.size() + 2);
+                                     ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                      return 0.;
                                  }
                                  return stod(string{cell.begin(), cell.end()});
@@ -94,33 +95,36 @@ namespace g4m::DataIO::reading {
             return {distance(year_columns.begin(), ranges::lower_bound(year_columns, firstYear)),
                     distance(year_columns.begin(), prev(ranges::upper_bound(year_columns, lastYear)))};
         };
+
         const auto [offset_first, offset_last] = getTrimmingOffsets();
+        auto trimmed_year_columns = span{year_columns}.subspan(offset_first, offset_last - offset_first + 1);
 
         datamapType datamap;
         datamap.reserve(30);
 
         vector<double> d_row;
-        for (vector<string> s_row; !fp.eof();) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof();++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
                 d_row = s_row | rv::drop(s_row.size() - year_columns.size() + offset_first) |
-                        rv::take(offset_last + 1) |
+                        rv::take(trimmed_year_columns.size()) |
                         rv::transform([&](const auto &cell) {  // subrange
                             if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", datamap.size() + 2);
+                                ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                 return 0.;
                             }
                             return stod(string{cell.begin(), cell.end()});
                         }) | ranges::to<vector<double> >();
                 if (countryGLOBIOMId.contains(s_row[0]))
-                    datamap[countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
+                    datamap[countryGLOBIOMId[s_row[0]]] = {trimmed_year_columns, d_row};
                 else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], datamap.size() + 2);
+                    ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
             }
         }
-        INFO("Successfully read {} lines.", datamap.size() + 1);
+        INFO("Successfully read {} lines.", line_num);
         return datamap;
     }
 
@@ -131,7 +135,8 @@ namespace g4m::DataIO::reading {
         residuesDemandScenarios[s_bauScenario] = readHistoric(fileName_rd0, "Residues Demand", 2000, 2020);
     }
 
-    heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message) {
+    heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message,
+                                                   const uint16_t firstYear, const uint16_t lastYear) {
         INFO("> Reading the Globiom Scenarios {}...", message);
         ifstream fp = checkFile(file_path);
         string line;
@@ -142,20 +147,30 @@ namespace g4m::DataIO::reading {
                             rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
                             ranges::to<vector<uint16_t> >();
 
+        auto getTrimmingOffsets = [&]() -> pair<size_t, size_t> {
+            return {distance(year_columns.begin(), ranges::lower_bound(year_columns, firstYear)),
+                    distance(year_columns.begin(), prev(ranges::upper_bound(year_columns, lastYear)))};
+        };
+
+        const auto [offset_first, offset_last] = getTrimmingOffsets();
+        auto trimmed_year_columns = span{year_columns}.subspan(offset_first, offset_last - offset_first + 1);
+
         heterDatamapScenariosType scenariosDatamaps;
         scenariosDatamaps.reserve(3'400);
 
         vector<double> d_row;
         string scenario_name;
-        for (vector<string> s_row; !fp.eof();) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                d_row = s_row | rv::drop(s_row.size() - year_columns.size()) |
+                d_row = s_row | rv::drop(s_row.size() - year_columns.size() + offset_first) |
+                        rv::take(trimmed_year_columns.size()) |
                         rv::transform([&](const auto &cell) {  // subrange
                             if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", scenariosDatamaps.size() + 2);
+                                ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                 return 0.;
                             }
                             return stod(string{cell.begin(), cell.end()});
@@ -163,20 +178,24 @@ namespace g4m::DataIO::reading {
                 scenario_name =
                         s_row[3] + '_' + s_row[4] + '_' + s_row[5] | rv::transform(::toupper) | ranges::to<string>();
                 if (countryGLOBIOMId.contains(s_row[0]))
-                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
+                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]] = {trimmed_year_columns, d_row};
                 else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], scenariosDatamaps.size() + 2);
+                    ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
             }
         }
-        INFO("Successfully read {} lines.", scenariosDatamaps.size() + 1);
+        INFO("Successfully read {} lines.", line_num);
         return scenariosDatamaps;
     }
 
     void readGlobiom() {
-        landPriceScenarios = readGlobiomScenarios(fileName_lp, "Land Price");
-        woodPriceScenarios = readGlobiomScenarios(fileName_wp, "Wood Price");
-        woodDemandScenarios = readGlobiomScenarios(fileName_wd, "Wood Demand");
-        residuesDemandScenarios = readGlobiomScenarios(fileName_rd, "Residues Demand");
+        landPriceScenarios = readGlobiomScenarios(fileName_lp, "Land Price", 2030, coef.eYear);
+        woodPriceScenarios = readGlobiomScenarios(fileName_wp, "Wood Price", 2030, coef.eYear);
+        woodDemandScenarios = readGlobiomScenarios(fileName_wd, "Wood Demand", 2030, coef.eYear);
+        residuesDemandScenarios = readGlobiomScenarios(fileName_rd, "Residues Demand", 2030, coef.eYear);
+
+//        years
+//        cout << landPriceScenarios.begin()->second.begin()->second.data.begin()->first << '\n';
+//        cout << landPriceScenarios.begin()->second.begin()->second.data.rbegin()->first << '\n';
     }
 
     void readGlobiomLandCalibrate() {
@@ -214,7 +233,7 @@ namespace g4m::DataIO::reading {
                         d_row = s_row | rv::take(s_row.size() - 1) | rv::drop(first_data_column) |
                                 rv::transform([&](const auto &cell) {  // subrange
                                     if (cell.empty()) {
-                                        ERROR("!!! CSV line {} empty cell, substituted by 0", line_num);
+                                        ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                         return 0.;
                                     }
                                     return stod(string{cell.begin(), cell.end()});
@@ -272,7 +291,7 @@ namespace g4m::DataIO::reading {
                         d_row = s_row | rv::take(s_row.size() - 1) | rv::drop(first_data_column) |
                                 rv::transform([&](const auto &cell) {  // subrange
                                     if (cell.empty()) {
-                                        ERROR("!!! CSV line {} empty cell, substituted by 0", line_num);
+                                        ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                         return 0.;
                                     }
                                     return stod(string{cell.begin(), cell.end()});
@@ -329,7 +348,7 @@ namespace g4m::DataIO::reading {
                     d_row = s_row | rv::drop(first_data_column) |
                             rv::transform([&](const auto &cell) {  // subrange
                                 if (cell.empty()) {
-                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num);
+                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                     return 0.;
                                 }
                                 return stod(string{cell.begin(), cell.end()});
@@ -355,7 +374,7 @@ namespace g4m::DataIO::reading {
                         if (year == 2000)
                             countryLandArea[id] = gl_tot + gl_tmp;
                     } else
-                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num);
+                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
                 }
             }
         }
@@ -395,7 +414,7 @@ namespace g4m::DataIO::reading {
                     d_row = s_row | rv::drop(first_data_column) |
                             rv::transform([&](const auto &cell) {  // subrange
                                 if (cell.empty()) {
-                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num);
+                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                     return 0.;
                                 }
                                 return stod(string{cell.begin(), cell.end()});
@@ -414,7 +433,7 @@ namespace g4m::DataIO::reading {
                         }
                         globiomLandCountryScenarios[scenario_name][id].data[year] = gl_tmp;
                     } else
-                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num);
+                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
                 }
             }
         }
@@ -437,14 +456,15 @@ namespace g4m::DataIO::reading {
 
         vector<double> d_row;
         string scenario_name;
-        for (vector<string> s_row; !fp.eof(); ) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
                 d_row = s_row | rv::drop(s_row.size() - year_columns.size()) |
                         rv::transform([&](const auto &cell) {  // subrange
                             if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", CO2PriceScenarios.size() + 2);
+                                ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                 return 0.;
                             }
                             return stod(string{cell.begin(), cell.end()});
@@ -456,10 +476,10 @@ namespace g4m::DataIO::reading {
                     CO2PriceScenarios[scenario_name][countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
                     CO2PriceScenarios[scenario_name][countryGLOBIOMId[s_row[0]]].data[refYear] = d_row[idx_ge_refYear];
                 } else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], CO2PriceScenarios.size() + 2);
+                    ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
             }
         }
-        INFO("Successfully read {} lines.", CO2PriceScenarios.size() + 1);
+        INFO("Successfully read {} lines.", line_num);
     }
 
     void readNUTS2() {
@@ -468,7 +488,8 @@ namespace g4m::DataIO::reading {
         string line;
         getline(fp, line);
 
-        for (vector<string> s_row; !fp.eof();) {
+        uint32_t line_num = 1;
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
             if (!line.empty() && line[0] != '#') {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
@@ -477,7 +498,8 @@ namespace g4m::DataIO::reading {
                 nuts2id[{x, y}] = s_row[2];
             }
         }
-        INFO("Successfully read {} lines.", nuts2id.size() + 1);
+
+        INFO("Successfully read {} lines.", line_num);
     }
 
     void readMAIClimate() {
@@ -501,7 +523,6 @@ namespace g4m::DataIO::reading {
 
         string scenario_name;
         uint32_t line_num = 1;
-
         for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
@@ -519,7 +540,7 @@ namespace g4m::DataIO::reading {
                             double value = stod(s_row[7]);
                             maiClimateShiftersScenarios[scenario_name][g4mId->second].data[year] = value;
                         } else
-                            DEBUG("Plots don't contain (x, y) = ({}, {})", x, y);
+                            DEBUG("Plots don't contain (x, y) = ({}, {}), line {}", x, y, line_num + 1);
                     }
             }
         }
@@ -571,9 +592,9 @@ namespace g4m::DataIO::reading {
                         else if (s_row[4] == "biotic")
                             disturbBiotic[g4mId->second].data[year] = value;
                         else
-                            DEBUG("Unknown agent type: {}, line: {}", s_row[4], line_num);
+                            DEBUG("Unknown agent type: {}, line: {}", s_row[4], line_num + 1);
                     } else
-                        DEBUG("Plots don't contain (x, y) = ({}, {})", x, y);
+                        DEBUG("Plots don't contain (x, y) = ({}, {}), line {}", x, y, line_num + 1);
                 }
             }
         }
@@ -602,7 +623,7 @@ namespace g4m::DataIO::reading {
         disturbFire.reserve(25'000);
         disturbBiotic.reserve(25'000);
 
-        uint32_t line_num = 2;
+        uint32_t line_num = 1;
 
         for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
@@ -625,9 +646,9 @@ namespace g4m::DataIO::reading {
                         else if (s_row[4] == "biotic")
                             disturbBioticExtreme[g4mId->second].data[year] = value;
                         else
-                            DEBUG("Unknown agent type: {}, line: {}", s_row[4], line_num);
+                            DEBUG("Unknown agent type: {}, line: {}", s_row[4], line_num + 1);
                     } else
-                        DEBUG("Plots don't contain (x, y) = ({}, {})", x, y);
+                        DEBUG("Plots don't contain (x, y) = ({}, {}), line {}", x, y, line_num);
                 }
             }
         }

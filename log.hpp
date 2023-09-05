@@ -21,11 +21,11 @@ namespace g4m::Log {
         thread_local unique_ptr<ALogger> s_Logger;
     }
 
-    void Init(const string_view scenario_name = "main") noexcept {
+    void Init(const string_view file_name = "main") noexcept {
         if (!fs::exists(log_path))
             fs::create_directories(log_path);
 
-        s_Logger = make_unique<SimpleFileLogger>(log_path / format("{}.txt", scenario_name));
+        s_Logger = make_unique<SimpleFileLogger>(log_path / format("{}.txt", file_name));
         // s_Logger = make_unique<AsyncFileLogger>("info.txt");
         // s_Logger->setFormat("[%t] [%L]: %M");
         s_Logger->setFormat("[%L]: %M");

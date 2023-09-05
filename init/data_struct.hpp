@@ -280,10 +280,6 @@ namespace g4m::init {
                 oldGrowthForest_ten = 0;
                 GLOBIOM_reserved.data[2000] -= dfor;
                 return {dfor};  // postponed dfor subtraction
-
-                GLOBIOM_reserved.data.emplace(2010, -dfor);  // new key?
-                GLOBIOM_reserved.data.emplace(2020, -dfor);  // new key?
-                GLOBIOM_reserved.data.emplace(2030, -dfor);  // new key?
             }
         }
     };
