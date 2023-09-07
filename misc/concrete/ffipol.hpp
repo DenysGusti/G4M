@@ -29,6 +29,15 @@ namespace g4m::misc::concrete {
                 data[i] = ipol((intercept + i) / zoom - add);
         };
 
+        void overwrite(const Ipol<T> &ipol, const T zoom_ = 1, const T add = 0.5) {
+            zoom = zoom_;
+            intercept = zoom_ * ipol.minKey() + add;
+            const size_t n = 1 + zoom * (ceil(ipol.maxKey()) - floor(ipol.minKey()));
+            data.assign(n, 0);
+            for (size_t i = 0; i < data.size(); ++i)
+                data[i] = ipol((intercept + i) / zoom - add);
+        }
+
         // add x to all
         FFIpol &operator+=(const T x) noexcept override {
             for (auto &value: data)

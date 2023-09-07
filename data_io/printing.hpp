@@ -23,13 +23,13 @@ namespace g4m::DataIO::printing {
         for (const auto &[scenario, datamap]: datamapScenarios) {
             TRACE("{}", scenario);
             for (const auto &[id, ipol]: datamap)
-                TRACE("{}\n{}", idCountryGLOBIOM[id], ipol.str());
+                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
         }
     }
 
     void printCountryLandArea() noexcept {
         for (uint16_t i = 0; const auto area: countryLandArea)
-            TRACE("{} area = {}", idCountryGLOBIOM[i++], area);
+            TRACE("{} area = {}", idCountryGLOBIOM.at(i++), area);
     }
 
     void printNuts2Id() noexcept {

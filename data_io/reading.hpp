@@ -52,7 +52,7 @@ namespace g4m::DataIO::reading {
         for (const auto &header_column: header_columns)
             header.push_back(get_HeaderName_YearFromHeaderColumn(header_column));
 
-        plots.reserve(3'000);
+        rawPlots.reserve(3'000);
         uint32_t line_num = 1;
         for (vector<double> line_cells; !fp.eof(); ++line_num) {
             getline(fp, line);
@@ -67,13 +67,7 @@ namespace g4m::DataIO::reading {
                                  return stod(string{cell.begin(), cell.end()});
                              }) | ranges::to<vector<double> >();
 
-                // Test only some regions and some countries
-                if (regions.contains(static_cast<uint8_t>(line_cells[6])) &&
-                    countriesList.contains(static_cast<uint8_t>(line_cells[4])))
-                    plots.emplace_back(header, line_cells);
-                else
-                    DEBUG("regions don't contain (PolesReg, Country) = ({}, {})",
-                          plots.back().polesReg, plots.back().country);
+                rawPlots.emplace_back(header, line_cells);
             }
         }
         INFO("Successfully read {} lines.", line_num);
@@ -104,7 +98,7 @@ namespace g4m::DataIO::reading {
 
         vector<double> d_row;
         uint32_t line_num = 1;
-        for (vector<string> s_row; !fp.eof();++line_num) {
+        for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
 
             if (!line.empty() && line[0] != '#') {
@@ -673,7 +667,7 @@ namespace g4m::DataIO::reading {
 
             if (!line.empty() && line[0] != '#') {
                 line_cells = line | rv::split(',') |
-                             rv::transform([](const auto &cell) {  // subrange
+                             rv::transform([&](const auto &cell) {  // subrange
                                  if (cell.empty()) {
                                      ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                      return 0.;

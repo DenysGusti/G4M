@@ -15,6 +15,7 @@
 #include "../init/coef_struct.hpp"
 #include "../init/data_struct.hpp"
 #include "../init/data_grid.hpp"
+#include "../init/ffipols_country.hpp"
 
 #include "../misc/concrete/ipol.hpp"
 #include "../misc/concrete/ipolm.hpp"
@@ -29,6 +30,7 @@
 
 #include "../increment/age_struct.hpp"
 #include "../structs/dat.hpp"
+#include "../structs/harvest_residues.hpp"
 
 using namespace std;
 
@@ -91,17 +93,16 @@ namespace g4m::StartData {
     CountryData countriesfmEmission_unfccc;
 
     // countries and species where the stumps can be harvested as compiled by Fulvio 06.06
-    vector<CountrySpecies> stumpHarvCountrySpecies;
+    vector <CountrySpecies> stumpHarvCountrySpecies;
 
     // pairs of G4M country ID and GLOBIOM country name
     unordered_map<uint8_t, string> idCountryGLOBIOM;
     unordered_map<string, uint8_t, string_hash, equal_to<> > countryGLOBIOMId;
 
-    // re
+    vector <IncrementTab> species;
 
-    vector<IncrementTab> species;
-
-    vector<DataStruct> plots;  // structure with data plots[<elNum>].<variable>[year]
+    vector <DataStruct> rawPlots;  // raw structure with data plots[<elNum>].<variable>[year]
+    vector <DataStruct> plots;  // structure with data plots[<elNum>].<variable>[year]
 
     // for quick plots search
     unordered_set <uint32_t> plotsSimuID;
@@ -152,7 +153,7 @@ namespace g4m::StartData {
     // Do final felling (depending on d and stocking volume per hectare)
     FFIpolM<double> ffdoe;
 
-    using simuIdType = unordered_map<uint32_t, Ipol < double>>;
+    using simuIdType = unordered_map<uint32_t, Ipol < double> >;
     using heterSimuIdScenariosType = unordered_map<string, simuIdType, string_hash, equal_to<>>;
 
     heterSimuIdScenariosType globiomAfforMaxScenarios;         // Maximum allowed afforestation estimated from GLOBIOM natural land
@@ -190,13 +191,18 @@ namespace g4m::StartData {
     DataGrid<double> MaxNPVGrid{resLatitude};
     DataGrid<double> salvageLogging{resLatitude}; // salvage logging wood
 
-    vector<AgeStruct> cohort_all;
-    vector<AgeStruct> newCohort_all;
-    vector<AgeStruct> cohort10_all;
-    vector<AgeStruct> cohort30_all;
-    vector<AgeStruct> cohort_primary_all;
+    unordered_map<uint8_t, FFIpolsCountry> countriesFFIpols;
 
-    vector<Dat> dat_all;
+    vector <AgeStruct> cohort_all;
+    vector <AgeStruct> newCohort_all;
+    vector <AgeStruct> cohort10_all;
+    vector <AgeStruct> cohort30_all;
+    vector <AgeStruct> cohort_primary_all;
+
+    vector <Dat> dat_all;
+    // data related to harvesting the residues (residues amount, associated costs and soil loss emissions)
+    unordered_map<uint8_t, vector < HarvestResidues> >
+    harvestResiduesCountry;  // a vector of harvest residues data for all single countries
 }
 
 #endif

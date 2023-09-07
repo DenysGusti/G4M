@@ -53,8 +53,8 @@ namespace g4m::Constants {
     constexpr bool disturbanceClimateSensitive = true; // Do the disturbances depend on the RCP scenario? If True the damaged wood doubles for RCP7 and 2.5 for the RCP8. Works with disturbanceTrend = true;
     constexpr bool scaleDisturbance2020 = true;
 
-    constexpr bool protectedNatLnd = true; // Don't afforest Natura2000 natural vegetation and heathland to be protected in 2030 (only EU27); Check if GRLND_PROTECT is available in input data
-    constexpr bool initZeroProdArea = true; // Let G4M to set up minimum necessary forest area used for satisfying wood demand
+    constexpr bool protectedNatLnd = true;  // Don't afforest Natura2000 natural vegetation and heathland to be protected in 2030 (only EU27); Check if GRLND_PROTECT is available in input data
+    constexpr bool zeroProdAreaInit = true; // Let G4M to set up minimum necessary forest area used for satisfying wood demand
 
     //Get optimal rotation time (getTOpt and getTOptT)
     constexpr int optimMAI = 0;     // Highest average increment
@@ -62,6 +62,9 @@ namespace g4m::Constants {
     constexpr int optimMaxAge = 2;  // Highest possible age
     constexpr int optimHarvFin = 3; // Maximum harvest at final cut
     constexpr int optimHarvAve = 4; // Average Maximum harvest at final cut
+
+    constexpr double sdMinCoef = 1; // minimum stocking degree multiplier: sdMin = SD * sdMinCoef
+    constexpr double sdMaxCoef = 1; // maximum stocking degree multiplier: sdMax = SD * sdMaxCoef
 
 //    constexpr bool fmpol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
 

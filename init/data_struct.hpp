@@ -17,11 +17,21 @@ namespace g4m::init {
         uint32_t x = 0;
         uint32_t y = 0;
         uint32_t simuID = 0;
+        size_t asID = 0;
 
         uint8_t country = 0;
         uint8_t IIASA_region = 0;
         uint8_t polesReg = 0;
         uint8_t countryRegMix = 0;
+
+        // 1 - fir
+        // 2 - spruce
+        // 3 - pine
+        // 4 - pinus Halepensis
+        // 5 - birch
+        // 6 - beech
+        // 7 - oak
+        // 8 - larch
         uint8_t speciesType = 0;
 
         int8_t mngmType = 0;
@@ -281,6 +291,67 @@ namespace g4m::init {
                 GLOBIOM_reserved.data[2000] -= dfor;
                 return {dfor};  // postponed dfor subtraction
             }
+        }
+
+        [[nodiscard]] pair<double, double> getGeographicCoordinates() const noexcept {
+            return {(x + 0.5) * gridStep - 180, (y + 0.5) * gridStep - 90};
+        }
+
+        // all old forest in the cell
+        [[nodiscard]] double getForestShare() const noexcept {
+            return forest + oldGrowthForest_ten + oldGrowthForest_thirty + strictProtected;
+        }
+
+        [[nodiscard]] double getMaxAffor() const {
+            return 1 - GLOBIOM_reserved.data.at(2000);
+        }
+
+        /*
+        Biomass Expansion Factor (BEF) functions
+        Mykola Gusti, 11 April 2013
+        The functions are from
+        Teobaldelli M, Somogyi Z., Migliavacca M., Usoltsev V. (2009)
+        Generalized functions of biomass expansion factors for conifers and broadleaved by stand age, growing stock and site index
+        Forest Ecology and Management, N257, 1004-1013
+        BEF functions are used to estimate total above-ground biomass (including leaves) [m3/ha] from growing stock data [m3/ha]
+        Brown S. (1997) Estimating Biomass and Biomass Change of Tropical Forests: a Primer. (FAO Forestry Paper - 134, FAO 1997)
+
+        const double tC_m3 = 4 changed to fTimber.data.at(2000)
+        */
+        [[nodiscard]] double BEF(const double growingStockC) const {
+            double growingStock = growingStockC * fTimber.data.at(2000);
+            double bef = 1;
+            if (growingStock > 0) {
+                switch (speciesType) {
+                    case 1:
+                        bef = clamp(1.069 + 1.919 * pow(growingStock, -0.524), 1.1, 3.5);
+                        break;
+                    case 2:
+                        bef = clamp(1.204 + 0.903 * exp(-0.009 * growingStock), 1.1, 4.);
+                        break;
+                    case 3:
+                        bef = clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
+                        break;
+                    case 4:
+                        bef = clamp(0.949 + 3.791 / pow(growingStock, 0.501), 1.1, 6.);
+                        break;
+                    case 5:
+                        bef = clamp(1.105 + 9.793 / growingStock, 1.1, 1.6);
+                        break;
+                    case 6:
+                        bef = clamp(1.197 + 0.386 * exp(-0.009 * growingStock), 1.1, 3.5);
+                        break;
+                    case 7:
+                        bef = clamp(1.202 + 0.422 * exp(-0.013 * growingStock), 1.1, 3.5);
+                        break;
+                    case 8:
+                        bef = clamp(1.023 + 2.058 * pow(growingStock, -0.508), 1.1, 3.5);
+                        break;
+                    default:
+                        ERROR("Unknown speciesType: {}", speciesType);
+                }
+            }
+            return bef;
         }
     };
 }
