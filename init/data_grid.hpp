@@ -309,7 +309,7 @@ namespace g4m::init {
 
         vector<vector<vector<T> > > grid;  // newer year on the front
 
-        vector<vector<uint8_t>> gridCountries;  // uint8_t (unsigned char) grid that is used for storing country codes
+        vector<vector<uint8_t> > gridCountries;  // uint8_t (unsigned char) grid that is used for storing country codes
 
         void initGuard() const {
             if ((bottomRight.y - topLeft.y) * 2 != bottomRight.x - topLeft.x) {

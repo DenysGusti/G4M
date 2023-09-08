@@ -182,11 +182,11 @@ namespace g4m::StartData {
     DataGrid<double> thinningForest30{resLatitude};
     DataGrid<double> OforestShGrid{resLatitude};
 
-    DataGrid<char> decisionGrid{resLatitude};
-    DataGrid<char> managedForest{resLatitude};
-    DataGrid<char> manageChForest{resLatitude};
-    DataGrid<char> rotationType{resLatitude};
-    DataGrid<char> unmanaged{resLatitude};
+    DataGrid<int8_t> decisionGrid{resLatitude};
+    DataGrid<int8_t> managedForest{resLatitude};
+    DataGrid<int8_t> manageChForest{resLatitude};
+    DataGrid<int8_t> rotationType{resLatitude};
+    DataGrid<int8_t> unmanaged{resLatitude};
 
     DataGrid<double> MaxNPVGrid{resLatitude};
     DataGrid<double> salvageLogging{resLatitude}; // salvage logging wood

@@ -587,6 +587,12 @@ namespace g4m::increment {
             sdMax = sd;
         }
 
+        // min and max
+        void setStockingDegree(const double sd) noexcept {
+            sdMin = sd;
+            sdMax = sd;
+        }
+
         void setMinRotRef(int aMinRotRef) noexcept {
             minRotRef = aMinRotRef;
         }

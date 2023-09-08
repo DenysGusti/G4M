@@ -330,10 +330,8 @@ namespace g4m::init {
                         bef = clamp(1.204 + 0.903 * exp(-0.009 * growingStock), 1.1, 4.);
                         break;
                     case 3:
-                        bef = clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
-                        break;
                     case 4:
-                        bef = clamp(0.949 + 3.791 / pow(growingStock, 0.501), 1.1, 6.);
+                        bef = clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
                         break;
                     case 5:
                         bef = clamp(1.105 + 9.793 / growingStock, 1.1, 1.6);
