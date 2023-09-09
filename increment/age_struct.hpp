@@ -17,6 +17,7 @@
 #include "cohort.hpp"
 #include "shelter_wood_timer.hpp"
 #include "increment_tab.hpp"
+#include "constants.hpp"
 
 using namespace std;
 namespace rv = ranges::views;
@@ -27,6 +28,30 @@ namespace g4m::increment {
     // ! this class doesn't own ffipols
     class AgeStruct {
     public:
+        static double cohortRes(double realAreaO, const span<const V> res) noexcept {
+            if (realAreaO <= 0 || res.size() != 2)
+                return 0;
+
+            double reciprocalRealAreaO = 1 / realAreaO;
+            double areaRatio = res.back().area * reciprocalRealAreaO;  // harvAreaO / realAreaO
+
+            // MG: get harvestable sawn-wood for the set (old) forest tC/ha for final cut.
+            double sawnW = res.back().sw * areaRatio;
+            // MG: get harvestable rest-wood for the set (old) forest tC/ha for final cut.
+            double restW = res.back().rw * areaRatio;
+            // MG: get harvestable sawn-wood for the set (old) forest tC/ha for thinning.
+            double sawnThW = res.front().sw * reciprocalRealAreaO;
+            // MG: get harvestable rest-wood for the set (old) forest tC/ha for thinning.
+            double restThW = res.front().rw * reciprocalRealAreaO;
+            // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
+            double bmH = res.back().bm * areaRatio;
+            // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for thinning
+            double bmTh = res.front().bm * reciprocalRealAreaO;
+            // MG: usable harvest residues for the set (old) forest tC/ha
+            double harvRes = (bmH + bmTh - (sawnW + restW + sawnThW + restThW)) * resUse;
+            return (sawnW + restW + sawnThW + restThW + harvRes) / modTimeStep;  // harvestW
+        }
+
         AgeStruct(
                 // Increment table which will be used, the time step width (simulation period length) of *it will also be used in ageStruct
                 IncrementTab *aIt,
@@ -561,6 +586,11 @@ namespace g4m::increment {
             setMinRot();
         }
 
+        void setMaiAndAvgMai(const double aMai) {
+            setMai(aMai);
+            setAvgMai(aMai);
+        }
+
         [[nodiscard]] double getMai() const noexcept {
             return mai;
         }
@@ -746,18 +776,18 @@ namespace g4m::increment {
 
         // .first = thinning, .second = harvest
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] pair<V, V> aging(const double aMai) {
+        [[nodiscard]] array<V, 2> aging(const double aMai) {
             return aging(aMai, false, false);
         }
 
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
         // MG: reforestation after final cut is an option / 27.12.2018
-        [[nodiscard]] pair<V, V> aging(const bool speciesChange = false, const bool shelterWood = false) {
+        [[nodiscard]] array<V, 2> aging(const bool speciesChange = false, const bool shelterWood = false) {
             return aging(mai, speciesChange, shelterWood);
         }
 
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] pair<V, V> aging(const double aMai, const bool speciesChange, const bool shelterWood) {
+        [[nodiscard]] array<V, 2> aging(const double aMai, const bool speciesChange, const bool shelterWood) {
             V retThin, retHarvest, retDamage;
             double areaShift = 0;
             gapArea = 0;
@@ -1781,7 +1811,7 @@ namespace g4m::increment {
                     --swt.timer;
                 }
                 auto maxAgeSW = ranges::max_element(timerSW,
-                                                   [](const auto &lhs, const auto &rhs) { return lhs.age < rhs.age; });
+                                                    [](const auto &lhs, const auto &rhs) { return lhs.age < rhs.age; });
                 maxNumberOfAgeClasses = max(static_cast<size_t>(maxAgeSW->age + 1), maxNumberOfAgeClasses);
                 if (maxAgeSW->age > dat.size() - 1) {
                     size_t oldSize = dat.size();

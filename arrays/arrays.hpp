@@ -25,7 +25,7 @@ namespace g4m::Arrays {
     constexpr array <string_view, numberOfCountries> countryOrderName = initCountryOrderName();
 
     constexpr array<double, numberOfCountries> countryLosses = initCountryLosses();
-    constexpr array<double, numberOfCountries> cleanedWoodUse = initCleanedWoodUse();  // share of cleaned  wood put to the market(thinned in forests that are not used for wood production in current year).
+    constexpr array<double, numberOfCountries> cleanedWoodUse = initCleanedWoodUse();  // share of cleaned wood put to the market (thinned in forests that are not used for wood production in current year).
     constexpr array<double, numberOfCountries> countryLossesD = initCountryLossesD();
     constexpr array<double, numberOfCountries> defor_sl_em_unfccc_tCha = initDefor_sl_em_unfccc_tCha(); // deforestation soil emissions, tC/ha year, derived from countries; UNFCCC CRF tables 2020 submission; 1990-2018 average; DE, NO, SW had negative emissions, changed to 0.01
     constexpr array<double, numberOfCountries> defor_sl_em_unfccc_MtCO2 = initDefor_sl_em_unfccc_MtCO2(); // deforestation soil emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;

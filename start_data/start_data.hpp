@@ -93,16 +93,16 @@ namespace g4m::StartData {
     CountryData countriesfmEmission_unfccc;
 
     // countries and species where the stumps can be harvested as compiled by Fulvio 06.06
-    vector <CountrySpecies> stumpHarvCountrySpecies;
+    vector<CountrySpecies> stumpHarvCountrySpecies;
 
     // pairs of G4M country ID and GLOBIOM country name
     unordered_map<uint8_t, string> idCountryGLOBIOM;
     unordered_map<string, uint8_t, string_hash, equal_to<> > countryGLOBIOMId;
 
-    vector <IncrementTab> species;
+    vector<IncrementTab> species;
 
-    vector <DataStruct> rawPlots;  // raw structure with data plots[<elNum>].<variable>[year]
-    vector <DataStruct> plots;  // structure with data plots[<elNum>].<variable>[year]
+    vector<DataStruct> rawPlots;  // raw structure with data plots[<elNum>].<variable>[year]
+    vector<DataStruct> plots;  // structure with data plots[<elNum>].<variable>[year]
 
     // for quick plots search
     unordered_set <uint32_t> plotsSimuID;
@@ -175,34 +175,31 @@ namespace g4m::StartData {
     DataGrid<double> harvestGrid{resLatitude};
     DataGrid<double> maiForest{resLatitude};
     DataGrid<double> rotationForest{resLatitude};
-    DataGrid<double> rotationForestNew{resLatitude};
     DataGrid<double> thinningForest{resLatitude};
-    DataGrid<double> thinningForestNew{resLatitude};
     DataGrid<double> thinningForest10{resLatitude};
     DataGrid<double> thinningForest30{resLatitude};
-    DataGrid<double> OforestShGrid{resLatitude};
+    DataGrid<double> OForestShGrid{resLatitude};
 
-    DataGrid<int8_t> decisionGrid{resLatitude};
-    DataGrid<int8_t> managedForest{resLatitude};
-    DataGrid<int8_t> manageChForest{resLatitude};
-    DataGrid<int8_t> rotationType{resLatitude};
-    DataGrid<int8_t> unmanaged{resLatitude};
+    DataGrid <int8_t> decisionGrid{resLatitude};
+    DataGrid <int8_t> managedForest{resLatitude};
+    DataGrid <int8_t> manageChForest{resLatitude};
+    DataGrid <int8_t> rotationType{resLatitude};
+    DataGrid <int8_t> unmanaged{resLatitude};
 
     DataGrid<double> MaxNPVGrid{resLatitude};
     DataGrid<double> salvageLogging{resLatitude}; // salvage logging wood
 
     unordered_map<uint8_t, FFIpolsCountry> countriesFFIpols;
 
-    vector <AgeStruct> cohort_all;
-    vector <AgeStruct> newCohort_all;
-    vector <AgeStruct> cohort10_all;
-    vector <AgeStruct> cohort30_all;
-    vector <AgeStruct> cohort_primary_all;
+    vector<AgeStruct> cohort_all;
+    vector<AgeStruct> newCohort_all;
+    vector<AgeStruct> cohort10_all;
+    vector<AgeStruct> cohort30_all;
+    vector<AgeStruct> cohort_primary_all;
 
-    vector <Dat> dat_all;
+    vector<Dat> dat_all;
     // data related to harvesting the residues (residues amount, associated costs and soil loss emissions)
-    unordered_map<uint8_t, vector < HarvestResidues> >
-    harvestResiduesCountry;  // a vector of harvest residues data for all single countries
+    unordered_map<uint8_t, vector<HarvestResidues> > harvestResiduesCountry;  // a vector of harvest residues data for all single countries
 }
 
 #endif

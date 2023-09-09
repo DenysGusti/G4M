@@ -497,11 +497,6 @@ namespace g4m::DataIO::reading {
     }
 
     void readMAIClimate() {
-        if (!MAIClimateShift) {
-            INFO("MAIClimateShift is turned off");
-            return;
-        }
-
         if (fileName_maic.empty()) {
             WARN("No MAI climate data!!!!");
             return;
@@ -543,11 +538,6 @@ namespace g4m::DataIO::reading {
     }
 
     void readDisturbances() {
-        if (!disturbanceTrend) {
-            INFO("disturbanceTrend is turned off");
-            return;
-        }
-
         if (fileName_disturbance.empty()) {
             WARN("No disturbance projection data!!!!");
             return;
@@ -597,11 +587,6 @@ namespace g4m::DataIO::reading {
     }
 
     void readDisturbancesExtreme() {
-        if (!disturbanceExtreme) {
-            INFO("disturbanceExtreme is turned off");
-            return;
-        }
-
         if (fileName_disturbanceExtreme.empty()) {
             WARN("No extreme disturbance projection data!!!!");
             return;

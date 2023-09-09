@@ -45,10 +45,7 @@ namespace g4m::Constants {
 
     constexpr string_view fileName_ageStruct = "ageStructData_EUCLIMIT2020_15092022.csv";  // As ageStructData_EUCLIMIT2020_03012021, but IR and DE are corrected according to the countries' comments in 2022
 
-    constexpr bool MAIClimateShift = true;      // Apply the MAI climate shifters starting from MAIClimateShiftYear
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
-    constexpr bool disturbanceTrend = true;     // Do we take into account the trend in increasing damage from disturbances? If true, use the disturbance projections input data
-    constexpr bool disturbanceExtreme = true;   // Do we simulate the worst historical disturbance in disturbanceExtremeYear?
 
     constexpr bool disturbanceClimateSensitive = true; // Do the disturbances depend on the RCP scenario? If True the damaged wood doubles for RCP7 and 2.5 for the RCP8. Works with disturbanceTrend = true;
     constexpr bool scaleDisturbance2020 = true;
@@ -66,12 +63,32 @@ namespace g4m::Constants {
     constexpr double sdMinCoef = 1; // minimum stocking degree multiplier: sdMin = SD * sdMinCoef
     constexpr double sdMaxCoef = 1; // maximum stocking degree multiplier: sdMax = SD * sdMaxCoef
 
-//    constexpr bool fmpol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
+    constexpr double deflator = 0.8807;  // Deflator to convert 2000 USD prices to 1995 USD prices
+    constexpr double resUse = 0; // share of harvest residuals that can be used for bioenergy
 
-//    constexpr bool forest10_policyKey = true;   // true == set-aside
-//    constexpr bool forest30_policyKey = false;
-//    constexpr bool multifunction10Key = false;
-//    constexpr bool multifunction30Key = false;
+    // policies before forPolicyYearBioclima
+    constexpr bool forest10_policy = false;  // Policy on protecting 10% of EU forests (BIOCLIMA)
+    constexpr bool forest30_policy = false;  // Policy on limiting the use of 30% (10% of strict protection and 20% of limited use) of EU forests (BIOCLIMA)
+    constexpr bool multifunction10 = false;  // Apply multifunctional forest management to the 10% forest
+    constexpr bool multifunction30 = false;  // Apply multifunctional forest management to the 30% forest
+
+    constexpr uint16_t forPolicyYearBioclima = 2025;  // Nature restoration policies start this year / BIOCLIMA1 and EUCLIMIT6
+
+    // policies after forPolicyYearBioclima
+    constexpr bool forest10_policyKey = true; // true == set-aside
+    constexpr bool forest30_policyKey = false;
+    constexpr bool multifunction10Key = false;
+    constexpr bool multifunction30Key = false;
+
+    constexpr double cleanWoodUseShare10 = 0;  // A share of removal of wood from multifunctional forests under the 10% policy
+    constexpr double cleanWoodUseShare30 = 1;  // A share of removal of wood from multifunctional forests under the 30% policy
+
+    constexpr bool disturbanceTrend = true;     // Do we take into account the trend in increasing damage from disturbances? If true, use the disturbance projections input data
+    constexpr bool disturbanceExtreme = true;   // Do we simulate the worst historical disturbance in disturbanceExtremeYear?
+
+    constexpr uint16_t disturbanceExtremeYear = 2035;  // When the worst historical disturbance is projected
+
+//    constexpr bool fmpol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
 }
 
 #endif

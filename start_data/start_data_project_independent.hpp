@@ -656,31 +656,6 @@ namespace g4m::StartData {
             }
     }
 
-    void applyMAIClimateShifters() noexcept {
-        if (!MAIClimateShift) {
-            INFO("MAIClimateShift is turned off");
-            return;
-        }
-
-        for (auto &plot: plots) {
-            double maie = plot.MAIE.data.at(2000);
-            double main = plot.MAIN.data.at(2000);
-            double npp = plot.NPP.data.at(2000);
-
-            plot.decHerb.data[2020] = plot.decHerb.data.at(2000);
-            plot.decWood.data[2020] = plot.decWood.data.at(2000);
-            plot.decSOC.data[2020] = plot.decSOC.data.at(2000);
-
-            for (const auto &[scenario, MAI]: maiClimateShiftersScenarios)
-                if (MAI.contains(plot.simuID))
-                    for (const auto [year, value]: MAI.at(plot.simuID).data) {
-                        plot.MAIE.data[year] = maie * value;
-                        plot.MAIN.data[year] = main * value;
-                        plot.NPP.data[year] = npp * value;
-                    }
-        }
-    }
-
     void add2020Disturbances() noexcept {
         for (auto &[id, ipol]: disturbWind)
             ipol.data[2020] = ipol.data[2030] / 1.025;
@@ -729,7 +704,7 @@ namespace g4m::StartData {
         for (auto &plot: plots) {
             double forestShare0 = max(0., plot.forest);
             plot.forestsArrangement();
-            OforestShGrid.country(plot.x, plot.y) = plot.country;
+            OForestShGrid.country(plot.x, plot.y) = plot.country;
             double maxAffor = plot.getMaxAffor();
 
             if (forestShare0 > maxAffor) {
@@ -739,8 +714,8 @@ namespace g4m::StartData {
                 forestShare0 = maxAffor;
             }
 
-            OforestShGrid(plot.x, plot.y) = forestShare0;
-            OforestShGrid.update1YearForward();  // populate the OforestShGridPrev with forestShare0 data
+            OForestShGrid(plot.x, plot.y) = forestShare0;
+            OForestShGrid.update1YearForward();  // populate the OforestShGridPrev with forestShare0 data
             double forestArea0 = plot.landArea * 100 * forestShare0; // all forest area in the cell, ha
 
             int biomassRot = 0;     // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
@@ -1170,6 +1145,9 @@ namespace g4m::StartData {
             INFO("initZeroProdArea is turned off");
             return;
 
+            auto thinningForestInit = thinningForest;
+            array<double, numberOfCountries> woodPotHarvest{};
+
             INFO("Putting data for current cell into container...");
             for (const auto &plot: plots)
                 if (plot.protect.data.at(2000) == 0) {
@@ -1199,7 +1177,7 @@ namespace g4m::StartData {
                                   coef.maxRotInter, coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd,
                                   coef.baseline, plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR,
                                   coef.fCUptake, plot.GDP, coef.harvLoos,
-                                  OforestShGrid(plot.x, plot.y) -
+                                  OForestShGrid(plot.x, plot.y) -
                                   plot.strictProtected,  // forestShare0 - forest available for wood supply initially
                                   woodPriceScenarios.at(s_bauScenario).at(plot.country), static_cast<double>(rotMAI),
                                   MAI * plot.fTimber.data.at(2000) * (1 - coef.harvLoos)};  // harvMAI
@@ -1245,16 +1223,16 @@ namespace g4m::StartData {
                 }
 
             for (const auto &plot: plots)
-                if (plot.protect.data.at(2000) == 0 && thinningForest(plot.x, plot.y) > 0) {
+                if (plot.protect.data.at(2000) == 0 && thinningForestInit(plot.x, plot.y) > 0) {
                     double MAI = maiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
                     size_t species_tmp = plot.speciesType - 1;
 
                     int rotMAI = 0;
                     int rotMaxBm = 0;
                     int rotMaxBmTh = 0;
-                    int biomassRotTh2 = 0;  // MG: rotation time fitted to get certain biomass under certain MAI (with thinning=2)
+                    int biomassRotTh2 = 0;  // MG: rotation time fitted to get certain biomass under certain MAI (with thinning = 2)
 
-                    double stockingDegree = thinningForest(plot.x, plot.y);
+                    double stockingDegree = thinningForestInit(plot.x, plot.y);
                     double Bm = cohort_all[plot.asID].getBm();
                     int rotation = 0;
 
@@ -1269,8 +1247,8 @@ namespace g4m::StartData {
                         rotMaxBm = static_cast<int>(species[species_tmp].getTOpt(MAI, optimMaxBm));
                     }
 
-                    // woodPotHarvest[] = 0 => > 0
-                    if (woodPriceScenarios.at(s_bauScenario).at(plot.country)(coef.bYear) > 0) {
+                    if (woodPriceScenarios.at(s_bauScenario).at(plot.country)(coef.bYear) >
+                        woodPotHarvest[plot.country - 1]) {
                         if (managedForest(plot.x, plot.y) == 0) {
                             rotation = rotMAI + 1;
                             managedForest(plot.x, plot.y) = 3;
@@ -1285,11 +1263,14 @@ namespace g4m::StartData {
                             rotation = clamp(biomassRotTh2 + 1, rotMAI, rotMaxBmTh);
                         }
 
+                        double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
+                        // area of forest available for wood supply
+                        double forestArea0 = plot.landArea * 100 * (plot.forest + plot.oldGrowthForest_thirty);
+                        woodPotHarvest[plot.country - 1] += harvMAI * forestArea0;
+
                         rotationForest(plot.x, plot.y) = rotation;
                         cohort_all[plot.asID].setU(rotation);
 
-                        // TODO ask rotationForestInit is not used?
-                        // TODO ask woodPotHarvest[country - 1] += harvMAI * forestArea0 ?
                         thinningForest(plot.x, plot.y) = stockingDegree;
                         cohort_all[plot.asID].setStockingDegree(stockingDegree);
 
@@ -1357,7 +1338,6 @@ namespace g4m::StartData {
             calculateAverageMAI();
             readMAIClimate();
             scaleMAIClimate2020();
-            applyMAIClimateShifters();
         });
 
         future<void> globiom_land_future = async([&] {
