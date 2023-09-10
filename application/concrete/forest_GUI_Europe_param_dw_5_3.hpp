@@ -434,7 +434,7 @@ namespace g4m::application::concrete {
                         //  TO BE CHANGED to specific cleanedWoodUse10[...] / cleanedWoodUse30[...]
                         double cleanedWoodUseCurrent = cleanedWoodUse[plot.country];
 
-                        if (biomass > 0 && appMaiForest(plot.x, plot.y) > 0 && SD != 0) {  // TODO SD != 0? & branches?
+                        if (biomass > 0 && appMaiForest(plot.x, plot.y) > 0 && SD != 0) {
                             double harvestTmp = appHarvestGrid(plot.x, plot.y);
                             auto cohortTmp = cohortVec[plot.asID];
                             auto resTmp = cohortTmp.aging();
