@@ -14,383 +14,393 @@ using namespace g4m::DataIO::printing;
 
 namespace g4m::StartData {
 
-    void setIdCountryGLOBIOM() noexcept {
-        idCountryGLOBIOM.reserve(256);
-        idCountryGLOBIOM[6] = "Albania";
-        idCountryGLOBIOM[63] = "Algeria";
-        idCountryGLOBIOM[3] = "Angola";
-        idCountryGLOBIOM[10] = "Argentina";
-        idCountryGLOBIOM[11] = "Armenia";
-        idCountryGLOBIOM[16] = "Australia";
-        idCountryGLOBIOM[17] = "Austria";
-        idCountryGLOBIOM[18] = "Azerbaijan";
-        idCountryGLOBIOM[26] = "Bahamas";
-        idCountryGLOBIOM[25] = "Bahrain";
-        idCountryGLOBIOM[23] = "Bangladesh";
-        idCountryGLOBIOM[28] = "Belarus";
-        idCountryGLOBIOM[20] = "Belgium";
-        idCountryGLOBIOM[29] = "Belize";
-        idCountryGLOBIOM[21] = "Benin";
-        idCountryGLOBIOM[35] = "Bhutan";
-        idCountryGLOBIOM[31] = "Bolivia";
-        idCountryGLOBIOM[27] = "BosniaHerzg";
-        idCountryGLOBIOM[37] = "Botswana";
-        idCountryGLOBIOM[32] = "Brazil";
-        idCountryGLOBIOM[34] = "BruneiDarsm";
-        idCountryGLOBIOM[24] = "Bulgaria";
-        idCountryGLOBIOM[22] = "BurkinaFaso";
-        idCountryGLOBIOM[19] = "Burundi";
-        idCountryGLOBIOM[115] = "Cambodia";
-        idCountryGLOBIOM[45] = "Cameroon";
-        idCountryGLOBIOM[39] = "Canada";
-        idCountryGLOBIOM[51] = "CapeVerde";
-        idCountryGLOBIOM[38] = "CentAfrRep";
-        idCountryGLOBIOM[209] = "Chad";
-        idCountryGLOBIOM[42] = "Chile";
-        idCountryGLOBIOM[43] = "China";
-        idCountryGLOBIOM[49] = "Colombia";
-        idCountryGLOBIOM[50] = "Comoros";
-        idCountryGLOBIOM[46] = "CongoDemR";
-        idCountryGLOBIOM[47] = "CongoRep";
-        idCountryGLOBIOM[52] = "CostaRica";
-        idCountryGLOBIOM[44] = "CotedIvoire";
-        idCountryGLOBIOM[97] = "Croatia";
-        idCountryGLOBIOM[53] = "Cuba";
-        idCountryGLOBIOM[56] = "Cyprus";
-        idCountryGLOBIOM[57] = "CzechRep";
-        idCountryGLOBIOM[61] = "Denmark";
-        idCountryGLOBIOM[59] = "Djibouti";
-        idCountryGLOBIOM[62] = "DominicanRp";
-        idCountryGLOBIOM[64] = "Ecuador";
-        idCountryGLOBIOM[65] = "Egypt";
-        idCountryGLOBIOM[195] = "ElSalvador";
-        idCountryGLOBIOM[86] = "EqGuinea";
-        idCountryGLOBIOM[66] = "Eritrea";
-        idCountryGLOBIOM[69] = "Estonia";
-        idCountryGLOBIOM[70] = "Ethiopia";
-        idCountryGLOBIOM[73] = "FalklandIs";
-        idCountryGLOBIOM[72] = "FijiIslands";
-        idCountryGLOBIOM[71] = "Finland";
-        idCountryGLOBIOM[74] = "France";
-        idCountryGLOBIOM[91] = "FrGuiana";
-        idCountryGLOBIOM[180] = "FrPolynesia";
-        idCountryGLOBIOM[77] = "Gabon";
-        idCountryGLOBIOM[84] = "Gambia";
-        idCountryGLOBIOM[79] = "Georgia";
-        idCountryGLOBIOM[58] = "Germany";
-        idCountryGLOBIOM[80] = "Ghana";
-        idCountryGLOBIOM[87] = "Greece";
-        idCountryGLOBIOM[89] = "Greenland";
-        idCountryGLOBIOM[83] = "Guadeloupe";
-        idCountryGLOBIOM[90] = "Guatemala";
-        idCountryGLOBIOM[82] = "Guinea";
-        idCountryGLOBIOM[85] = "GuineaBissau";
-        idCountryGLOBIOM[93] = "Guyana";
-        idCountryGLOBIOM[98] = "Haiti";
-        idCountryGLOBIOM[96] = "Honduras";
-        idCountryGLOBIOM[99] = "Hungary";
-        idCountryGLOBIOM[106] = "Iceland";
-        idCountryGLOBIOM[101] = "India";
-        idCountryGLOBIOM[100] = "Indonesia";
-        idCountryGLOBIOM[104] = "Iran";
-        idCountryGLOBIOM[105] = "Iraq";
-        idCountryGLOBIOM[103] = "Ireland";
-        idCountryGLOBIOM[107] = "Israel";
-        idCountryGLOBIOM[108] = "Italy";
-        idCountryGLOBIOM[109] = "Jamaica";
-        idCountryGLOBIOM[111] = "Japan";
-        idCountryGLOBIOM[110] = "Jordan";
-        idCountryGLOBIOM[112] = "Kazakhstan";
-        idCountryGLOBIOM[113] = "Kenya";
-        idCountryGLOBIOM[176] = "KoreaDPRp";
-        idCountryGLOBIOM[118] = "KoreaRep";
-        idCountryGLOBIOM[119] = "Kuwait";
-        idCountryGLOBIOM[114] = "Kyrgyzstan";
-        idCountryGLOBIOM[120] = "Laos";
-        idCountryGLOBIOM[130] = "Latvia";
-        idCountryGLOBIOM[121] = "Lebanon";
-        idCountryGLOBIOM[127] = "Lesotho";
-        idCountryGLOBIOM[122] = "Liberia";
-        idCountryGLOBIOM[123] = "Libya";
-        idCountryGLOBIOM[128] = "Lithuania";
-        idCountryGLOBIOM[129] = "Luxembourg";
-        idCountryGLOBIOM[139] = "Macedonia";
-        idCountryGLOBIOM[135] = "Madagascar";
-        idCountryGLOBIOM[151] = "Malawi";
-        idCountryGLOBIOM[152] = "Malaysia";
-        idCountryGLOBIOM[140] = "Mali";
-        idCountryGLOBIOM[141] = "Malta";
-        idCountryGLOBIOM[147] = "Mauritania";
-        idCountryGLOBIOM[150] = "Mauritius";
-        idCountryGLOBIOM[137] = "Mexico";
-        idCountryGLOBIOM[134] = "MoldovaRep";
-        idCountryGLOBIOM[144] = "Mongolia";
-        idCountryGLOBIOM[132] = "Morocco";
-        idCountryGLOBIOM[146] = "Mozambique";
-        idCountryGLOBIOM[142] = "Myanmar";
-        idCountryGLOBIOM[154] = "Namibia";
-        idCountryGLOBIOM[163] = "Nepal";
-        idCountryGLOBIOM[161] = "Netherlands";
-        idCountryGLOBIOM[155] = "NewCaledonia";
-        idCountryGLOBIOM[165] = "NewZealand";
-        idCountryGLOBIOM[159] = "Nicaragua";
-        idCountryGLOBIOM[156] = "Niger";
-        idCountryGLOBIOM[158] = "Nigeria";
-        idCountryGLOBIOM[162] = "Norway";
-        idCountryGLOBIOM[166] = "Oman";
-        idCountryGLOBIOM[167] = "Pakistan";
-        idCountryGLOBIOM[172] = "Palestin";
-        idCountryGLOBIOM[168] = "Panama";
-        idCountryGLOBIOM[173] = "PapuaNGuin";
-        idCountryGLOBIOM[178] = "Paraguay";
-        idCountryGLOBIOM[170] = "Peru";
-        idCountryGLOBIOM[171] = "Philippines";
-        idCountryGLOBIOM[174] = "Poland";
-        idCountryGLOBIOM[177] = "Portugal";
-        idCountryGLOBIOM[175] = "PuertoRico";
-        idCountryGLOBIOM[181] = "Qatar";
-        idCountryGLOBIOM[182] = "Reunion";
-        idCountryGLOBIOM[183] = "Romania";
-        idCountryGLOBIOM[184] = "RussianFed";
-        idCountryGLOBIOM[185] = "Rwanda";
-        idCountryGLOBIOM[237] = "Samoa";
-        idCountryGLOBIOM[186] = "SaudiArabia";
-        idCountryGLOBIOM[188] = "Senegal";
-        idCountryGLOBIOM[199] = "Serbia-Monte";
-        idCountryGLOBIOM[194] = "SierraLeone";
-        idCountryGLOBIOM[189] = "Singapore";
-        idCountryGLOBIOM[202] = "Slovakia";
-        idCountryGLOBIOM[203] = "Slovenia";
-        idCountryGLOBIOM[193] = "SolomonIs";
-        idCountryGLOBIOM[197] = "Somalia";
-        idCountryGLOBIOM[239] = "SouthAfrica";
-        idCountryGLOBIOM[68] = "Spain";
-        idCountryGLOBIOM[126] = "SriLanka";
-        idCountryGLOBIOM[187] = "Sudan";
-        idCountryGLOBIOM[201] = "Suriname";
-        idCountryGLOBIOM[205] = "Swaziland";
-        idCountryGLOBIOM[204] = "Sweden";
-        idCountryGLOBIOM[41] = "Switzerland";
-        idCountryGLOBIOM[207] = "Syria";
-        idCountryGLOBIOM[212] = "Tajikistan";
-        idCountryGLOBIOM[222] = "Tanzania";
-        idCountryGLOBIOM[211] = "Thailand";
-        idCountryGLOBIOM[215] = "TimorLeste";
-        idCountryGLOBIOM[210] = "Togo";
-        idCountryGLOBIOM[217] = "TrinidadTob";
-        idCountryGLOBIOM[218] = "Tunisia";
-        idCountryGLOBIOM[219] = "Turkey";
-        idCountryGLOBIOM[214] = "Turkmenistan";
-        idCountryGLOBIOM[223] = "Uganda";
-        idCountryGLOBIOM[78] = "UK";
-        idCountryGLOBIOM[224] = "Ukraine";
-        idCountryGLOBIOM[9] = "UntdArabEm";
-        idCountryGLOBIOM[226] = "Uruguay";
-        idCountryGLOBIOM[227] = "USA";
-        idCountryGLOBIOM[228] = "Uzbekistan";
-        idCountryGLOBIOM[235] = "Vanuatu";
-        idCountryGLOBIOM[231] = "Venezuela";
-        idCountryGLOBIOM[234] = "VietNam";
-        idCountryGLOBIOM[67] = "WestSahara";
-        idCountryGLOBIOM[238] = "Yemen";
-        idCountryGLOBIOM[240] = "Zambia";
-        idCountryGLOBIOM[241] = "Zimbabwe";
+    [[nodiscard]] unordered_map<uint8_t, string> setIdCountryGLOBIOM() noexcept {
+        unordered_map<uint8_t, string> fun_idCountryGLOBIOM;
+        fun_idCountryGLOBIOM.reserve(256);
+
+        fun_idCountryGLOBIOM[6] = "Albania";
+        fun_idCountryGLOBIOM[63] = "Algeria";
+        fun_idCountryGLOBIOM[3] = "Angola";
+        fun_idCountryGLOBIOM[10] = "Argentina";
+        fun_idCountryGLOBIOM[11] = "Armenia";
+        fun_idCountryGLOBIOM[16] = "Australia";
+        fun_idCountryGLOBIOM[17] = "Austria";
+        fun_idCountryGLOBIOM[18] = "Azerbaijan";
+        fun_idCountryGLOBIOM[26] = "Bahamas";
+        fun_idCountryGLOBIOM[25] = "Bahrain";
+        fun_idCountryGLOBIOM[23] = "Bangladesh";
+        fun_idCountryGLOBIOM[28] = "Belarus";
+        fun_idCountryGLOBIOM[20] = "Belgium";
+        fun_idCountryGLOBIOM[29] = "Belize";
+        fun_idCountryGLOBIOM[21] = "Benin";
+        fun_idCountryGLOBIOM[35] = "Bhutan";
+        fun_idCountryGLOBIOM[31] = "Bolivia";
+        fun_idCountryGLOBIOM[27] = "BosniaHerzg";
+        fun_idCountryGLOBIOM[37] = "Botswana";
+        fun_idCountryGLOBIOM[32] = "Brazil";
+        fun_idCountryGLOBIOM[34] = "BruneiDarsm";
+        fun_idCountryGLOBIOM[24] = "Bulgaria";
+        fun_idCountryGLOBIOM[22] = "BurkinaFaso";
+        fun_idCountryGLOBIOM[19] = "Burundi";
+        fun_idCountryGLOBIOM[115] = "Cambodia";
+        fun_idCountryGLOBIOM[45] = "Cameroon";
+        fun_idCountryGLOBIOM[39] = "Canada";
+        fun_idCountryGLOBIOM[51] = "CapeVerde";
+        fun_idCountryGLOBIOM[38] = "CentAfrRep";
+        fun_idCountryGLOBIOM[209] = "Chad";
+        fun_idCountryGLOBIOM[42] = "Chile";
+        fun_idCountryGLOBIOM[43] = "China";
+        fun_idCountryGLOBIOM[49] = "Colombia";
+        fun_idCountryGLOBIOM[50] = "Comoros";
+        fun_idCountryGLOBIOM[46] = "CongoDemR";
+        fun_idCountryGLOBIOM[47] = "CongoRep";
+        fun_idCountryGLOBIOM[52] = "CostaRica";
+        fun_idCountryGLOBIOM[44] = "CotedIvoire";
+        fun_idCountryGLOBIOM[97] = "Croatia";
+        fun_idCountryGLOBIOM[53] = "Cuba";
+        fun_idCountryGLOBIOM[56] = "Cyprus";
+        fun_idCountryGLOBIOM[57] = "CzechRep";
+        fun_idCountryGLOBIOM[61] = "Denmark";
+        fun_idCountryGLOBIOM[59] = "Djibouti";
+        fun_idCountryGLOBIOM[62] = "DominicanRp";
+        fun_idCountryGLOBIOM[64] = "Ecuador";
+        fun_idCountryGLOBIOM[65] = "Egypt";
+        fun_idCountryGLOBIOM[195] = "ElSalvador";
+        fun_idCountryGLOBIOM[86] = "EqGuinea";
+        fun_idCountryGLOBIOM[66] = "Eritrea";
+        fun_idCountryGLOBIOM[69] = "Estonia";
+        fun_idCountryGLOBIOM[70] = "Ethiopia";
+        fun_idCountryGLOBIOM[73] = "FalklandIs";
+        fun_idCountryGLOBIOM[72] = "FijiIslands";
+        fun_idCountryGLOBIOM[71] = "Finland";
+        fun_idCountryGLOBIOM[74] = "France";
+        fun_idCountryGLOBIOM[91] = "FrGuiana";
+        fun_idCountryGLOBIOM[180] = "FrPolynesia";
+        fun_idCountryGLOBIOM[77] = "Gabon";
+        fun_idCountryGLOBIOM[84] = "Gambia";
+        fun_idCountryGLOBIOM[79] = "Georgia";
+        fun_idCountryGLOBIOM[58] = "Germany";
+        fun_idCountryGLOBIOM[80] = "Ghana";
+        fun_idCountryGLOBIOM[87] = "Greece";
+        fun_idCountryGLOBIOM[89] = "Greenland";
+        fun_idCountryGLOBIOM[83] = "Guadeloupe";
+        fun_idCountryGLOBIOM[90] = "Guatemala";
+        fun_idCountryGLOBIOM[82] = "Guinea";
+        fun_idCountryGLOBIOM[85] = "GuineaBissau";
+        fun_idCountryGLOBIOM[93] = "Guyana";
+        fun_idCountryGLOBIOM[98] = "Haiti";
+        fun_idCountryGLOBIOM[96] = "Honduras";
+        fun_idCountryGLOBIOM[99] = "Hungary";
+        fun_idCountryGLOBIOM[106] = "Iceland";
+        fun_idCountryGLOBIOM[101] = "India";
+        fun_idCountryGLOBIOM[100] = "Indonesia";
+        fun_idCountryGLOBIOM[104] = "Iran";
+        fun_idCountryGLOBIOM[105] = "Iraq";
+        fun_idCountryGLOBIOM[103] = "Ireland";
+        fun_idCountryGLOBIOM[107] = "Israel";
+        fun_idCountryGLOBIOM[108] = "Italy";
+        fun_idCountryGLOBIOM[109] = "Jamaica";
+        fun_idCountryGLOBIOM[111] = "Japan";
+        fun_idCountryGLOBIOM[110] = "Jordan";
+        fun_idCountryGLOBIOM[112] = "Kazakhstan";
+        fun_idCountryGLOBIOM[113] = "Kenya";
+        fun_idCountryGLOBIOM[176] = "KoreaDPRp";
+        fun_idCountryGLOBIOM[118] = "KoreaRep";
+        fun_idCountryGLOBIOM[119] = "Kuwait";
+        fun_idCountryGLOBIOM[114] = "Kyrgyzstan";
+        fun_idCountryGLOBIOM[120] = "Laos";
+        fun_idCountryGLOBIOM[130] = "Latvia";
+        fun_idCountryGLOBIOM[121] = "Lebanon";
+        fun_idCountryGLOBIOM[127] = "Lesotho";
+        fun_idCountryGLOBIOM[122] = "Liberia";
+        fun_idCountryGLOBIOM[123] = "Libya";
+        fun_idCountryGLOBIOM[128] = "Lithuania";
+        fun_idCountryGLOBIOM[129] = "Luxembourg";
+        fun_idCountryGLOBIOM[139] = "Macedonia";
+        fun_idCountryGLOBIOM[135] = "Madagascar";
+        fun_idCountryGLOBIOM[151] = "Malawi";
+        fun_idCountryGLOBIOM[152] = "Malaysia";
+        fun_idCountryGLOBIOM[140] = "Mali";
+        fun_idCountryGLOBIOM[141] = "Malta";
+        fun_idCountryGLOBIOM[147] = "Mauritania";
+        fun_idCountryGLOBIOM[150] = "Mauritius";
+        fun_idCountryGLOBIOM[137] = "Mexico";
+        fun_idCountryGLOBIOM[134] = "MoldovaRep";
+        fun_idCountryGLOBIOM[144] = "Mongolia";
+        fun_idCountryGLOBIOM[132] = "Morocco";
+        fun_idCountryGLOBIOM[146] = "Mozambique";
+        fun_idCountryGLOBIOM[142] = "Myanmar";
+        fun_idCountryGLOBIOM[154] = "Namibia";
+        fun_idCountryGLOBIOM[163] = "Nepal";
+        fun_idCountryGLOBIOM[161] = "Netherlands";
+        fun_idCountryGLOBIOM[155] = "NewCaledonia";
+        fun_idCountryGLOBIOM[165] = "NewZealand";
+        fun_idCountryGLOBIOM[159] = "Nicaragua";
+        fun_idCountryGLOBIOM[156] = "Niger";
+        fun_idCountryGLOBIOM[158] = "Nigeria";
+        fun_idCountryGLOBIOM[162] = "Norway";
+        fun_idCountryGLOBIOM[166] = "Oman";
+        fun_idCountryGLOBIOM[167] = "Pakistan";
+        fun_idCountryGLOBIOM[172] = "Palestin";
+        fun_idCountryGLOBIOM[168] = "Panama";
+        fun_idCountryGLOBIOM[173] = "PapuaNGuin";
+        fun_idCountryGLOBIOM[178] = "Paraguay";
+        fun_idCountryGLOBIOM[170] = "Peru";
+        fun_idCountryGLOBIOM[171] = "Philippines";
+        fun_idCountryGLOBIOM[174] = "Poland";
+        fun_idCountryGLOBIOM[177] = "Portugal";
+        fun_idCountryGLOBIOM[175] = "PuertoRico";
+        fun_idCountryGLOBIOM[181] = "Qatar";
+        fun_idCountryGLOBIOM[182] = "Reunion";
+        fun_idCountryGLOBIOM[183] = "Romania";
+        fun_idCountryGLOBIOM[184] = "RussianFed";
+        fun_idCountryGLOBIOM[185] = "Rwanda";
+        fun_idCountryGLOBIOM[237] = "Samoa";
+        fun_idCountryGLOBIOM[186] = "SaudiArabia";
+        fun_idCountryGLOBIOM[188] = "Senegal";
+        fun_idCountryGLOBIOM[199] = "Serbia-Monte";
+        fun_idCountryGLOBIOM[194] = "SierraLeone";
+        fun_idCountryGLOBIOM[189] = "Singapore";
+        fun_idCountryGLOBIOM[202] = "Slovakia";
+        fun_idCountryGLOBIOM[203] = "Slovenia";
+        fun_idCountryGLOBIOM[193] = "SolomonIs";
+        fun_idCountryGLOBIOM[197] = "Somalia";
+        fun_idCountryGLOBIOM[239] = "SouthAfrica";
+        fun_idCountryGLOBIOM[68] = "Spain";
+        fun_idCountryGLOBIOM[126] = "SriLanka";
+        fun_idCountryGLOBIOM[187] = "Sudan";
+        fun_idCountryGLOBIOM[201] = "Suriname";
+        fun_idCountryGLOBIOM[205] = "Swaziland";
+        fun_idCountryGLOBIOM[204] = "Sweden";
+        fun_idCountryGLOBIOM[41] = "Switzerland";
+        fun_idCountryGLOBIOM[207] = "Syria";
+        fun_idCountryGLOBIOM[212] = "Tajikistan";
+        fun_idCountryGLOBIOM[222] = "Tanzania";
+        fun_idCountryGLOBIOM[211] = "Thailand";
+        fun_idCountryGLOBIOM[215] = "TimorLeste";
+        fun_idCountryGLOBIOM[210] = "Togo";
+        fun_idCountryGLOBIOM[217] = "TrinidadTob";
+        fun_idCountryGLOBIOM[218] = "Tunisia";
+        fun_idCountryGLOBIOM[219] = "Turkey";
+        fun_idCountryGLOBIOM[214] = "Turkmenistan";
+        fun_idCountryGLOBIOM[223] = "Uganda";
+        fun_idCountryGLOBIOM[78] = "UK";
+        fun_idCountryGLOBIOM[224] = "Ukraine";
+        fun_idCountryGLOBIOM[9] = "UntdArabEm";
+        fun_idCountryGLOBIOM[226] = "Uruguay";
+        fun_idCountryGLOBIOM[227] = "USA";
+        fun_idCountryGLOBIOM[228] = "Uzbekistan";
+        fun_idCountryGLOBIOM[235] = "Vanuatu";
+        fun_idCountryGLOBIOM[231] = "Venezuela";
+        fun_idCountryGLOBIOM[234] = "VietNam";
+        fun_idCountryGLOBIOM[67] = "WestSahara";
+        fun_idCountryGLOBIOM[238] = "Yemen";
+        fun_idCountryGLOBIOM[240] = "Zambia";
+        fun_idCountryGLOBIOM[241] = "Zimbabwe";
+        return fun_idCountryGLOBIOM;
     }
 
-    void setCountryGLOBIOMId() noexcept {
-        countryGLOBIOMId.reserve(256);
-        countryGLOBIOMId["Albania"] = 6;
-        countryGLOBIOMId["Algeria"] = 63;
-        countryGLOBIOMId["Angola"] = 3;
-        countryGLOBIOMId["Argentina"] = 10;
-        countryGLOBIOMId["Armenia"] = 11;
-        countryGLOBIOMId["Australia"] = 16;
-        countryGLOBIOMId["Austria"] = 17;
-        countryGLOBIOMId["Azerbaijan"] = 18;
-        countryGLOBIOMId["Bahamas"] = 26;
-        countryGLOBIOMId["Bahrain"] = 25;
-        countryGLOBIOMId["Bangladesh"] = 23;
-        countryGLOBIOMId["Belarus"] = 28;
-        countryGLOBIOMId["Belgium"] = 20;
-        countryGLOBIOMId["Belize"] = 29;
-        countryGLOBIOMId["Benin"] = 21;
-        countryGLOBIOMId["Bhutan"] = 35;
-        countryGLOBIOMId["Bolivia"] = 31;
-        countryGLOBIOMId["BosniaHerzg"] = 27;
-        countryGLOBIOMId["Botswana"] = 37;
-        countryGLOBIOMId["Brazil"] = 32;
-        countryGLOBIOMId["BruneiDarsm"] = 34;
-        countryGLOBIOMId["Bulgaria"] = 24;
-        countryGLOBIOMId["BurkinaFaso"] = 22;
-        countryGLOBIOMId["Burundi"] = 19;
-        countryGLOBIOMId["Cambodia"] = 115;
-        countryGLOBIOMId["Cameroon"] = 45;
-        countryGLOBIOMId["Canada"] = 39;
-        countryGLOBIOMId["CapeVerde"] = 51;
-        countryGLOBIOMId["CentAfrRep"] = 38;
-        countryGLOBIOMId["Chad"] = 209;
-        countryGLOBIOMId["Chile"] = 42;
-        countryGLOBIOMId["China"] = 43;
-        countryGLOBIOMId["Colombia"] = 49;
-        countryGLOBIOMId["Comoros"] = 50;
-        countryGLOBIOMId["CongoDemR"] = 46;
-        countryGLOBIOMId["CongoRep"] = 47;
-        countryGLOBIOMId["CostaRica"] = 52;
-        countryGLOBIOMId["CotedIvoire"] = 44;
-        countryGLOBIOMId["Croatia"] = 97;
-        countryGLOBIOMId["Cuba"] = 53;
-        countryGLOBIOMId["Cyprus"] = 56;
-        countryGLOBIOMId["CzechRep"] = 57;
-        countryGLOBIOMId["Denmark"] = 61;
-        countryGLOBIOMId["Djibouti"] = 59;
-        countryGLOBIOMId["DominicanRp"] = 62;
-        countryGLOBIOMId["Ecuador"] = 64;
-        countryGLOBIOMId["Egypt"] = 65;
-        countryGLOBIOMId["ElSalvador"] = 195;
-        countryGLOBIOMId["EqGuinea"] = 86;
-        countryGLOBIOMId["Eritrea"] = 66;
-        countryGLOBIOMId["Estonia"] = 69;
-        countryGLOBIOMId["Ethiopia"] = 70;
-        countryGLOBIOMId["FalklandIs"] = 73;
-        countryGLOBIOMId["FijiIslands"] = 72;
-        countryGLOBIOMId["Finland"] = 71;
-        countryGLOBIOMId["France"] = 74;
-        countryGLOBIOMId["FrGuiana"] = 91;
-        countryGLOBIOMId["FrPolynesia"] = 180;
-        countryGLOBIOMId["Gabon"] = 77;
-        countryGLOBIOMId["Gambia"] = 84;
-        countryGLOBIOMId["Georgia"] = 79;
-        countryGLOBIOMId["Germany"] = 58;
-        countryGLOBIOMId["Ghana"] = 80;
-        countryGLOBIOMId["Greece"] = 87;
-        countryGLOBIOMId["Greenland"] = 89;
-        countryGLOBIOMId["Guadeloupe"] = 83;
-        countryGLOBIOMId["Guatemala"] = 90;
-        countryGLOBIOMId["Guinea"] = 82;
-        countryGLOBIOMId["GuineaBissau"] = 85;
-        countryGLOBIOMId["Guyana"] = 93;
-        countryGLOBIOMId["Haiti"] = 98;
-        countryGLOBIOMId["Honduras"] = 96;
-        countryGLOBIOMId["Hungary"] = 99;
-        countryGLOBIOMId["Iceland"] = 106;
-        countryGLOBIOMId["India"] = 101;
-        countryGLOBIOMId["Indonesia"] = 100;
-        countryGLOBIOMId["Iran"] = 104;
-        countryGLOBIOMId["Iraq"] = 105;
-        countryGLOBIOMId["Ireland"] = 103;
-        countryGLOBIOMId["Israel"] = 107;
-        countryGLOBIOMId["Italy"] = 108;
-        countryGLOBIOMId["Jamaica"] = 109;
-        countryGLOBIOMId["Japan"] = 111;
-        countryGLOBIOMId["Jordan"] = 110;
-        countryGLOBIOMId["Kazakhstan"] = 112;
-        countryGLOBIOMId["Kenya"] = 113;
-        countryGLOBIOMId["KoreaDPRp"] = 176;
-        countryGLOBIOMId["KoreaRep"] = 118;
-        countryGLOBIOMId["Kuwait"] = 119;
-        countryGLOBIOMId["Kyrgyzstan"] = 114;
-        countryGLOBIOMId["Laos"] = 120;
-        countryGLOBIOMId["Latvia"] = 130;
-        countryGLOBIOMId["Lebanon"] = 121;
-        countryGLOBIOMId["Lesotho"] = 127;
-        countryGLOBIOMId["Liberia"] = 122;
-        countryGLOBIOMId["Libya"] = 123;
-        countryGLOBIOMId["Lithuania"] = 128;
-        countryGLOBIOMId["Luxembourg"] = 129;
-        countryGLOBIOMId["Macedonia"] = 139;
-        countryGLOBIOMId["Madagascar"] = 135;
-        countryGLOBIOMId["Malawi"] = 151;
-        countryGLOBIOMId["Malaysia"] = 152;
-        countryGLOBIOMId["Mali"] = 140;
-        countryGLOBIOMId["Malta"] = 141;
-        countryGLOBIOMId["Mauritania"] = 147;
-        countryGLOBIOMId["Mauritius"] = 150;
-        countryGLOBIOMId["Mexico"] = 137;
-        countryGLOBIOMId["MoldovaRep"] = 134;
-        countryGLOBIOMId["Mongolia"] = 144;
-        countryGLOBIOMId["Morocco"] = 132;
-        countryGLOBIOMId["Mozambique"] = 146;
-        countryGLOBIOMId["Myanmar"] = 142;
-        countryGLOBIOMId["Namibia"] = 154;
-        countryGLOBIOMId["Nepal"] = 163;
-        countryGLOBIOMId["Netherlands"] = 161;
-        countryGLOBIOMId["NewCaledonia"] = 155;
-        countryGLOBIOMId["NewZealand"] = 165;
-        countryGLOBIOMId["Nicaragua"] = 159;
-        countryGLOBIOMId["Niger"] = 156;
-        countryGLOBIOMId["Nigeria"] = 158;
-        countryGLOBIOMId["Norway"] = 162;
-        countryGLOBIOMId["Oman"] = 166;
-        countryGLOBIOMId["Pakistan"] = 167;
-        countryGLOBIOMId["Palestin"] = 172;
-        countryGLOBIOMId["Panama"] = 168;
-        countryGLOBIOMId["PapuaNGuin"] = 173;
-        countryGLOBIOMId["Paraguay"] = 178;
-        countryGLOBIOMId["Peru"] = 170;
-        countryGLOBIOMId["Philippines"] = 171;
-        countryGLOBIOMId["Poland"] = 174;
-        countryGLOBIOMId["Portugal"] = 177;
-        countryGLOBIOMId["PuertoRico"] = 175;
-        countryGLOBIOMId["Qatar"] = 181;
-        countryGLOBIOMId["Reunion"] = 182;
-        countryGLOBIOMId["Romania"] = 183;
-        countryGLOBIOMId["RussianFed"] = 184;
-        countryGLOBIOMId["Rwanda"] = 185;
-        countryGLOBIOMId["Samoa"] = 237;
-        countryGLOBIOMId["SaudiArabia"] = 186;
-        countryGLOBIOMId["Senegal"] = 188;
-        countryGLOBIOMId["Serbia-Monte"] = 199;
-        countryGLOBIOMId["SierraLeone"] = 194;
-        countryGLOBIOMId["Singapore"] = 189;
-        countryGLOBIOMId["Slovakia"] = 202;
-        countryGLOBIOMId["Slovenia"] = 203;
-        countryGLOBIOMId["SolomonIs"] = 193;
-        countryGLOBIOMId["Somalia"] = 197;
-        countryGLOBIOMId["SouthAfrica"] = 239;
-        countryGLOBIOMId["Spain"] = 68;
-        countryGLOBIOMId["SriLanka"] = 126;
-        countryGLOBIOMId["Sudan"] = 187;
-        countryGLOBIOMId["Suriname"] = 201;
-        countryGLOBIOMId["Swaziland"] = 205;
-        countryGLOBIOMId["Sweden"] = 204;
-        countryGLOBIOMId["Switzerland"] = 41;
-        countryGLOBIOMId["Syria"] = 207;
-        countryGLOBIOMId["Tajikistan"] = 212;
-        countryGLOBIOMId["Tanzania"] = 222;
-        countryGLOBIOMId["Thailand"] = 211;
-        countryGLOBIOMId["TimorLeste"] = 215;
-        countryGLOBIOMId["Togo"] = 210;
-        countryGLOBIOMId["TrinidadTob"] = 217;
-        countryGLOBIOMId["Tunisia"] = 218;
-        countryGLOBIOMId["Turkey"] = 219;
-        countryGLOBIOMId["Turkmenistan"] = 214;
-        countryGLOBIOMId["Uganda"] = 223;
-        countryGLOBIOMId["UK"] = 78;
-        countryGLOBIOMId["Ukraine"] = 224;
-        countryGLOBIOMId["UntdArabEm"] = 9;
-        countryGLOBIOMId["Uruguay"] = 226;
-        countryGLOBIOMId["USA"] = 227;
-        countryGLOBIOMId["Uzbekistan"] = 228;
-        countryGLOBIOMId["Vanuatu"] = 235;
-        countryGLOBIOMId["Venezuela"] = 231;
-        countryGLOBIOMId["VietNam"] = 234;
-        countryGLOBIOMId["WestSahara"] = 67;
-        countryGLOBIOMId["Yemen"] = 238;
-        countryGLOBIOMId["Zambia"] = 240;
-        countryGLOBIOMId["Zimbabwe"] = 241;
+    [[nodiscard]] unordered_map<string, uint8_t, string_hash, equal_to<> > setCountryGLOBIOMId() noexcept {
+        unordered_map<string, uint8_t, string_hash, equal_to<> > fun_countryGLOBIOMId;
+        fun_countryGLOBIOMId.reserve(256);
+
+        fun_countryGLOBIOMId["Albania"] = 6;
+        fun_countryGLOBIOMId["Algeria"] = 63;
+        fun_countryGLOBIOMId["Angola"] = 3;
+        fun_countryGLOBIOMId["Argentina"] = 10;
+        fun_countryGLOBIOMId["Armenia"] = 11;
+        fun_countryGLOBIOMId["Australia"] = 16;
+        fun_countryGLOBIOMId["Austria"] = 17;
+        fun_countryGLOBIOMId["Azerbaijan"] = 18;
+        fun_countryGLOBIOMId["Bahamas"] = 26;
+        fun_countryGLOBIOMId["Bahrain"] = 25;
+        fun_countryGLOBIOMId["Bangladesh"] = 23;
+        fun_countryGLOBIOMId["Belarus"] = 28;
+        fun_countryGLOBIOMId["Belgium"] = 20;
+        fun_countryGLOBIOMId["Belize"] = 29;
+        fun_countryGLOBIOMId["Benin"] = 21;
+        fun_countryGLOBIOMId["Bhutan"] = 35;
+        fun_countryGLOBIOMId["Bolivia"] = 31;
+        fun_countryGLOBIOMId["BosniaHerzg"] = 27;
+        fun_countryGLOBIOMId["Botswana"] = 37;
+        fun_countryGLOBIOMId["Brazil"] = 32;
+        fun_countryGLOBIOMId["BruneiDarsm"] = 34;
+        fun_countryGLOBIOMId["Bulgaria"] = 24;
+        fun_countryGLOBIOMId["BurkinaFaso"] = 22;
+        fun_countryGLOBIOMId["Burundi"] = 19;
+        fun_countryGLOBIOMId["Cambodia"] = 115;
+        fun_countryGLOBIOMId["Cameroon"] = 45;
+        fun_countryGLOBIOMId["Canada"] = 39;
+        fun_countryGLOBIOMId["CapeVerde"] = 51;
+        fun_countryGLOBIOMId["CentAfrRep"] = 38;
+        fun_countryGLOBIOMId["Chad"] = 209;
+        fun_countryGLOBIOMId["Chile"] = 42;
+        fun_countryGLOBIOMId["China"] = 43;
+        fun_countryGLOBIOMId["Colombia"] = 49;
+        fun_countryGLOBIOMId["Comoros"] = 50;
+        fun_countryGLOBIOMId["CongoDemR"] = 46;
+        fun_countryGLOBIOMId["CongoRep"] = 47;
+        fun_countryGLOBIOMId["CostaRica"] = 52;
+        fun_countryGLOBIOMId["CotedIvoire"] = 44;
+        fun_countryGLOBIOMId["Croatia"] = 97;
+        fun_countryGLOBIOMId["Cuba"] = 53;
+        fun_countryGLOBIOMId["Cyprus"] = 56;
+        fun_countryGLOBIOMId["CzechRep"] = 57;
+        fun_countryGLOBIOMId["Denmark"] = 61;
+        fun_countryGLOBIOMId["Djibouti"] = 59;
+        fun_countryGLOBIOMId["DominicanRp"] = 62;
+        fun_countryGLOBIOMId["Ecuador"] = 64;
+        fun_countryGLOBIOMId["Egypt"] = 65;
+        fun_countryGLOBIOMId["ElSalvador"] = 195;
+        fun_countryGLOBIOMId["EqGuinea"] = 86;
+        fun_countryGLOBIOMId["Eritrea"] = 66;
+        fun_countryGLOBIOMId["Estonia"] = 69;
+        fun_countryGLOBIOMId["Ethiopia"] = 70;
+        fun_countryGLOBIOMId["FalklandIs"] = 73;
+        fun_countryGLOBIOMId["FijiIslands"] = 72;
+        fun_countryGLOBIOMId["Finland"] = 71;
+        fun_countryGLOBIOMId["France"] = 74;
+        fun_countryGLOBIOMId["FrGuiana"] = 91;
+        fun_countryGLOBIOMId["FrPolynesia"] = 180;
+        fun_countryGLOBIOMId["Gabon"] = 77;
+        fun_countryGLOBIOMId["Gambia"] = 84;
+        fun_countryGLOBIOMId["Georgia"] = 79;
+        fun_countryGLOBIOMId["Germany"] = 58;
+        fun_countryGLOBIOMId["Ghana"] = 80;
+        fun_countryGLOBIOMId["Greece"] = 87;
+        fun_countryGLOBIOMId["Greenland"] = 89;
+        fun_countryGLOBIOMId["Guadeloupe"] = 83;
+        fun_countryGLOBIOMId["Guatemala"] = 90;
+        fun_countryGLOBIOMId["Guinea"] = 82;
+        fun_countryGLOBIOMId["GuineaBissau"] = 85;
+        fun_countryGLOBIOMId["Guyana"] = 93;
+        fun_countryGLOBIOMId["Haiti"] = 98;
+        fun_countryGLOBIOMId["Honduras"] = 96;
+        fun_countryGLOBIOMId["Hungary"] = 99;
+        fun_countryGLOBIOMId["Iceland"] = 106;
+        fun_countryGLOBIOMId["India"] = 101;
+        fun_countryGLOBIOMId["Indonesia"] = 100;
+        fun_countryGLOBIOMId["Iran"] = 104;
+        fun_countryGLOBIOMId["Iraq"] = 105;
+        fun_countryGLOBIOMId["Ireland"] = 103;
+        fun_countryGLOBIOMId["Israel"] = 107;
+        fun_countryGLOBIOMId["Italy"] = 108;
+        fun_countryGLOBIOMId["Jamaica"] = 109;
+        fun_countryGLOBIOMId["Japan"] = 111;
+        fun_countryGLOBIOMId["Jordan"] = 110;
+        fun_countryGLOBIOMId["Kazakhstan"] = 112;
+        fun_countryGLOBIOMId["Kenya"] = 113;
+        fun_countryGLOBIOMId["KoreaDPRp"] = 176;
+        fun_countryGLOBIOMId["KoreaRep"] = 118;
+        fun_countryGLOBIOMId["Kuwait"] = 119;
+        fun_countryGLOBIOMId["Kyrgyzstan"] = 114;
+        fun_countryGLOBIOMId["Laos"] = 120;
+        fun_countryGLOBIOMId["Latvia"] = 130;
+        fun_countryGLOBIOMId["Lebanon"] = 121;
+        fun_countryGLOBIOMId["Lesotho"] = 127;
+        fun_countryGLOBIOMId["Liberia"] = 122;
+        fun_countryGLOBIOMId["Libya"] = 123;
+        fun_countryGLOBIOMId["Lithuania"] = 128;
+        fun_countryGLOBIOMId["Luxembourg"] = 129;
+        fun_countryGLOBIOMId["Macedonia"] = 139;
+        fun_countryGLOBIOMId["Madagascar"] = 135;
+        fun_countryGLOBIOMId["Malawi"] = 151;
+        fun_countryGLOBIOMId["Malaysia"] = 152;
+        fun_countryGLOBIOMId["Mali"] = 140;
+        fun_countryGLOBIOMId["Malta"] = 141;
+        fun_countryGLOBIOMId["Mauritania"] = 147;
+        fun_countryGLOBIOMId["Mauritius"] = 150;
+        fun_countryGLOBIOMId["Mexico"] = 137;
+        fun_countryGLOBIOMId["MoldovaRep"] = 134;
+        fun_countryGLOBIOMId["Mongolia"] = 144;
+        fun_countryGLOBIOMId["Morocco"] = 132;
+        fun_countryGLOBIOMId["Mozambique"] = 146;
+        fun_countryGLOBIOMId["Myanmar"] = 142;
+        fun_countryGLOBIOMId["Namibia"] = 154;
+        fun_countryGLOBIOMId["Nepal"] = 163;
+        fun_countryGLOBIOMId["Netherlands"] = 161;
+        fun_countryGLOBIOMId["NewCaledonia"] = 155;
+        fun_countryGLOBIOMId["NewZealand"] = 165;
+        fun_countryGLOBIOMId["Nicaragua"] = 159;
+        fun_countryGLOBIOMId["Niger"] = 156;
+        fun_countryGLOBIOMId["Nigeria"] = 158;
+        fun_countryGLOBIOMId["Norway"] = 162;
+        fun_countryGLOBIOMId["Oman"] = 166;
+        fun_countryGLOBIOMId["Pakistan"] = 167;
+        fun_countryGLOBIOMId["Palestin"] = 172;
+        fun_countryGLOBIOMId["Panama"] = 168;
+        fun_countryGLOBIOMId["PapuaNGuin"] = 173;
+        fun_countryGLOBIOMId["Paraguay"] = 178;
+        fun_countryGLOBIOMId["Peru"] = 170;
+        fun_countryGLOBIOMId["Philippines"] = 171;
+        fun_countryGLOBIOMId["Poland"] = 174;
+        fun_countryGLOBIOMId["Portugal"] = 177;
+        fun_countryGLOBIOMId["PuertoRico"] = 175;
+        fun_countryGLOBIOMId["Qatar"] = 181;
+        fun_countryGLOBIOMId["Reunion"] = 182;
+        fun_countryGLOBIOMId["Romania"] = 183;
+        fun_countryGLOBIOMId["RussianFed"] = 184;
+        fun_countryGLOBIOMId["Rwanda"] = 185;
+        fun_countryGLOBIOMId["Samoa"] = 237;
+        fun_countryGLOBIOMId["SaudiArabia"] = 186;
+        fun_countryGLOBIOMId["Senegal"] = 188;
+        fun_countryGLOBIOMId["Serbia-Monte"] = 199;
+        fun_countryGLOBIOMId["SierraLeone"] = 194;
+        fun_countryGLOBIOMId["Singapore"] = 189;
+        fun_countryGLOBIOMId["Slovakia"] = 202;
+        fun_countryGLOBIOMId["Slovenia"] = 203;
+        fun_countryGLOBIOMId["SolomonIs"] = 193;
+        fun_countryGLOBIOMId["Somalia"] = 197;
+        fun_countryGLOBIOMId["SouthAfrica"] = 239;
+        fun_countryGLOBIOMId["Spain"] = 68;
+        fun_countryGLOBIOMId["SriLanka"] = 126;
+        fun_countryGLOBIOMId["Sudan"] = 187;
+        fun_countryGLOBIOMId["Suriname"] = 201;
+        fun_countryGLOBIOMId["Swaziland"] = 205;
+        fun_countryGLOBIOMId["Sweden"] = 204;
+        fun_countryGLOBIOMId["Switzerland"] = 41;
+        fun_countryGLOBIOMId["Syria"] = 207;
+        fun_countryGLOBIOMId["Tajikistan"] = 212;
+        fun_countryGLOBIOMId["Tanzania"] = 222;
+        fun_countryGLOBIOMId["Thailand"] = 211;
+        fun_countryGLOBIOMId["TimorLeste"] = 215;
+        fun_countryGLOBIOMId["Togo"] = 210;
+        fun_countryGLOBIOMId["TrinidadTob"] = 217;
+        fun_countryGLOBIOMId["Tunisia"] = 218;
+        fun_countryGLOBIOMId["Turkey"] = 219;
+        fun_countryGLOBIOMId["Turkmenistan"] = 214;
+        fun_countryGLOBIOMId["Uganda"] = 223;
+        fun_countryGLOBIOMId["UK"] = 78;
+        fun_countryGLOBIOMId["Ukraine"] = 224;
+        fun_countryGLOBIOMId["UntdArabEm"] = 9;
+        fun_countryGLOBIOMId["Uruguay"] = 226;
+        fun_countryGLOBIOMId["USA"] = 227;
+        fun_countryGLOBIOMId["Uzbekistan"] = 228;
+        fun_countryGLOBIOMId["Vanuatu"] = 235;
+        fun_countryGLOBIOMId["Venezuela"] = 231;
+        fun_countryGLOBIOMId["VietNam"] = 234;
+        fun_countryGLOBIOMId["WestSahara"] = 67;
+        fun_countryGLOBIOMId["Yemen"] = 238;
+        fun_countryGLOBIOMId["Zambia"] = 240;
+        fun_countryGLOBIOMId["Zimbabwe"] = 241;
+        return fun_countryGLOBIOMId;
     }
 
-    void setCountriesWoodProdStat() noexcept {
+    [[nodiscard]] CountryData setCountriesWoodProdStat() noexcept {
+        CountryData fun_countriesWoodProdStat;
         for (size_t i = 0; i < woodProdEUStats.size(); ++i)
             for (size_t j = 0; j < woodProdEUStats[0].size(); ++j)
                 // Malta is in countryNwp[18], there are no wood production data for Malta
-                countriesWoodProdStat.setVal(countryNwp[i + (i >= 18)], 1990 + j, woodProdEUStats[i][j]);
+                fun_countriesWoodProdStat.setVal(countryNwp[i + (i >= 18)], 1990 + j, woodProdEUStats[i][j]);
+        return fun_countriesWoodProdStat;
     }
 
-    void setCountriesfmEmission_unfccc() noexcept {
+    [[nodiscard]] CountryData setCountriesFmEmission_unfccc() noexcept {
+        CountryData fun_countriesFmEmission_unfccc;
         for (size_t i = 0; i < fmEmission_unfccc_CRF.size(); ++i)
             for (size_t j = 0; j < fmEmission_unfccc_CRF[0].size(); ++j)
-                countriesfmEmission_unfccc.setVal(eu28OrderCode[i], 1990 + j, fmEmission_unfccc_CRF[i][j]);
+                fun_countriesFmEmission_unfccc.setVal(eu28OrderCode[i], 1990 + j, fmEmission_unfccc_CRF[i][j]);
+        return fun_countriesFmEmission_unfccc;
     }
 
     void calcAvgFM_sink_stat() noexcept {
@@ -406,7 +416,7 @@ namespace g4m::StartData {
         }
     }
 
-    [[nodiscard]] vector<DataStruct> filterPlots() noexcept {
+    [[nodiscard]] vector<DataStruct> filterPlots(const span<const DataStruct> plots) noexcept {
         vector<DataStruct> filteredPlots;
         filteredPlots.reserve(plots.size());
         for (const auto &plot: plots)
@@ -426,7 +436,7 @@ namespace g4m::StartData {
                     value *= 250;
     }
 
-    void correctNUTS2Data() noexcept {
+    void correctNUTS2Data(const span<const DataStruct> plots) noexcept {
         for (const auto &plot: plots)
             // Test only some regions and some countries
             // plot.protect.data.at(2000) == 0)
@@ -480,73 +490,75 @@ namespace g4m::StartData {
     }
 
     // Setup forest increment table
-    void defineSpecies() {
-        species.reserve(8);
+    [[nodiscard]] vector<IncrementTab> defineSpecies() {
+        vector<IncrementTab> fun_species;
+        fun_species.reserve(8);
         // fir [0]
-        species.emplace_back(
+        fun_species.emplace_back(
                 array{-0.4562, -0.7403, -1.0772, 1.4803, 0.6713, 300., -0.2151, -0.9929, 0.5, 0.2, -0.7642, 0.3156,
                       -0.4, 0.4468, 0.1425, 0., 0., 0., 0.25, -1., -2., -0.5, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8,
                       0.002, 2., 0.01, 0.5, 24.82935, 0.60708, -0.0212, 2.41308, -0.48246, 16.11, 17.78, -0.01436,
                       0.37424, -1.52401, 2.282, 1.2718, -0.7707, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
         // spruce [1]
-        species.emplace_back(
+        fun_species.emplace_back(
                 array{0., -0.9082, -0.2728, 0.6483, 209.6889, 300., 1.8536, 0.4811, 0., 0.9, -0.143, -0.5915, -0.4,
                       0.4507, 0.3713, 0., 0., 0., 0.1, 1., -2., -0.3, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2.,
                       0.01, 0.5, 22.58866, 0.6168, -0.02102, 2.4176, -0.35816, 16.11, 17.78, -0.01436, 0.37424,
                       -1.52401, 2.282, 1.2718, -0.7707, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
         // pine [2]
-        species.emplace_back(array{-0.3835, -0.2416, -1.7576, 1.1638,                 // k
-                                   170., 114.343, -2.804, 1.044,                      // tMax
-                                   0., 0.9, -0.8242, -0.4273,                         // maxDens0
-                                   -0.4, -1.476, 4.283, -0.3, 3.610, -1.071,          // maxDens1
-                                   0.1, 1., -2.0670, -0.3028,                         // maxDens2
-                                   0.5,                                               // maxDens3
-                                   1.5, 150., 0.01, 0.5, 0.5,                         // imul0
-                                   0.8, 0.002, 2., 0.01, 0.5,                         // imul0
-                                   22.09082, 0.62065, -0.01965, 1.50614, -0.25346,    // h
-                                   22.70, 16.56,                                      // d0
-                                   -0.01068, 0.24754, -1.81373,                       // d1
-                                   1.0945, 0.0999, -1.6033,                           // d2
-                                   1.6,                                               // dmul
-                                   0.95},                                             // iCrit
-                             5,       // maiMax
-                             0.25,    // maiStep
-                             600,     // tMax
-                             1,       // tStep
-                             0.25,    // sdNatStep
-                             1.5,     // sdTabMax
-                             0.25,    // sdTabStep
-                             1);      // timeframe
+        fun_species.emplace_back(array{-0.3835, -0.2416, -1.7576, 1.1638,                 // k
+                                       170., 114.343, -2.804, 1.044,                      // tMax
+                                       0., 0.9, -0.8242, -0.4273,                         // maxDens0
+                                       -0.4, -1.476, 4.283, -0.3, 3.610, -1.071,          // maxDens1
+                                       0.1, 1., -2.0670, -0.3028,                         // maxDens2
+                                       0.5,                                               // maxDens3
+                                       1.5, 150., 0.01, 0.5, 0.5,                         // imul0
+                                       0.8, 0.002, 2., 0.01, 0.5,                         // imul0
+                                       22.09082, 0.62065, -0.01965, 1.50614, -0.25346,    // h
+                                       22.70, 16.56,                                      // d0
+                                       -0.01068, 0.24754, -1.81373,                       // d1
+                                       1.0945, 0.0999, -1.6033,                           // d2
+                                       1.6,                                               // dmul
+                                       0.95},                                             // iCrit
+                                 5,       // maiMax
+                                 0.25,    // maiStep
+                                 600,     // tMax
+                                 1,       // tStep
+                                 0.25,    // sdNatStep
+                                 1.5,     // sdTabMax
+                                 0.25,    // sdTabStep
+                                 1);      // timeframe
         // pinus Halepensis [3]
-        species.emplace_back(
+        fun_species.emplace_back(
                 array{-0.3, -0.306, -2.052, 1.673, 150., 130., 1.898, -1.141, 0.92, 0.07, -4.25, 6.168, -0.4, 0.93237,
                       -0.00468, 0., 0., 0., 0.25, -1., -2., -0.5, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2., 0.01,
                       0.5, 26.59488, 0.62839, -0.02023, 1.05953, -0.03489, 18.7252, 46.3833, -0.2643, 14.1425, -0.6368,
                       0.8948, 0.000422233, -4.9625, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
         // birch [4]
-        species.emplace_back(
+        fun_species.emplace_back(
                 array{0., -0.7422, -0.54, 0.5719, 136.958, 100., 0.2972, -0.7543, 0., 0.9, -0.953, -0.9236, -0.4, 1.052,
                       0.108, 0., 0., 0., 0.1, 1., -2.5, -0.4, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2., 0.01, 0.5,
                       23.23597, 0.44554, -0.02485, 1.36973, -0.42941, 13.61, 10.69, -0.02688, 0.24196, -0.7015, 1.337,
                       0.0708, -2.1515, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
         // beech [5]
-        species.emplace_back(
+        fun_species.emplace_back(
                 array{0., -0.5998, -0.2467, 0.7674, 245.5516, 100., 2.6345, -0.8978, 0.69135, 0., 0., 0., -0.03177, 0.,
                       0., 0., 0., 0., -0.875, 1., 0., 0., 0.5, 1.5, 300., 0.01, 0.5, 0.5, 0.8, 0.001, 2., 0.01, 0.5,
                       21.29459, 0.48722, -0.01967, 1.81479, -0.29145, 30.707, 7.008, -0.01051, -0.19793, 0.2977, 1.423,
                       1.025, -16.85, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
         // oak [6]
-        species.emplace_back(
+        fun_species.emplace_back(
                 array{0., -0.6, -0.4419, 0.3179, 16.6688, 300., -0.6066, -1.1243, 0.7, 0.3, -0.4339, 0.5288, -0.4,
                       2.01561, -0.07354, 0., 0., 0., 0.1, 1., -3.5, 0.3, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2.,
                       0.01, 0.5, 21.26281, 0.51987, -0.01901, 1.34081, -0.10979, -7.511, 41.689, -0.02201, 0.58055,
                       1.72465, 3.6757, 1.7544, 0.3264, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
         // larch [7]
-        species.emplace_back(
+        fun_species.emplace_back(
                 array{0., -0.388, -0.01226, 0.85934, 195.3724, 600., 0.9883, 1.0784, 0., 0.9, -2.1347, -0.3437, -0.4,
                       1.3238, 0.4061, 0., 0., 0., 0.1, 1., -2.5, -0.3, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2.,
                       0.01, 0.5, 23.63487, 0.50281, -0.01557, 1.16199, -0.18673, 25.196, 9.118, -0.01376, 0.64637,
                       -0.79909, 1.0817, 0.1667, -0.9408, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
+        return fun_species;
     }
 
     // Setup forest management parameters similar for all countries (cells)
@@ -596,7 +608,7 @@ namespace g4m::StartData {
         ffdoe = FFIpolM<double>{doe};
     }
 
-    void correctMAI() noexcept {
+    void correctMAI(const span<DataStruct> plots) noexcept {
         for (auto &plot: plots)
             // Test only some regions and some countries
             if (plot.protect.data.at(2000) == 0) {  // if there is no lerp, why not simple map then?
@@ -606,39 +618,46 @@ namespace g4m::StartData {
             }
     }
 
-    void calculateAverageMAI() noexcept {
+    [[nodiscard]] array<double, numberOfCountries> calculateAverageMAI(const span<const DataStruct> plots) noexcept {
         INFO("calculating average MAI");
+        array<double, numberOfCountries> fun_MAI_CountryUprotect{};
         array<double, numberOfCountries> forestAreaCountry{};
         for (const auto &plot: plots)
             if (plot.protect.data.at(2000) == 0) {
                 double forestArea0 = plot.landArea * 100 * clamp(plot.forest, 0., 1.);
                 if (forestArea0 > 0) {
                     // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
-                    MAI_CountryUprotect[plot.country - 1] += plot.MAIE.data.at(2000) * forestArea0;
+                    fun_MAI_CountryUprotect[plot.country - 1] += plot.MAIE.data.at(2000) * forestArea0;
                     forestAreaCountry[plot.country - 1] += forestArea0;
                 }
             }
 
-        for (auto &&[MAI, area]: rv::zip(MAI_CountryUprotect, forestAreaCountry))
+        for (auto &&[MAI, area]: rv::zip(fun_MAI_CountryUprotect, forestAreaCountry))
             if (area > 0)
                 MAI /= area;
 
-        for (size_t i = 0; i < MAI_CountryUprotect.size(); ++i)
-            if (MAI_CountryUprotect[i] > 0)
-                DEBUG("MAI_CountryUprotect[{}] = {}", i, MAI_CountryUprotect[i]);
+        for (size_t i = 0; i < fun_MAI_CountryUprotect.size(); ++i)
+            if (fun_MAI_CountryUprotect[i] > 0)
+                DEBUG("fun_MAI_CountryUprotect[{}] = {}", i, fun_MAI_CountryUprotect[i]);
 
         INFO("calculated average MAI");
+        return fun_MAI_CountryUprotect;
     }
 
-    void initPlotsSimuID() noexcept {
-        plotsSimuID.reserve(rawPlots.size());
-        for (const auto &plot: rawPlots)
-            plotsSimuID.insert(plot.simuID);
+    [[nodiscard]] unordered_set<uint32_t> initPlotsSimuID(const span<const DataStruct> plots) noexcept {
+        unordered_set<uint32_t> plots_Simu_ID;
+        plots_Simu_ID.reserve(plots.size());
+        for (const auto &plot: plots)
+            plots_Simu_ID.insert(plot.simuID);
+        return plots_Simu_ID;
     }
 
-    void initPlotsXY_SimuID() noexcept {
-        for (const auto &plot: rawPlots)
-            plotsXY_SimuID[{plot.x, plot.y}] = plot.simuID;
+    [[nodiscard]] map<pair<uint32_t, uint32_t>, uint32_t>
+    initPlotsXY_SimuID(const span<const DataStruct> plots) noexcept {
+        map<pair<uint32_t, uint32_t>, uint32_t> plots_XY_Simu_ID;
+        for (const auto &plot: plots)
+            plots_XY_Simu_ID[{plot.x, plot.y}] = plot.simuID;
+        return plots_XY_Simu_ID;
     }
 
     // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
@@ -657,11 +676,11 @@ namespace g4m::StartData {
     }
 
     void add2020Disturbances() noexcept {
-        for (auto &[id, ipol]: disturbWind)
+        for (auto &[id, ipol]: commonDisturbWind)
             ipol.data[2020] = ipol.data[2030] / 1.025;
-        for (auto &[id, ipol]: disturbFire)
+        for (auto &[id, ipol]: commonDisturbFire)
             ipol.data[2020] = ipol.data[2030] / 1.05;
-        for (auto &[id, ipol]: disturbBiotic)
+        for (auto &[id, ipol]: commonDisturbBiotic)
             ipol.data[2020] = ipol.data[2030] / 1.05;
     }
 
@@ -677,15 +696,15 @@ namespace g4m::StartData {
         }
 
         const uint16_t scaleYear = 2020;
-        scaleDisturbance(disturbWind, scaleYear);
-        scaleDisturbance(disturbFire, scaleYear);
-        scaleDisturbance(disturbBiotic, scaleYear);
+        scaleDisturbance(commonDisturbWind, scaleYear);
+        scaleDisturbance(commonDisturbFire, scaleYear);
+        scaleDisturbance(commonDisturbBiotic, scaleYear);
 
         INFO("Disturbances are scaled to the {} value!", scaleYear);
     }
 
     void initGlobiomLandGlobal() noexcept {
-        for (auto &plot: plots)
+        for (auto &plot: commonPlots)
             plot.initForestArrange();
     }
 
@@ -701,10 +720,10 @@ namespace g4m::StartData {
         double bmTh = 0;       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for thinning
         double harvRes = 0;    // MG: usable harvest residues for the set (old) forest tC/ha
 
-        for (auto &plot: plots) {
+        for (auto &plot: commonPlots) {
             double forestShare0 = max(0., plot.forest);
             plot.forestsArrangement();
-            OForestShGrid.country(plot.x, plot.y) = plot.country;
+            commonOForestShGrid.country(plot.x, plot.y) = plot.country;
             double maxAffor = plot.getMaxAffor();
 
             if (forestShare0 > maxAffor) {
@@ -714,8 +733,8 @@ namespace g4m::StartData {
                 forestShare0 = maxAffor;
             }
 
-            OForestShGrid(plot.x, plot.y) = forestShare0;
-            OForestShGrid.update1YearForward();  // populate the OforestShGridPrev with forestShare0 data
+            commonOForestShGrid(plot.x, plot.y) = forestShare0;
+            commonOForestShGrid.update1YearForward();  // populate the OforestShGridPrev with forestShare0 data
             double forestArea0 = plot.landArea * 100 * forestShare0; // all forest area in the cell, ha
 
             int biomassRot = 0;     // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
@@ -737,10 +756,10 @@ namespace g4m::StartData {
             if (plot.protect.data.at(2000) == 1)
                 plot.managedFlag = false;
 
-            maiForest(plot.x, plot.y) = MAI;
+            commonMaiForest(plot.x, plot.y) = MAI;
             double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
 
-            if (plot.CAboveHa > 0 && maiForest(plot.x, plot.y) > 0) {
+            if (plot.CAboveHa > 0 && commonMaiForest(plot.x, plot.y) > 0) {
                 if (plot.speciesType == 0)
                     DEBUG("plot.speciesType = {}", plot.speciesType);
                 // rotation time to get current biomass (without thinning)
@@ -749,7 +768,7 @@ namespace g4m::StartData {
                 biomassRotTh = static_cast<int>(species[plot.speciesType - 1].getUT(plot.CAboveHa, MAI));
             }
 
-            if (maiForest(plot.x, plot.y) > 0) {
+            if (commonMaiForest(plot.x, plot.y) > 0) {
                 rotMAI = static_cast<int>(species[plot.speciesType - 1].getTOptT(MAI, optimMAI));
                 rotMaxBm = static_cast<int>(species[plot.speciesType - 1].getTOpt(MAI, optimMaxBm));
                 rotMaxBmTh = static_cast<int>(species[plot.speciesType - 1].getTOptT(MAI, optimMaxBm));
@@ -774,62 +793,65 @@ namespace g4m::StartData {
                         pDefIncome * (1 - plot.slashBurn(coef.bYear)) + sDefIncome * plot.slashBurn(coef.bYear);
 
                 if (plot.managedFlag) {
-                    thinningForest(plot.x, plot.y) = 1;
-                    rotationType(plot.x, plot.y) = 11;
+                    commonThinningForest(plot.x, plot.y) = 1;
+                    commonRotationType(plot.x, plot.y) = 11;
 
                     if (MAI > MAI_CountryUprotect[plot.country - 1])
-                        managedForest(plot.x, plot.y) = 3;
+                        commonManagedForest(plot.x, plot.y) = 3;
                     else {
                         if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal() + defIncome)
-                            managedForest(plot.x, plot.y) = 2;
+                            commonManagedForest(plot.x, plot.y) = 2;
                         else
-                            managedForest(plot.x, plot.y) = 1;
+                            commonManagedForest(plot.x, plot.y) = 1;
                     }
 
                 } else {
-                    thinningForest(plot.x, plot.y) = -1;
-                    rotationType(plot.x, plot.y) = 10;
+                    commonThinningForest(plot.x, plot.y) = -1;
+                    commonRotationType(plot.x, plot.y) = 10;
 
                     if (MAI > MAI_CountryUprotect[plot.country - 1])
-                        managedForest(plot.x, plot.y) = 0;
+                        commonManagedForest(plot.x, plot.y) = 0;
                     else {
                         if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal() + defIncome)
-                            managedForest(plot.x, plot.y) = -1;
+                            commonManagedForest(plot.x, plot.y) = -1;
                         else
-                            managedForest(plot.x, plot.y) = -2;
+                            commonManagedForest(plot.x, plot.y) = -2;
                     }
                 }
 
             } else {
-                thinningForest(plot.x, plot.y) = -1;
+                commonThinningForest(plot.x, plot.y) = -1;
                 rotation = biomassRot + 1;
             }
 
-            rotationForest(plot.x, plot.y) = rotation;
-            thinningForest10(plot.x, plot.y) = -1;
-            thinningForest30(plot.x, plot.y) = thinningForest(plot.x, plot.y);
+            commonRotationForest(plot.x, plot.y) = rotation;
+            commonThinningForest10(plot.x, plot.y) = -1;
+            commonThinningForest30(plot.x, plot.y) = commonThinningForest(plot.x, plot.y);
         }
     }
 
-    void setAsIds() noexcept {
+    void setAsIds(const span<DataStruct> plots) noexcept {
         for (size_t asId = 0; auto &plot: plots)
             plot.asID = asId++;
     }
 
-    void initCountriesFFIpols() noexcept {
-        countriesFFIpols.reserve(256);
+    [[nodiscard]] unordered_map<uint8_t, FFIpolsCountry>
+    initCountriesFFIpols(const span<const DataStruct> plots) noexcept {
+        unordered_map<uint8_t, FFIpolsCountry> countries_FFIpols;
+        countries_FFIpols.reserve(256);
         for (const auto &plot: plots)
             countriesFFIpols.emplace(plot.country, plot.country);
+        return countries_FFIpols;
     }
 
     void initLoop() noexcept {
         INFO("Start initialising cohorts");
-        cohort_all.reserve(plots.size());
-        cohort30_all.reserve(plots.size());
-        cohort10_all.reserve(plots.size());
-        cohort_primary_all.reserve(plots.size());
-        newCohort_all.reserve(plots.size());
-        dat_all.reserve(plots.size());
+        commonCohort_all.reserve(commonPlots.size());
+        commonCohort30_all.reserve(commonPlots.size());
+        commonCohort10_all.reserve(commonPlots.size());
+        commonCohort_primary_all.reserve(commonPlots.size());
+        commonNewCohort_all.reserve(commonPlots.size());
+        commonDat_all.reserve(commonPlots.size());
         harvestResiduesCountry.reserve(256);
 
         const unordered_map<uint8_t, vector<double> > ageStructData = readAgeStructData();
@@ -839,7 +861,7 @@ namespace g4m::StartData {
         constexpr array ageBreaks = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 999};
         constexpr array ageSize = {11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
 
-        for (size_t asId = 0; const auto &plot: plots) {
+        for (size_t asId = 0; const auto &plot: commonPlots) {
             coef.priceC = priceCiS[0] * plot.corruption(coef.bYear);
 
             double forestShare = clamp(plot.getForestShare(), 0., plot.getMaxAffor());
@@ -861,8 +883,8 @@ namespace g4m::StartData {
             bool forFlag30 = false; // MG: a forest area for fitting existing forest in the grid: 0 - no forest; 1 - 1 ha of normal forest
             bool forFlagP = false;  // MG: a forest area for fitting existing forest in the grid: 0 - no forest; 1 - 1 ha of normal forest
 
-            double mai_tmp = maiForest(plot.x, plot.y);
-            double thinning_tmp = thinningForest(plot.x, plot.y);
+            double mai_tmp = commonMaiForest(plot.x, plot.y);
+            double thinning_tmp = commonThinningForest(plot.x, plot.y);
             size_t species_tmp = plot.speciesType - 1;
 
             if (mai_tmp > 0) {
@@ -888,19 +910,22 @@ namespace g4m::StartData {
 
             // Stocking degree depending on tree height is not implemented
             // saving results to initial vectors
-            cohort_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov, &ffcoe,
-                                    &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, thinning_tmp * sdMaxCoef,
-                                    thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0, 1);
-            cohort30_all.push_back(cohort_all.back());
-            cohort10_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov, &ffcoe,
-                                      &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, -sdMaxCoef, -sdMinCoef, 30, minRotVal,
-                                      1, 0, 1);
-            cohort_primary_all.push_back(cohort10_all.back());
+            commonCohort_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov,
+                                          &ffcoe,
+                                          &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, thinning_tmp * sdMaxCoef,
+                                          thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0, 1);
+            commonCohort30_all.push_back(commonCohort_all.back());
+            commonCohort10_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov,
+                                            &ffcoe,
+                                            &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, -sdMaxCoef, -sdMinCoef, 30,
+                                            minRotVal,
+                                            1, 0, 1);
+            commonCohort_primary_all.push_back(commonCohort10_all.back());
 
-            AgeStruct &cohort = cohort_all.back();
-            AgeStruct &cohort30 = cohort30_all.back();
-            AgeStruct &cohort10 = cohort10_all.back();
-            AgeStruct &cohort_primary = cohort_primary_all.back();
+            AgeStruct &cohort = commonCohort_all.back();
+            AgeStruct &cohort30 = commonCohort30_all.back();
+            AgeStruct &cohort10 = commonCohort10_all.back();
+            AgeStruct &cohort_primary = commonCohort_primary_all.back();
 
             size_t oldestAgeGroup = 0;
             int oldestAge = 0;
@@ -977,7 +1002,7 @@ namespace g4m::StartData {
                                 max(0., plot.CAboveHa * cohort.getArea() / (cohort.getBm() * plot.BEF(cohort.getBm())));
                         cohort.setStockingDegreeMin(stockingDegree * sdMinCoef);
                         cohort.setStockingDegreeMax(stockingDegree * sdMaxCoef);
-                        thinningForest(plot.x, plot.y) = stockingDegree;
+                        commonThinningForest(plot.x, plot.y) = stockingDegree;
                         for (int i = 0; i < 321; ++i)
                             cohort.setBm(i, stockingDegree * cohort.getBm(i));
                         cohort.setU(321);
@@ -1014,7 +1039,7 @@ namespace g4m::StartData {
                     cohort30.createNormalForest(1, 0, thinning_tmp);
                 }
 
-                rotationForest(plot.x, plot.y) = rotation;
+                commonRotationForest(plot.x, plot.y) = rotation;
                 abBiomass0 = cohort.getBm();  // modelled biomass at time 0, tC/ha
 
             } else {
@@ -1042,7 +1067,7 @@ namespace g4m::StartData {
 
                 cohort10.setStockingDegreeMin(-stockingDegree * sdMinCoef);
                 cohort10.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
-                thinningForest10(plot.x, plot.y) = -stockingDegree;
+                commonThinningForest10(plot.x, plot.y) = -stockingDegree;
 
                 int tmp_max = static_cast<int>(ceil(static_cast<double>(oldest) / modTimeStep)) + 1;
                 for (int i = 0; i <= tmp_max; ++i)
@@ -1079,15 +1104,16 @@ namespace g4m::StartData {
                 cohort_primary.createNormalForest(1, 0, -1);
 
             // rotation changes
-            newCohort_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov,
-                                       &ffcoe, &ffdov, &ffdoe, mai_tmp, 0, rotation, 0, 0, 0, 0,
-                                       thinning_tmp * sdMaxCoef, thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0, 1);
-            AgeStruct &newCohort = newCohort_all.back();
+            commonNewCohort_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov,
+                                             &ffcoe, &ffdov, &ffdoe, mai_tmp, 0, rotation, 0, 0, 0, 0,
+                                             thinning_tmp * sdMaxCoef, thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0,
+                                             1);
+            AgeStruct &newCohort = commonNewCohort_all.back();
             newCohort.createNormalForest(rotation, 0, thinning_tmp);
 
-            dat_all.emplace_back();
-            Dat &singleCell = dat_all.back();
-            singleCell.rotation = static_cast<int>(rotationForest(plot.x, plot.y));
+            commonDat_all.emplace_back();
+            Dat &singleCell = commonDat_all.back();
+            singleCell.rotation = static_cast<int>(commonRotationForest(plot.x, plot.y));
             singleCell.landAreaHa = plot.landArea * 100;
             singleCell.forestShare = plot.getForestShare();
             singleCell.forestShare0 = singleCell.forestShare;
@@ -1145,13 +1171,13 @@ namespace g4m::StartData {
             INFO("initZeroProdArea is turned off");
             return;
 
-            auto thinningForestInit = thinningForest;
+            auto thinningForestInit = commonThinningForest;
             array<double, numberOfCountries> woodPotHarvest{};
 
             INFO("Putting data for current cell into container...");
-            for (const auto &plot: plots)
+            for (const auto &plot: commonPlots)
                 if (plot.protect.data.at(2000) == 0) {
-                    double MAI = maiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
+                    double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
                     size_t species_tmp = plot.speciesType - 1;
 
                     int biomassRot = 1;  // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
@@ -1159,7 +1185,7 @@ namespace g4m::StartData {
                     int rotMAI = 1;
                     int rotMaxBm = 1;
 
-                    double Bm = cohort_all[plot.asID].getBm();
+                    double Bm = commonCohort_all[plot.asID].getBm();
 
                     if (plot.CAboveHa > 0 && MAI > 0) {
                         // rotation time to get current biomass (without thinning)
@@ -1168,16 +1194,17 @@ namespace g4m::StartData {
                         rotMaxBm = static_cast<int>(species[species_tmp].getTOpt(MAI, optimMaxBm));
                         // rotation time to get current biomass (with thinning)
                         biomassRotTh = static_cast<int>(species[species_tmp].getUSdTab(Bm, MAI,
-                                                                                       thinningForest(plot.x, plot.y)));
+                                                                                       commonThinningForest(plot.x,
+                                                                                                            plot.y)));
                     }
 
-                    biomassRot = max(rotMaxBm, static_cast<int>(rotationForest(plot.x, plot.y)));
+                    biomassRot = max(rotMaxBm, static_cast<int>(commonRotationForest(plot.x, plot.y)));
                     DIMA decision{1990, plot.NPP, plot.sPopDens, plot.sAgrSuit, plot.priceIndex, coef.priceIndexE,
                                   plot.R, coef.priceC, coef.plantingCostsR, coef.priceLandMinR, coef.priceLandMaxR,
                                   coef.maxRotInter, coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd,
                                   coef.baseline, plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR,
                                   coef.fCUptake, plot.GDP, coef.harvLoos,
-                                  OForestShGrid(plot.x, plot.y) -
+                                  commonOForestShGrid(plot.x, plot.y) -
                                   plot.strictProtected,  // forestShare0 - forest available for wood supply initially
                                   woodPriceScenarios.at(s_bauScenario).at(plot.country), static_cast<double>(rotMAI),
                                   MAI * plot.fTimber.data.at(2000) * (1 - coef.harvLoos)};  // harvMAI
@@ -1185,46 +1212,46 @@ namespace g4m::StartData {
                     double thinning = -1;
                     int rotation = 1;
 
-                    if (thinningForest(plot.x, plot.y) > 0) {
-                        thinningForest(plot.x, plot.y) = thinning;
-                        thinningForest30(plot.x, plot.y) = thinning;
-                        rotationType(plot.x, plot.y) = 10;
+                    if (commonThinningForest(plot.x, plot.y) > 0) {
+                        commonThinningForest(plot.x, plot.y) = thinning;
+                        commonThinningForest30(plot.x, plot.y) = thinning;
+                        commonRotationType(plot.x, plot.y) = 10;
 
-                        cohort_all[plot.asID].setStockingDegree(thinning);
-                        newCohort_all[plot.asID].setStockingDegree(thinning);
-                        cohort30_all[plot.asID].setStockingDegree(thinning);
+                        commonCohort_all[plot.asID].setStockingDegree(thinning);
+                        commonNewCohort_all[plot.asID].setStockingDegree(thinning);
+                        commonCohort30_all[plot.asID].setStockingDegree(thinning);
 
                         // defIncome = 0 => decision.agrVal() + defIncome = decision.agrVal()
                         rotation = max(biomassRot, rotMAI) + 1;
 
                         if (MAI > MAI_CountryUprotect[plot.country - 1]) {
                             if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal()) {
-                                managedForest(plot.x, plot.y) = 0;
-                                rotationType(plot.x, plot.y) = 1;
+                                commonManagedForest(plot.x, plot.y) = 0;
+                                commonRotationType(plot.x, plot.y) = 1;
                             } else {
-                                managedForest(plot.x, plot.y) = -1;
-                                rotationType(plot.x, plot.y) = 10;
+                                commonManagedForest(plot.x, plot.y) = -1;
+                                commonRotationType(plot.x, plot.y) = 10;
                             }
                         } else {
                             if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal()) {
-                                managedForest(plot.x, plot.y) = -1;
-                                rotationType(plot.x, plot.y) = 10;
+                                commonManagedForest(plot.x, plot.y) = -1;
+                                commonRotationType(plot.x, plot.y) = 10;
                             } else {
-                                managedForest(plot.x, plot.y) = -2;
-                                rotationType(plot.x, plot.y) = 10;
+                                commonManagedForest(plot.x, plot.y) = -2;
+                                commonRotationType(plot.x, plot.y) = 10;
                             }
                         }
 
-                        rotationForest(plot.x, plot.y) = rotation;
-                        cohort_all[plot.asID].setU(rotation);
-                        newCohort_all[plot.asID].setU(rotation);
-                        cohort30_all[plot.asID].setU(rotation);
+                        commonRotationForest(plot.x, plot.y) = rotation;
+                        commonCohort_all[plot.asID].setU(rotation);
+                        commonNewCohort_all[plot.asID].setU(rotation);
+                        commonCohort30_all[plot.asID].setU(rotation);
                     }
                 }
 
-            for (const auto &plot: plots)
+            for (const auto &plot: commonPlots)
                 if (plot.protect.data.at(2000) == 0 && thinningForestInit(plot.x, plot.y) > 0) {
-                    double MAI = maiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
+                    double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
                     size_t species_tmp = plot.speciesType - 1;
 
                     int rotMAI = 0;
@@ -1233,7 +1260,7 @@ namespace g4m::StartData {
                     int biomassRotTh2 = 0;  // MG: rotation time fitted to get certain biomass under certain MAI (with thinning = 2)
 
                     double stockingDegree = thinningForestInit(plot.x, plot.y);
-                    double Bm = cohort_all[plot.asID].getBm();
+                    double Bm = commonCohort_all[plot.asID].getBm();
                     int rotation = 0;
 
                     if (plot.CAboveHa > 0 && MAI > 0) {
@@ -1249,17 +1276,17 @@ namespace g4m::StartData {
 
                     if (woodPriceScenarios.at(s_bauScenario).at(plot.country)(coef.bYear) >
                         woodPotHarvest[plot.country - 1]) {
-                        if (managedForest(plot.x, plot.y) == 0) {
+                        if (commonManagedForest(plot.x, plot.y) == 0) {
                             rotation = rotMAI + 1;
-                            managedForest(plot.x, plot.y) = 3;
-                            rotationType(plot.x, plot.y) = 1;
-                        } else if (managedForest(plot.x, plot.y) == -1) {
+                            commonManagedForest(plot.x, plot.y) = 3;
+                            commonRotationType(plot.x, plot.y) = 1;
+                        } else if (commonManagedForest(plot.x, plot.y) == -1) {
                             rotation = min(rotMAI + 1, rotMaxBmTh);
-                            managedForest(plot.x, plot.y) = 2;
-                            rotationType(plot.x, plot.y) = 2;
-                        } else if (managedForest(plot.x, plot.y) == -2) {
-                            managedForest(plot.x, plot.y) = 1;
-                            rotationType(plot.x, plot.y) = 3;
+                            commonManagedForest(plot.x, plot.y) = 2;
+                            commonRotationType(plot.x, plot.y) = 2;
+                        } else if (commonManagedForest(plot.x, plot.y) == -2) {
+                            commonManagedForest(plot.x, plot.y) = 1;
+                            commonRotationType(plot.x, plot.y) = 3;
                             rotation = clamp(biomassRotTh2 + 1, rotMAI, rotMaxBmTh);
                         }
 
@@ -1268,18 +1295,18 @@ namespace g4m::StartData {
                         double forestArea0 = plot.landArea * 100 * (plot.forest + plot.oldGrowthForest_thirty);
                         woodPotHarvest[plot.country - 1] += harvMAI * forestArea0;
 
-                        rotationForest(plot.x, plot.y) = rotation;
-                        cohort_all[plot.asID].setU(rotation);
+                        commonRotationForest(plot.x, plot.y) = rotation;
+                        commonCohort_all[plot.asID].setU(rotation);
 
-                        thinningForest(plot.x, plot.y) = stockingDegree;
-                        cohort_all[plot.asID].setStockingDegree(stockingDegree);
+                        commonThinningForest(plot.x, plot.y) = stockingDegree;
+                        commonCohort_all[plot.asID].setStockingDegree(stockingDegree);
 
-                        newCohort_all[plot.asID].setU(rotation);
-                        newCohort_all[plot.asID].setStockingDegree(stockingDegree);
+                        commonNewCohort_all[plot.asID].setU(rotation);
+                        commonNewCohort_all[plot.asID].setStockingDegree(stockingDegree);
 
-                        cohort30_all[plot.asID].setU(rotation);
-                        thinningForest30(plot.x, plot.y) = stockingDegree;
-                        cohort30_all[plot.asID].setStockingDegree(stockingDegree);
+                        commonCohort30_all[plot.asID].setU(rotation);
+                        commonThinningForest30(plot.x, plot.y) = stockingDegree;
+                        commonCohort30_all[plot.asID].setStockingDegree(stockingDegree);
                     }
                 }
         }
@@ -1291,8 +1318,8 @@ namespace g4m::StartData {
             settings.readSettings("settings_Europe_dw_v02.ini");
         });
 
-        setIdCountryGLOBIOM();
-        setCountryGLOBIOMId();
+        idCountryGLOBIOM = setIdCountryGLOBIOM();
+        countryGLOBIOMId = setCountryGLOBIOMId();
         settings_future.get();
 
         future<void> coef_future = async([&] {
@@ -1302,17 +1329,17 @@ namespace g4m::StartData {
 
         future<void> NUTS2_future = async([&] {
             Log::Init("NUTS2");
-            readNUTS2();
+            nuts2id = readNUTS2();
         });
 
         future<void> plots_future = async([&] {
             Log::Init("plots");
-            regionsToConsider();
-            countriesToConsider();
-            readPlots();
-            plots = filterPlots();
-            initPlotsSimuID();
-            initPlotsXY_SimuID();
+            regions = regionsToConsider();
+            countriesList = countriesToConsider();
+            rawPlots = readPlots();
+            commonPlots = filterPlots(rawPlots);
+            plotsSimuID = initPlotsSimuID(rawPlots);
+            plotsXY_SimuID = initPlotsXY_SimuID(rawPlots);
         });
 
         coef_future.get();
@@ -1326,7 +1353,7 @@ namespace g4m::StartData {
 
         future<void> CO2_price_future = async([&] {
             Log::Init("CO2_price");
-            readCO2price();
+            CO2PriceScenarios = readCO2price();
         });
 
         plots_future.get();
@@ -1334,9 +1361,9 @@ namespace g4m::StartData {
 
         future<void> MAI_future = async([&] {
             Log::Init("MAI");
-            correctMAI();
-            calculateAverageMAI();
-            readMAIClimate();
+            correctMAI(commonPlots);
+            MAI_CountryUprotect = calculateAverageMAI(commonPlots);
+            maiClimateShiftersScenarios = readMAIClimate();
             scaleMAIClimate2020();
         });
 
@@ -1364,20 +1391,20 @@ namespace g4m::StartData {
             readDisturbancesExtreme();
         });
 
-        yearsToConsider(1990, 2070);
-        countryRegionsToConsider();
-        countriesFmcpolToConsider();
-        setCountriesWoodProdStat();
-        setCountriesfmEmission_unfccc();
+        years = yearsToConsider(1990, 2070);
+        countryRegList = countryRegionsToConsider();
+        countriesFmcpol = countriesFmcpolToConsider();
+        countriesWoodProdStat = setCountriesWoodProdStat();
+        countriesFmEmission_unfccc = setCountriesFmEmission_unfccc();
         calcAvgFM_sink_stat();
-        defineSpecies();
+        species = defineSpecies();
         setupFMP();
-        setCountryData();
-        setCountrySpecies();
+        setCountryData(countriesList);
+        stumpHarvCountrySpecies = setCountrySpecies();
         nuts2grid.fillFromNUTS(nuts2id);
-        correctNUTS2Data();
-        initCountriesFFIpols();
-        setAsIds();
+        correctNUTS2Data(commonPlots);
+        countriesFFIpols = initCountriesFFIpols(commonPlots);
+        setAsIds(commonPlots);
 
         CO2_price_future.get();
         globiom_land_country_future.get();

@@ -25,9 +25,7 @@ using namespace g4m::structs;
 using namespace g4m::misc::concrete;
 using namespace g4m::increment;
 using namespace g4m::diagnostics;
-
 using namespace g4m::application::abstract;
-
 using namespace g4m::StartData;
 
 namespace g4m::application::concrete {
@@ -107,7 +105,7 @@ namespace g4m::application::concrete {
         bool MAIClimateShift = c_scenario[2].contains("RCP");
 
 
-        vector<DataStruct> appPlots = plots;
+        vector<DataStruct> appPlots = commonPlots;
 
         datamapType appLandPrice;
         datamapType appWoodPrice;
@@ -120,9 +118,13 @@ namespace g4m::application::concrete {
         // wood from outside forests in Belgium to cover the inconsistency between FAOSTAT removals and Forest Europe increment and felling
         Ipol<double> woodSupplement;
 
-        simuIdType appDisturbWind = disturbWind;
-        simuIdType appDisturbFire = disturbFire;
-        simuIdType appDisturbBiotic = disturbBiotic;
+        simuIdType appDisturbWind = commonDisturbWind;
+        simuIdType appDisturbFire = commonDisturbFire;
+        simuIdType appDisturbBiotic = commonDisturbBiotic;
+
+        simuIdType appDisturbWindExtreme = commonDisturbWindExtreme;
+        simuIdType appDisturbFireExtreme = commonDisturbFireExtreme;
+        simuIdType appDisturbBioticExtreme = commonDisturbBioticExtreme;
 
         simuIdType appMaiClimateShifters;
 
@@ -132,28 +134,30 @@ namespace g4m::application::concrete {
         // Initializing forest cover array by gridcells
         DataGrid<double> thinningForestNew{resLatitude};
         DataGrid<double> rotationForestNew{resLatitude};
+        DataGrid<double> maxNPVGrid{resLatitude};
+        DataGrid<double> salvageLogging{resLatitude}; // salvage logging wood
 
-        DataGrid<double> appHarvestGrid = harvestGrid;
-        DataGrid<double> appMaiForest = maiForest;
-        DataGrid<double> appRotationForest = rotationForest;
-        DataGrid<double> appThinningForest = thinningForest;
-        DataGrid<double> appThinningForest10 = thinningForest10;
-        DataGrid<double> appThinningForest30 = thinningForest30;
-        DataGrid<double> appOForestShGrid = OForestShGrid;
+        DataGrid<double> appHarvestGrid = commonHarvestGrid;
+        DataGrid<double> appMaiForest = commonMaiForest;
+        DataGrid<double> appRotationForest = commonRotationForest;
+        DataGrid<double> appThinningForest = commonThinningForest;
+        DataGrid<double> appThinningForest10 = commonThinningForest10;
+        DataGrid<double> appThinningForest30 = commonThinningForest30;
+        DataGrid<double> appOForestShGrid = commonOForestShGrid;
 
-        DataGrid<int8_t> appDecisionGrid = decisionGrid;
-        DataGrid<int8_t> appManagedForest = managedForest;
-        DataGrid<int8_t> appManageChForest = manageChForest;
-        DataGrid<int8_t> appRotationType = rotationType;
-        DataGrid<int8_t> appUnmanaged = unmanaged;
+        DataGrid<int8_t> appDecisionGrid = commonDecisionGrid;
+        DataGrid<int8_t> appManagedForest = commonManagedForest;
+        DataGrid<int8_t> appManageChForest = commonManageChForest;
+        DataGrid<int8_t> appRotationType = commonRotationType;
+        DataGrid<int8_t> appUnmanaged = commonUnmanaged;
 
-        vector<AgeStruct> appCohort_all = cohort_all;
-        vector<AgeStruct> appNewCohort_all = newCohort_all;
-        vector<AgeStruct> appCohort10_all = cohort10_all;
-        vector<AgeStruct> appCohort30_all = cohort30_all;
-        vector<AgeStruct> appCohort_primary_all = cohort_primary_all;
+        vector<AgeStruct> appCohort_all = commonCohort_all;
+        vector<AgeStruct> appNewCohort_all = commonNewCohort_all;
+        vector<AgeStruct> appCohort10_all = commonCohort10_all;
+        vector<AgeStruct> appCohort30_all = commonCohort30_all;
+        vector<AgeStruct> appCohort_primary_all = commonCohort_primary_all;
 
-        vector<Dat> appDat_all = dat_all;
+        vector<Dat> appDat_all = commonDat_all;
 
         bool appForest10_policy = forest10_policy;
         bool appForest30_policy = forest30_policy;
@@ -451,7 +455,7 @@ namespace g4m::application::concrete {
                                 cohortVec[plot.asID].setStockingDegree(-1);
 
                                 forestConcerned == 10 ?
-                                        thinningForest10(plot.x, plot.y) = -1 : thinningForest30(plot.x, plot.y) = -1;
+                                        appThinningForest10(plot.x, plot.y) = -1 : appThinningForest30(plot.x, plot.y) = -1;
                             }
 
                             if (multifunction) {
@@ -484,13 +488,13 @@ namespace g4m::application::concrete {
                 double damagedBiotic = 0;
 
                 if (disturbanceTrend) {
-                    damagedWind = disturbWind[plot.simuID](year) * reciprocalFTimber;
-                    damagedFire = disturbFire[plot.simuID](year) * reciprocalFTimber;
-                    damagedBiotic = disturbBiotic[plot.simuID](year) * reciprocalFTimber;
+                    damagedWind = appDisturbWind[plot.simuID](year) * reciprocalFTimber;
+                    damagedFire = appDisturbFire[plot.simuID](year) * reciprocalFTimber;
+                    damagedBiotic = appDisturbBiotic[plot.simuID](year) * reciprocalFTimber;
                 } else if (disturbanceExtreme && year == disturbanceExtremeYear) {
-                    damagedWind = disturbWindExtreme[plot.simuID](year) * reciprocalFTimber;
-                    damagedFire = disturbFireExtreme[plot.simuID](year) * reciprocalFTimber;
-                    damagedBiotic = disturbBioticExtreme[plot.simuID](year) * reciprocalFTimber;
+                    damagedWind = appDisturbWindExtreme[plot.simuID](year) * reciprocalFTimber;
+                    damagedFire = appDisturbFireExtreme[plot.simuID](year) * reciprocalFTimber;
+                    damagedBiotic = appDisturbBioticExtreme[plot.simuID](year) * reciprocalFTimber;
                 }
 
                 double cleanedWoodUseCurrent10 = 0;
@@ -503,20 +507,171 @@ namespace g4m::application::concrete {
                 double cleanedWoodUseCurrent30 = 1;
                 if (forest30_policy) {
                     cleanedWoodUseCurrent30 = multifunction30 ? cleanWoodUseShare30 * cleanedWoodUse[plot.country] : 0;
-                } else if (thinningForest30(plot.x, plot.y) < 0) {
+                } else if (appThinningForest30(plot.x, plot.y) < 0) {
                     cleanedWoodUseCurrent30 =
-                            cleanedWoodUse[plot.country] + dat_all[plot.asID].harvestEfficiencyMultifunction;
+                            cleanedWoodUse[plot.country] + appDat_all[plot.asID].harvestEfficiencyMultifunction;
                 }
+
+                double harvestO = 0;
+                double harvestO30 = 0;
+                double harvestO10 = 0;
+                double harvestNew = 0;
+                double harvestP = 0;
+
+                double bmH = 0;
+                double bmH10 = 0;
+                double bmH30 = 0;
+                double bmHP = 0;
+                double bmH_new = 0;
+
+                double damagedFireU = 0;
+                double damagedFire10 = 0;
+                double damagedFire30 = 0;
+                double damagedFireNew = 0;
+                double damagedFireP = 0;
+
+                double harvAreaO = 0;
+                double harvAreaO10 = 0;
+                double harvAreaO30 = 0;
+                double harvAreaNew = 0;
+                double harvAreaP = 0;
 
                 double harvestableFire = 0;
                 double harvestableWind = 0;
                 double harvestableBiotic = 0;
+
+                const double burntReduction = 0.85;  // reduction of biomass due to burning / expert assumption
 
                 if (plot.protect.data.at(2000) == 0) {
                     harvestableFire = 0.25;  // after consulting CBM database, email by Viorel Blujdea 26.07.2023 // Uncertain
                     harvestableWind = 0.7;
                     harvestableBiotic = 0.95;
                 }
+
+                double shareU = appDat_all[plot.asID].OForestShareU;
+                double share10 = appDat_all[plot.asID].OForestShare10;
+                double share30 = appDat_all[plot.asID].OForestShare30;
+                double shareP = plot.strictProtected;
+                double shareNew = appDat_all[plot.asID].aForestShare;
+
+                if (shareU > 0 && appCohort_all[plot.asID].getArea() > 0) {
+                    double reciprocalRealAreaO = 1 / appCohort_all[plot.asID].getArea();
+                    V resWind, resFire, resBiotic;
+
+                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resWind = appCohort_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0, harvestableWind);
+                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resFire = appCohort_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0, harvestableFire);
+                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resBiotic = appCohort_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
+                                                                               harvestableBiotic);
+
+                    harvestO = ((resWind.sw + resWind.rw) * resWind.area + (resFire.sw + resFire.rw) * resFire.area +
+                                (resBiotic.sw + resBiotic.rw) * resBiotic.area) * reciprocalRealAreaO;
+                    bmH = (resWind.bm * resWind.area + resFire.bm * resFire.area * burntReduction +
+                           resBiotic.bm * resBiotic.area) * reciprocalRealAreaO;
+                    damagedFireU = resFire.bm * resFire.area * reciprocalRealAreaO;
+                    harvAreaO = resWind.area + resFire.area + resBiotic.area;
+                }
+
+                if (share30 > 0 && appCohort30_all[plot.asID].getArea() > 0) {
+                    double reciprocalRealAreaO30 = 1 / appCohort30_all[plot.asID].getArea();
+                    V resWind30, resFire30, resBiotic30;
+
+                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resWind30 = appCohort30_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0,
+                                                                                 harvestableWind);
+                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resFire30 = appCohort30_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0,
+                                                                                 harvestableFire);
+                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resBiotic30 = appCohort30_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
+                                                                                   harvestableBiotic);
+
+                    harvestO30 = ((resWind30.sw + resWind30.rw) * resWind30.area +
+                                  (resWind30.sw + resFire30.rw) * resFire30.area +
+                                  (resBiotic30.sw + resBiotic30.rw) * resBiotic30.area) * reciprocalRealAreaO30;
+                    bmH30 = (resWind30.bm * resWind30.area + resFire30.bm * resFire30.area * burntReduction +
+                             resBiotic30.bm * resBiotic30.area) * reciprocalRealAreaO30;
+                    damagedFire30 = resFire30.bm * resFire30.area * reciprocalRealAreaO30;
+                    harvAreaO30 = resWind30.area + resFire30.area + resBiotic30.area;
+                }
+
+                if (share10 > 0 && appCohort10_all[plot.asID].getArea() > 0) {
+                    double reciprocalRealAreaO10 = 1 / appCohort10_all[plot.asID].getArea();
+                    V resWind10, resFire10, resBiotic10;
+
+                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resWind10 = appCohort10_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0,
+                                                                                 harvestableWind);
+                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resFire10 = appCohort10_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0,
+                                                                                 harvestableFire);
+                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resBiotic10 = appCohort10_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
+                                                                                   harvestableBiotic);
+
+                    harvestO10 = ((resWind10.sw + resWind10.rw) * resWind10.area +
+                                  (resFire10.sw + resFire10.rw) * resFire10.area +
+                                  (resBiotic10.sw + resBiotic10.rw) * resBiotic10.area) * reciprocalRealAreaO10;
+                    bmH10 = (resWind10.bm * resWind10.area + resFire10.bm * resFire10.area * burntReduction +
+                             resBiotic10.bm * resBiotic10.area) * reciprocalRealAreaO10;
+                    damagedFire10 = resFire10.bm * resFire10.area * reciprocalRealAreaO10;
+                    harvAreaO10 = resWind10.area + resFire10.area + resBiotic10.area;
+                }
+
+                // ---- we don't account for the deadwood accumulation at the moment (to be improved) ---
+                if (shareNew > 0 && appNewCohort_all[plot.asID].getArea() > 0) {
+                    double reciprocalRealAreaNew = 1 / appNewCohort_all[plot.asID].getArea();
+                    V resWindNew, resFireNew, resBioticNew;
+
+                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resWindNew = appNewCohort_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0,
+                                                                                   harvestableWind);
+                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resFireNew = appNewCohort_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0,
+                                                                                   harvestableFire);
+                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resBioticNew = appNewCohort_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
+                                                                                     harvestableBiotic);
+
+                    harvestNew = ((resWindNew.sw + resWindNew.rw) * resWindNew.area +
+                                  (resFireNew.sw + resFireNew.rw) * resFireNew.area +
+                                  (resBioticNew.sw + resBioticNew.rw) * resBioticNew.area) * reciprocalRealAreaNew;
+                    bmH_new = (resWindNew.bm * resWindNew.area + resFireNew.bm * resFireNew.area * burntReduction +
+                               resBioticNew.bm * resBioticNew.area) * reciprocalRealAreaNew;
+                    damagedFireNew = resFireNew.bm * resFireNew.area * reciprocalRealAreaNew;
+                    harvAreaNew = resWindNew.area + resFireNew.area + resBioticNew.area;
+                }
+
+                // ---- we don't clean salvage in the primary forest and don't account for the deadwood accumulation at the moment (to be improved) ---
+                if (shareP > 0 && appCohort_primary_all[plot.asID].getArea() > 0) {
+                    double reciprocalRealAreaP = 1 / appCohort_primary_all[plot.asID].getArea();
+                    V resWindP, resFireP, resBioticP;
+
+                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resWindP = appCohort_primary_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0, 0);
+                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resFireP = appCohort_primary_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0, 0);
+                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                        resBioticP = appCohort_primary_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15, 0);
+
+                    harvestP =
+                            ((resWindP.sw + resWindP.rw) * resWindP.area + (resFireP.sw + resFireP.rw) * resFireP.area +
+                             (resBioticP.sw + resBioticP.rw) * resBioticP.area) * reciprocalRealAreaP;
+                    bmHP = (resWindP.bm * resWindP.area + resFireP.bm * resFireP.area * burntReduction +
+                            resBioticP.bm * resBioticP.area) * reciprocalRealAreaP;
+                    damagedFireP = resFireP.bm * resFireP.area * reciprocalRealAreaP;
+                    harvAreaP = resWindP.area + resFireP.area + resBioticP.area;
+                }
+
+                salvageLogging(plot.x, plot.y) =
+                        (harvestO * (shareU - appDat_all[plot.asID].deforestShare) + shareNew * harvestNew +
+                         harvestO30 * cleanedWoodUseCurrent30 * share30 +
+                         harvestO10 * cleanedWoodUseCurrent10 * share10) * plot.fTimber.data.at(2000) *
+                        appDat_all[plot.asID].landAreaHa;
+
+
             }
         }
     };

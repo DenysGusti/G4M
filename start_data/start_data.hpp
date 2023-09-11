@@ -90,7 +90,7 @@ namespace g4m::StartData {
     CountryData countriesProfit;  // profit due to selling  harvested wood
     // Historic data on total wood production in EU countries (including Croatia) [th.m3/year, over bark); 1990-2010
     CountryData countriesWoodProdStat;
-    CountryData countriesfmEmission_unfccc;
+    CountryData countriesFmEmission_unfccc;
 
     // countries and species where the stumps can be harvested as compiled by Fulvio 06.06
     vector<CountrySpecies> stumpHarvCountrySpecies;
@@ -102,7 +102,7 @@ namespace g4m::StartData {
     vector<IncrementTab> species;
 
     vector<DataStruct> rawPlots;  // raw structure with data plots[<elNum>].<variable>[year]
-    vector<DataStruct> plots;  // structure with data plots[<elNum>].<variable>[year]
+    vector<DataStruct> commonPlots;  // structure with data plots[<elNum>].<variable>[year]
 
     // for quick plots search
     unordered_set <uint32_t> plotsSimuID;
@@ -161,43 +161,40 @@ namespace g4m::StartData {
 
     heterSimuIdScenariosType maiClimateShiftersScenarios;  // MAI climate shifters
 
-    simuIdType disturbWind;     // wood damage due to windfalls, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType disturbFire;     // wood damage due to biotic agents (mostly bark beetle), m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType disturbBiotic;   // wood damage due to fire, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType commonDisturbWind;     // wood damage due to windfalls, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType commonDisturbFire;     // wood damage due to biotic agents (mostly bark beetle), m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType commonDisturbBiotic;   // wood damage due to fire, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
 
-    simuIdType disturbWindExtreme;      // wood damage due to windfalls, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType disturbBioticExtreme;    // wood damage due to biotic agents (mostly bark beetle), m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType disturbFireExtreme;      // wood damage due to fire, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType commonDisturbWindExtreme;      // wood damage due to windfalls, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType commonDisturbBioticExtreme;    // wood damage due to biotic agents (mostly bark beetle), m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
+    simuIdType commonDisturbFireExtreme;      // wood damage due to fire, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
 
     const size_t resLatitude = lround(180 / gridStep);
 
     // Initializing forest cover array by gridcells
-    DataGrid<double> harvestGrid{resLatitude};
-    DataGrid<double> maiForest{resLatitude};
-    DataGrid<double> rotationForest{resLatitude};
-    DataGrid<double> thinningForest{resLatitude};
-    DataGrid<double> thinningForest10{resLatitude};
-    DataGrid<double> thinningForest30{resLatitude};
-    DataGrid<double> OForestShGrid{resLatitude};
+    DataGrid<double> commonHarvestGrid{resLatitude};
+    DataGrid<double> commonMaiForest{resLatitude};
+    DataGrid<double> commonRotationForest{resLatitude};
+    DataGrid<double> commonThinningForest{resLatitude};
+    DataGrid<double> commonThinningForest10{resLatitude};
+    DataGrid<double> commonThinningForest30{resLatitude};
+    DataGrid<double> commonOForestShGrid{resLatitude};
 
-    DataGrid <int8_t> decisionGrid{resLatitude};
-    DataGrid <int8_t> managedForest{resLatitude};
-    DataGrid <int8_t> manageChForest{resLatitude};
-    DataGrid <int8_t> rotationType{resLatitude};
-    DataGrid <int8_t> unmanaged{resLatitude};
+    DataGrid <int8_t> commonDecisionGrid{resLatitude};
+    DataGrid <int8_t> commonManagedForest{resLatitude};
+    DataGrid <int8_t> commonManageChForest{resLatitude};
+    DataGrid <int8_t> commonRotationType{resLatitude};
+    DataGrid <int8_t> commonUnmanaged{resLatitude};
 
-    DataGrid<double> MaxNPVGrid{resLatitude};
-    DataGrid<double> salvageLogging{resLatitude}; // salvage logging wood
+    vector<AgeStruct> commonCohort_all;
+    vector<AgeStruct> commonNewCohort_all;
+    vector<AgeStruct> commonCohort10_all;
+    vector<AgeStruct> commonCohort30_all;
+    vector<AgeStruct> commonCohort_primary_all;
+
+    vector<Dat> commonDat_all;
 
     unordered_map<uint8_t, FFIpolsCountry> countriesFFIpols;
-
-    vector<AgeStruct> cohort_all;
-    vector<AgeStruct> newCohort_all;
-    vector<AgeStruct> cohort10_all;
-    vector<AgeStruct> cohort30_all;
-    vector<AgeStruct> cohort_primary_all;
-
-    vector<Dat> dat_all;
     // data related to harvesting the residues (residues amount, associated costs and soil loss emissions)
     unordered_map<uint8_t, vector<HarvestResidues> > harvestResiduesCountry;  // a vector of harvest residues data for all single countries
 }

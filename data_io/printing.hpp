@@ -14,7 +14,7 @@ using namespace g4m::StartData;
 namespace g4m::DataIO::printing {
     void printPlots() noexcept {
         TRACE("Plots:");
-        for (size_t i = 0; const auto &plot: plots)
+        for (size_t i = 0; const auto &plot: commonPlots)
             TRACE("plots[{}]:\n{}", i++, plot.str());
     }
 
@@ -70,12 +70,12 @@ namespace g4m::DataIO::printing {
         printSimuIdScenarios(globiomAfforMaxScenarios, "globiomAfforMaxScenarios");
         printSimuIdScenarios(maiClimateShiftersScenarios, "maiClimateShiftersScenarios");
 
-        printSimuId(disturbWind, "disturbWind");
-        printSimuId(disturbFire, "disturbFire");
-        printSimuId(disturbBiotic, "disturbBiotic");
-        printSimuId(disturbWindExtreme, "disturbWindExtreme");
-        printSimuId(disturbFireExtreme, "disturbFireExtreme");
-        printSimuId(disturbBioticExtreme, "disturbBioticExtreme");
+        printSimuId(commonDisturbWind, "commonDisturbWind");
+        printSimuId(commonDisturbFire, "commonDisturbFire");
+        printSimuId(commonDisturbBiotic, "commonDisturbBiotic");
+        printSimuId(commonDisturbWindExtreme, "commonDisturbWindExtreme");
+        printSimuId(commonDisturbFireExtreme, "commonDisturbFireExtreme");
+        printSimuId(commonDisturbBioticExtreme, "commonDisturbBioticExtreme");
     }
 }
 

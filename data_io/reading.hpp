@@ -11,7 +11,7 @@ using namespace g4m::StartData;
 
 namespace g4m::DataIO::reading {
 
-    ifstream checkFile(const string_view fileName) {
+    [[nodiscard]] ifstream checkFile(const string_view fileName) {
 
         auto filePath = fs::path{settings.inputPath} / fileName;
         ifstream fp{filePath};
@@ -33,7 +33,7 @@ namespace g4m::DataIO::reading {
         return fp;
     }
 
-    void readPlots() {
+    [[nodiscard]] vector<DataStruct> readPlots() {
         INFO("> Reading the rest of input data...");
         ifstream fp = checkFile(fileName_dat);
         string line;
@@ -52,7 +52,8 @@ namespace g4m::DataIO::reading {
         for (const auto &header_column: header_columns)
             header.push_back(get_HeaderName_YearFromHeaderColumn(header_column));
 
-        rawPlots.reserve(3'000);
+        vector<DataStruct> plots;
+        plots.reserve(3'000);
         uint32_t line_num = 1;
         for (vector<double> line_cells; !fp.eof(); ++line_num) {
             getline(fp, line);
@@ -71,9 +72,10 @@ namespace g4m::DataIO::reading {
             }
         }
         INFO("Successfully read {} lines.", line_num);
+        return plots;
     }
 
-    datamapType readHistoric(const string_view file_path, const string_view message,
+    [[nodiscard]] datamapType readHistoric(const string_view file_path, const string_view message,
                              const uint16_t firstYear, const uint16_t lastYear) {
         INFO("> Reading the Historic {} 2000-2020...", message);
         ifstream fp = checkFile(file_path);
@@ -129,7 +131,7 @@ namespace g4m::DataIO::reading {
         residuesDemandScenarios[s_bauScenario] = readHistoric(fileName_rd0, "Residues Demand", 2000, 2020);
     }
 
-    heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message,
+    [[nodiscard]] heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message,
                                                    const uint16_t firstYear, const uint16_t lastYear) {
         INFO("> Reading the Globiom Scenarios {}...", message);
         ifstream fp = checkFile(file_path);
@@ -435,7 +437,7 @@ namespace g4m::DataIO::reading {
         INFO("Successfully read {} lines.", line_num);
     }
 
-    void readCO2price() {
+    [[nodiscard]] heterDatamapScenariosType readCO2price() {
         INFO("> Reading the CO2 prices...");
         ifstream fp = checkFile(fileName_co2p);
         string line;
@@ -446,7 +448,9 @@ namespace g4m::DataIO::reading {
                             rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
                             ranges::to<vector<uint16_t> >();
         size_t idx_ge_refYear = distance(year_columns.begin(), ranges::lower_bound(year_columns, refYear));
-        CO2PriceScenarios.reserve(3'400);
+
+        heterDatamapScenariosType scenariosDatamaps;
+        scenariosDatamaps.reserve(3'400);
 
         vector<double> d_row;
         string scenario_name;
@@ -467,21 +471,23 @@ namespace g4m::DataIO::reading {
                         s_row[3] + '_' + s_row[4] + '_' + s_row[5] | rv::transform(::toupper) | ranges::to<string>();
 
                 if (countryGLOBIOMId.contains(s_row[0])) {
-                    CO2PriceScenarios[scenario_name][countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
-                    CO2PriceScenarios[scenario_name][countryGLOBIOMId[s_row[0]]].data[refYear] = d_row[idx_ge_refYear];
+                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
+                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]].data[refYear] = d_row[idx_ge_refYear];
                 } else
                     ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
             }
         }
         INFO("Successfully read {} lines.", line_num);
+        return scenariosDatamaps;
     }
 
-    void readNUTS2() {
+    [[nodiscard]] map <pair<uint32_t, uint32_t>, string> readNUTS2() {
         INFO("> Reading the NUTS2...");
         ifstream fp = checkFile(fileName_nuts2);
         string line;
         getline(fp, line);
 
+        map <pair<uint32_t, uint32_t>, string> nuts2_id;
         uint32_t line_num = 1;
         for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
@@ -489,17 +495,18 @@ namespace g4m::DataIO::reading {
                 s_row = line | rv::split(',') | ranges::to<vector<string> >();
                 uint32_t x = lround((stod(s_row[0]) + 180) / gridStep - 0.5);
                 uint32_t y = lround((stod(s_row[1]) + 90) / gridStep - 0.5);
-                nuts2id[{x, y}] = s_row[2];
+                nuts2_id[{x, y}] = s_row[2];
             }
         }
 
         INFO("Successfully read {} lines.", line_num);
+        return nuts2_id;
     }
 
-    void readMAIClimate() {
+    [[nodiscard]] heterSimuIdScenariosType readMAIClimate() {
         if (fileName_maic.empty()) {
             WARN("No MAI climate data!!!!");
-            return;
+            return {};
         }
 
         INFO("> Reading the MAI climate data...");
@@ -508,7 +515,8 @@ namespace g4m::DataIO::reading {
         getline(fp, line);
 
         // ...1,ClimaScen,ANYRCP,lon,lat,Year,G4MOutput,value
-        maiClimateShiftersScenarios.reserve(96);  // 2'373'408 / 24'723 = 96
+        heterSimuIdScenariosType simuIdScenarios;
+        simuIdScenarios.reserve(96);  // 2'373'408 / 24'723 = 96
 
         string scenario_name;
         uint32_t line_num = 1;
@@ -527,7 +535,7 @@ namespace g4m::DataIO::reading {
                         if (auto g4mId = plotsXY_SimuID.find({x, y}); g4mId != plotsXY_SimuID.end()) {
                             scenario_name = s_row[2] + '_' + s_row[1] | rv::transform(::toupper) | ranges::to<string>();
                             double value = stod(s_row[7]);
-                            maiClimateShiftersScenarios[scenario_name][g4mId->second].data[year] = value;
+                            simuIdScenarios[scenario_name][g4mId->second].data[year] = value;
                         } else
                             DEBUG("Plots don't contain (x, y) = ({}, {}), line {}", x, y, line_num + 1);
                     }
@@ -535,6 +543,7 @@ namespace g4m::DataIO::reading {
         }
 
         INFO("Successfully read {} lines.", line_num);
+        return simuIdScenarios;
     }
 
     void readDisturbances() {
@@ -549,9 +558,9 @@ namespace g4m::DataIO::reading {
         getline(fp, line);
 
         // "","lon","lat","Year","Agent","value"
-        disturbWind.reserve(22'000);
-        disturbFire.reserve(22'000);
-        disturbBiotic.reserve(22'000);
+        commonDisturbWind.reserve(22'000);
+        commonDisturbFire.reserve(22'000);
+        commonDisturbBiotic.reserve(22'000);
 
         uint32_t line_num = 1;
 
@@ -570,11 +579,11 @@ namespace g4m::DataIO::reading {
                         double value = stod(s_row[5]);
 
                         if (s_row[4] == "wind")
-                            disturbWind[g4mId->second].data[year] = value;
+                            commonDisturbWind[g4mId->second].data[year] = value;
                         else if (s_row[4] == "fire")
-                            disturbFire[g4mId->second].data[year] = value;
+                            commonDisturbFire[g4mId->second].data[year] = value;
                         else if (s_row[4] == "biotic")
-                            disturbBiotic[g4mId->second].data[year] = value;
+                            commonDisturbBiotic[g4mId->second].data[year] = value;
                         else
                             DEBUG("Unknown agent type: {}, line: {}", s_row[4], line_num + 1);
                     } else
@@ -598,9 +607,9 @@ namespace g4m::DataIO::reading {
         getline(fp, line);
 
         // "","lon","lat","Year","Agent","value"
-        disturbWind.reserve(25'000);
-        disturbFire.reserve(25'000);
-        disturbBiotic.reserve(25'000);
+        commonDisturbWind.reserve(25'000);
+        commonDisturbFire.reserve(25'000);
+        commonDisturbBiotic.reserve(25'000);
 
         uint32_t line_num = 1;
 
@@ -619,11 +628,11 @@ namespace g4m::DataIO::reading {
                         double value = stod(s_row[5]);
 
                         if (s_row[4] == "wind")
-                            disturbWindExtreme[g4mId->second].data[year] = value;
+                            commonDisturbWindExtreme[g4mId->second].data[year] = value;
                         else if (s_row[4] == "fire")
-                            disturbFireExtreme[g4mId->second].data[year] = value;
+                            commonDisturbFireExtreme[g4mId->second].data[year] = value;
                         else if (s_row[4] == "biotic")
-                            disturbBioticExtreme[g4mId->second].data[year] = value;
+                            commonDisturbBioticExtreme[g4mId->second].data[year] = value;
                         else
                             DEBUG("Unknown agent type: {}, line: {}", s_row[4], line_num + 1);
                     } else
@@ -635,7 +644,7 @@ namespace g4m::DataIO::reading {
         INFO("Successfully read {} lines.", line_num);
     }
 
-    unordered_map<uint8_t, vector<double> > readAgeStructData() {
+    [[nodiscard]] unordered_map<uint8_t, vector<double> > readAgeStructData() {
         INFO("> Reading the age struct data...");
         ifstream fp = checkFile(fileName_ageStruct);
 
