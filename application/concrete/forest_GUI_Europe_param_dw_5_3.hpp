@@ -56,10 +56,10 @@ namespace g4m::application::concrete {
                 uint16_t age = year - coef.bYear;
 
                 if (year == forPolicyYearBioclima) {
-                    appForest10_policy = forest10_policyKey;
-                    appForest30_policy = forest30_policyKey;
-                    appMultifunction10 = multifunction10Key;
-                    appMultifunction30 = multifunction30Key;
+                    appForest10_policy = commonForest10_policyKey;
+                    appForest30_policy = commonForest30_policyKey;
+                    appMultifunction10 = commonMultifunction10Key;
+                    appMultifunction30 = commonMultifunction30Key;
                 }
 
                 double priceC = 0;
@@ -159,10 +159,10 @@ namespace g4m::application::concrete {
 
         vector<Dat> appDat_all = commonDat_all;
 
-        bool appForest10_policy = forest10_policy;
-        bool appForest30_policy = forest30_policy;
-        bool appMultifunction10 = multifunction10;
-        bool appMultifunction30 = multifunction30;
+        bool appForest10_policy = commonForest10_policy;
+        bool appForest30_policy = commonForest30_policy;
+        bool appMultifunction10 = commonMultifunction10;
+        bool appMultifunction30 = commonMultifunction30;
 
         array<double, numberOfCountries> harvestResiduesSoilEmissions{};    // Soil loss emissions resulting from extraction of harvest residues, MtCO2/year
         array<double, numberOfCountries> residueHarvest{};                  // Extraction of harvest residues, tC
@@ -396,9 +396,9 @@ namespace g4m::application::concrete {
             // Apply the forest 10% and forest 30% policies
             if (year > 2020) {
                 if (appForest10_policy)
-                    switch2Conserved(10, appCohort10_all, multifunction10);
+                    switch2Conserved(10, appCohort10_all, appMultifunction10);
                 if (appForest30_policy)
-                    switch2Conserved(30, appCohort30_all, multifunction30);
+                    switch2Conserved(30, appCohort30_all, appMultifunction30);
             }
 
             // Calculate salvage logging additional to historical
@@ -505,8 +505,8 @@ namespace g4m::application::concrete {
                     cleanedWoodUseCurrent10 = cleanWoodUseShare10 * cleanedWoodUse[plot.country];
 
                 double cleanedWoodUseCurrent30 = 1;
-                if (forest30_policy) {
-                    cleanedWoodUseCurrent30 = multifunction30 ? cleanWoodUseShare30 * cleanedWoodUse[plot.country] : 0;
+                if (appForest30_policy) {
+                    cleanedWoodUseCurrent30 = appMultifunction30 ? cleanWoodUseShare30 * cleanedWoodUse[plot.country] : 0;
                 } else if (appThinningForest30(plot.x, plot.y) < 0) {
                     cleanedWoodUseCurrent30 =
                             cleanedWoodUse[plot.country] + appDat_all[plot.asID].harvestEfficiencyMultifunction;

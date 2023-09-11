@@ -470,7 +470,9 @@ namespace g4m::StartData {
                             DEBUG("x = {}, y = {}, NUTS2 = {}, countryISO = {}, *opt_neighbour = {}, radius = {}",
                                   plot.x, plot.y, NUTS2, countryISO, *opt_neighbour, radius);
                             break;
-                        } else if (radius == MAX_RADIUS)
+                        }
+
+                        if (radius == MAX_RADIUS)
                             ERROR("!No x = {}, y = {}, NUTS2 = {}, countryISO = {}",
                                   plot.x, plot.y, NUTS2, countryISO);
                     }
@@ -483,7 +485,9 @@ namespace g4m::StartData {
                         DEBUG("x = {}, y = {}, countryISO = {}, *opt_neighbour = {}, radius = {}",
                               plot.x, plot.y, countryISO, *opt_neighbour, radius);
                         break;
-                    } else if (radius == MAX_RADIUS)
+                    }
+
+                    if (radius == MAX_RADIUS)
                         ERROR("!No x = {}, y = {}, countryISO = {}", plot.x, plot.y, countryISO);
                 }
         }
@@ -493,6 +497,7 @@ namespace g4m::StartData {
     [[nodiscard]] vector<IncrementTab> defineSpecies() {
         vector<IncrementTab> fun_species;
         fun_species.reserve(8);
+
         // fir [0]
         fun_species.emplace_back(
                 array{-0.4562, -0.7403, -1.0772, 1.4803, 0.6713, 300., -0.2151, -0.9929, 0.5, 0.2, -0.7642, 0.3156,
@@ -661,14 +666,14 @@ namespace g4m::StartData {
     }
 
     // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
-    void scaleMAIClimate2020() noexcept {
+    void scaleMAIClimate2020(heterSimuIdScenariosType &simuIdScenarios) noexcept {
         if (!scaleMAIClimate) {
             INFO("scaleMAIClimate is turned off");
             return;
         }
 
         INFO("Scaling MAI climate shifters to the 2020 value!");
-        for (auto &[scenario, MAI]: maiClimateShiftersScenarios)
+        for (auto &[scenario, MAI]: simuIdScenarios)
             for (auto &[simu_id, ipol]: MAI) {
                 double reciprocal_value_2020 = 1 / ipol.data[2020];
                 ipol *= reciprocal_value_2020;
@@ -703,12 +708,7 @@ namespace g4m::StartData {
         INFO("Disturbances are scaled to the {} value!", scaleYear);
     }
 
-    void initGlobiomLandGlobal() noexcept {
-        for (auto &plot: commonPlots)
-            plot.initForestArrange();
-    }
-
-    void initManagedForestGlobal() {
+    void initGlobiomLandAndManagedForestGlobal() {
         array<double, numberOfCountries> woodHarvest{};
         array<double, numberOfCountries> woodLost{};
 
@@ -721,6 +721,7 @@ namespace g4m::StartData {
         double harvRes = 0;    // MG: usable harvest residues for the set (old) forest tC/ha
 
         for (auto &plot: commonPlots) {
+            plot.initForestArrange();  // initGlobiomLandGlobal included here
             double forestShare0 = max(0., plot.forest);
             plot.forestsArrangement();
             commonOForestShGrid.country(plot.x, plot.y) = plot.country;
@@ -1364,7 +1365,7 @@ namespace g4m::StartData {
             correctMAI(commonPlots);
             MAI_CountryUprotect = calculateAverageMAI(commonPlots);
             maiClimateShiftersScenarios = readMAIClimate();
-            scaleMAIClimate2020();
+            scaleMAIClimate2020(maiClimateShiftersScenarios);
         });
 
         future<void> globiom_land_future = async([&] {
@@ -1415,8 +1416,7 @@ namespace g4m::StartData {
         MAI_future.get();
 
         // start calculations
-        initGlobiomLandGlobal();
-        initManagedForestGlobal();
+        initGlobiomLandAndManagedForestGlobal();
         initLoop();
         initZeroProdArea();
 

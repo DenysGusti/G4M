@@ -67,18 +67,18 @@ namespace g4m::Constants {
     constexpr double resUse = 0; // share of harvest residuals that can be used for bioenergy
 
     // policies before forPolicyYearBioclima
-    constexpr bool forest10_policy = false;  // Policy on protecting 10% of EU forests (BIOCLIMA)
-    constexpr bool forest30_policy = false;  // Policy on limiting the use of 30% (10% of strict protection and 20% of limited use) of EU forests (BIOCLIMA)
-    constexpr bool multifunction10 = false;  // Apply multifunctional forest management to the 10% forest
-    constexpr bool multifunction30 = false;  // Apply multifunctional forest management to the 30% forest
+    constexpr bool commonForest10_policy = false;  // Policy on protecting 10% of EU forests (BIOCLIMA)
+    constexpr bool commonForest30_policy = false;  // Policy on limiting the use of 30% (10% of strict protection and 20% of limited use) of EU forests (BIOCLIMA)
+    constexpr bool commonMultifunction10 = false;  // Apply multifunctional forest management to the 10% forest
+    constexpr bool commonMultifunction30 = false;  // Apply multifunctional forest management to the 30% forest
 
     constexpr uint16_t forPolicyYearBioclima = 2025;  // Nature restoration policies start this year / BIOCLIMA1 and EUCLIMIT6
 
     // policies after forPolicyYearBioclima
-    constexpr bool forest10_policyKey = true; // true == set-aside
-    constexpr bool forest30_policyKey = false;
-    constexpr bool multifunction10Key = false;
-    constexpr bool multifunction30Key = false;
+    constexpr bool commonForest10_policyKey = true; // true == set-aside
+    constexpr bool commonForest30_policyKey = false;
+    constexpr bool commonMultifunction10Key = false;
+    constexpr bool commonMultifunction30Key = false;
 
     constexpr double cleanWoodUseShare10 = 0;  // A share of removal of wood from multifunctional forests under the 10% policy
     constexpr double cleanWoodUseShare30 = 1;  // A share of removal of wood from multifunctional forests under the 30% policy
