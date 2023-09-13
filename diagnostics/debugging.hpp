@@ -18,8 +18,14 @@ namespace g4m::diagnostics {
         uint64_t TotalAllocated = 0;
         uint64_t TotalFreed = 0;
 
-        [[nodiscard]] uint64_t CurrentUsage() const noexcept {
+        [[nodiscard]] uint64_t currentUsage() const noexcept {
             return TotalAllocated - TotalFreed;
+        }
+
+        void printMemoryUsage() const noexcept {
+            cout << "Memory Usage: " << currentUsage() << " bytes\n"
+                 << "Total Allocated: " << TotalAllocated << " bytes\n"
+                 << "Total Freed: " << TotalFreed << " bytes\n";
         }
     };
 
@@ -28,27 +34,19 @@ namespace g4m::diagnostics {
 
 #if PR_DEBUG == 1
 
-//void *operator new(const size_t size) {
-//    g4m::diagnostics::s_AllocationMetrics.TotalAllocated += size;
-//    // LOG_DEBUG("Allocating " << size << " bytes");
-//    return malloc(size);
-//}
-//
-//void operator delete(void *memory, const size_t size) noexcept {
-//    g4m::diagnostics::s_AllocationMetrics.TotalFreed += size;
-//    // LOG_DEBUG("Freeing " << size << " bytes");
-//    free(memory);
-//}
-//
-//static void printMemoryUsage() {
-//    cout << "Memory Usage: " << g4m::diagnostics::s_AllocationMetrics.CurrentUsage() << " bytes\n"
-//         << "Total Allocated: " << g4m::diagnostics::s_AllocationMetrics.TotalAllocated << " bytes\n"
-//         << "Total Freed: " << g4m::diagnostics::s_AllocationMetrics.TotalFreed << " bytes\n";
-//}
-//
-//void operator delete(void *memory) noexcept {
-//    free(memory);
-//}
+void *operator new(const size_t size) {
+    g4m::diagnostics::s_AllocationMetrics.TotalAllocated += size;
+    return malloc(size);
+}
+
+void operator delete(void *memory, const size_t size) noexcept {
+    g4m::diagnostics::s_AllocationMetrics.TotalFreed += size;
+    free(memory);
+}
+
+void operator delete(void *memory) noexcept {
+    free(memory);
+}
 
 #endif
 

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
         Forest_GUI_Europe_param_dw_5_3 app{
                 Application::ConvertToUppercase(Application::CreateArgsFromArgcArgv(argc, argv))};
         app.Run();
-//        LOG_DEBUG("Dynamic allocation: {} bytes", s_AllocationMetrics.CurrentUsage());
+        LOG_DEBUG("Dynamic allocation: {} bytes", s_AllocationMetrics.printMemoryUsage());
 
         // multiple scenarios
 //        g4m::ThreadPool pool;
