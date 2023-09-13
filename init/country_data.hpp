@@ -42,12 +42,12 @@ namespace g4m::init {
 
         void setVal(const size_t i, const uint16_t year, const double value) noexcept {
             values[i].data[year] = value;
-            count[i].data[year] += 1;
+            count[i].data[year]++;
         }
 
         void inc(const size_t i, const uint16_t year, const double value) noexcept {
             values[i].data[year] += value;
-            count[i].data[year] += 1;
+            count[i].data[year]++;
         }
 
         [[nodiscard]] double getIp(const size_t countryIdx, const uint16_t year) const noexcept {

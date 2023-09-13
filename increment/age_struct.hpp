@@ -28,25 +28,25 @@ namespace g4m::increment {
     // ! this class doesn't own ffipols
     class AgeStruct {
     public:
-        static double cohortRes(double realAreaO, const span<const V> res) noexcept {
-            if (realAreaO <= 0 || res.size() != 2)
+        static double cohortRes(double realAreaO, const pair<V, V> &res) noexcept {
+            if (realAreaO <= 0)
                 return 0;
 
             double reciprocalRealAreaO = 1 / realAreaO;
-            double areaRatio = res.back().area * reciprocalRealAreaO;  // harvAreaO / realAreaO
+            double areaRatio = res.second.area * reciprocalRealAreaO;  // harvAreaO / realAreaO
 
             // MG: get harvestable sawn-wood for the set (old) forest tC/ha for final cut.
-            double sawnW = res.back().sw * areaRatio;
+            double sawnW = res.second.sw * areaRatio;
             // MG: get harvestable rest-wood for the set (old) forest tC/ha for final cut.
-            double restW = res.back().rw * areaRatio;
+            double restW = res.second.rw * areaRatio;
             // MG: get harvestable sawn-wood for the set (old) forest tC/ha for thinning.
-            double sawnThW = res.front().sw * reciprocalRealAreaO;
+            double sawnThW = res.first.sw * reciprocalRealAreaO;
             // MG: get harvestable rest-wood for the set (old) forest tC/ha for thinning.
-            double restThW = res.front().rw * reciprocalRealAreaO;
+            double restThW = res.first.rw * reciprocalRealAreaO;
             // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
-            double bmH = res.back().bm * areaRatio;
+            double bmH = res.second.bm * areaRatio;
             // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for thinning
-            double bmTh = res.front().bm * reciprocalRealAreaO;
+            double bmTh = res.first.bm * reciprocalRealAreaO;
             // MG: usable harvest residues for the set (old) forest tC/ha
             double harvRes = (bmH + bmTh - (sawnW + restW + sawnThW + restThW)) * resUse;
             return (sawnW + restW + sawnThW + restThW + harvRes) / modTimeStep;  // harvestW
@@ -776,18 +776,18 @@ namespace g4m::increment {
 
         // .first = thinning, .second = harvest
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] array<V, 2> aging(const double aMai) {
+        [[nodiscard]] pair<V, V> aging(const double aMai) {
             return aging(aMai, false, false);
         }
 
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
         // MG: reforestation after final cut is an option / 27.12.2018
-        [[nodiscard]] array<V, 2> aging(const bool speciesChange = false, const bool shelterWood = false) {
+        [[nodiscard]] pair<V, V> aging(const bool speciesChange = false, const bool shelterWood = false) {
             return aging(mai, speciesChange, shelterWood);
         }
 
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] array<V, 2> aging(const double aMai, const bool speciesChange, const bool shelterWood) {
+        [[nodiscard]] pair<V, V> aging(const double aMai, const bool speciesChange, const bool shelterWood) {
             V retThin, retHarvest, retDamage;
             double areaShift = 0;
             gapArea = 0;
@@ -854,7 +854,7 @@ namespace g4m::increment {
                 return 0;
             }
             size_t i = distance(ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; }),
-                                dat.rend());
+                                dat.rend()) - 1;
             return static_cast<size_t>(static_cast<double>(i) * timeStep);
         }
 
@@ -1212,7 +1212,7 @@ namespace g4m::increment {
         double netInc = 0;              // MG:  net annual increment averaged over all age classes, tC/(ha year)
         double grossInc = 0;            // MG:  gross annual increment averaged over all age classes, tC/(ha year)
         double slShare = 0;             // MG: share of biomass and increment in the first canopy layer (if selectiveLogging = TRUE)
-        size_t slAge = 0;                  // MG: age from which first canopy layer is populated (if selectiveLogging = TRUE)
+        size_t slAge = 0;               // MG: age from which first canopy layer is populated (if selectiveLogging = TRUE)
         double gapArea = 0;             // MG: area where trees were removed in the 1 canopy layer
         double gapArea0 = 0;            // MG: area where trees were removed in the 2 canopy layer
         bool selectiveLogging = false;

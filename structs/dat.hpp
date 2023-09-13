@@ -20,7 +20,7 @@ namespace g4m::structs {
 
         double OForestShareSC = 0;          // current forest share of old forest in case of species change simulation in each cell
         double OForestShareOnly = 0;        // current forest share of old forest without the new forest over 20 y.o. in each cell
-        double aForestShare = 0;            // current forest share of new forest in each cell
+        double AForestShare = 0;            // current forest share of new forest in each cell
         double prevOForShare = 0;           // forest share of all old forest one modelling step back in each cell
         double prevOForShareU = 0;          // forest share of "usual" old forest one modelling step back in each cell
         double prevOForShare10 = 0;         // forest share of 10% policy forest one modelling step back in each cell

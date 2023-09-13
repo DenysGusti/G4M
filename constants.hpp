@@ -88,6 +88,8 @@ namespace g4m::Constants {
 
     constexpr uint16_t disturbanceExtremeYear = 2035;  // When the worst historical disturbance is projected
 
+    constexpr uint16_t residueHarvYear = 1999;  // Extraction of residues start next year
+
 //    constexpr bool fmpol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
 }
 

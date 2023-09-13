@@ -24,11 +24,12 @@ namespace g4m::init {
         uint8_t polesReg = 0;
         uint8_t countryRegMix = 0;
 
+        // a tree species code
         // 1 - fir
         // 2 - spruce
         // 3 - pine
-        // 4 - pinus Halepensis
-        // 5 - birch
+        // 4 - Pinus halepensis
+        // 5 - birch / alder / Alnus incana
         // 6 - beech
         // 7 - oak
         // 8 - larch
@@ -137,7 +138,7 @@ namespace g4m::init {
                         mngmType = static_cast<int8_t>(cell);
                     else if (name == "SPECIESTYPE")
                         speciesType = static_cast<uint8_t>(cell);
-                        // floating point vars
+                        // doubleing point vars
                     else if (name == "LANDAREA")
                         landArea = cell;
                     else if (name == "FOREST")
@@ -228,7 +229,7 @@ namespace g4m::init {
                     "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\nspeciesType = {}\nmngmType = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n",
                     x, y, simuID, country, IIASA_region, polesReg, countryRegMix, speciesType, mngmType, managedFlag,
                     managed_UNFCCC);
-            string format_floating_point = format(
+            string format_doubleing_point = format(
                     "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\nCBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\nresiduesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\noldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\nGL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\n",
                     landArea, forest, forLoss, agrSuit, sAgrSuit, CAboveHa, CBelowHa, CDeadHa, CLitterHa, SOCHa,
                     managedShare, residuesUseShare, residuesUseCosts, deadWood, oldGrowthForest_ten,
@@ -240,7 +241,7 @@ namespace g4m::init {
                     GDP.str(), builtUp.str(), crop.str(), fracLongProd.str(), corruption.str(), slashBurn.str(),
                     decHerb.str(), decWood.str(), decSOC.str(), fTimber.str(), MAIE.str(), MAIN.str(), road.str(),
                     GLOBIOM_reserved.str(), afforMax.str(), harvestCosts.str());
-            return format_integral + format_floating_point + format_ipol;
+            return format_integral + format_doubleing_point + format_ipol;
         }
 
         friend ostream &operator<<(ostream &os, const DataStruct &obj) {
@@ -321,35 +322,172 @@ namespace g4m::init {
         [[nodiscard]] double BEF(const double growingStockC) const {
             double growingStock = growingStockC * fTimber.data.at(2000);
             double bef = 1;
-            if (growingStock > 0) {
-                switch (speciesType) {
-                    case 1:
-                        bef = clamp(1.069 + 1.919 * pow(growingStock, -0.524), 1.1, 3.5);
-                        break;
-                    case 2:
-                        bef = clamp(1.204 + 0.903 * exp(-0.009 * growingStock), 1.1, 4.);
-                        break;
-                    case 3:
-                    case 4:
-                        bef = clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
-                        break;
-                    case 5:
-                        bef = clamp(1.105 + 9.793 / growingStock, 1.1, 1.6);
-                        break;
-                    case 6:
-                        bef = clamp(1.197 + 0.386 * exp(-0.009 * growingStock), 1.1, 3.5);
-                        break;
-                    case 7:
-                        bef = clamp(1.202 + 0.422 * exp(-0.013 * growingStock), 1.1, 3.5);
-                        break;
-                    case 8:
-                        bef = clamp(1.023 + 2.058 * pow(growingStock, -0.508), 1.1, 3.5);
-                        break;
-                    default:
-                        ERROR("Unknown speciesType: {}", speciesType);
-                }
+
+            if (growingStock <= 0)
+                return bef;
+
+            switch (speciesType) {
+                case 1:
+                    bef = clamp(1.069 + 1.919 * pow(growingStock, -0.524), 1.1, 3.5);
+                    break;
+                case 2:
+                    bef = clamp(1.204 + 0.903 * exp(-0.009 * growingStock), 1.1, 4.);
+                    break;
+                case 3:
+                case 4:
+                    bef = clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
+                    break;
+                case 5:
+                    bef = clamp(1.105 + 9.793 / growingStock, 1.1, 1.6);
+                    break;
+                case 6:
+                    bef = clamp(1.197 + 0.386 * exp(-0.009 * growingStock), 1.1, 3.5);
+                    break;
+                case 7:
+                    bef = clamp(1.202 + 0.422 * exp(-0.013 * growingStock), 1.1, 3.5);
+                    break;
+                case 8:
+                    bef = clamp(1.023 + 2.058 * pow(growingStock, -0.508), 1.1, 3.5);
+                    break;
+                default:
+                    ERROR("Unknown speciesType: {}", speciesType);
             }
+
             return bef;
+        }
+
+        /*
+        Functions for estimation of biomass of stump+coarse roots from dbh
+        Mykola Gusti 27 July 2017
+        For each cell we estimate amount of wood in stumps of the felled trees based on the diameter and dbh of the felled trees and species specific allometric equations. Since the allometric equations provide the stump weight per tree, we estimate the number of felled trees by estimating the weight (or volume in case of fir and larch) of one tree and dividing the felled volume by the volume of one tree.
+        Fore estimating the stumps weight, the following references were used:
+        For Fir, Beech and Oak (Drexhage and Colin, 2001)
+        For Birch (Repola, 2008).
+        For Spruce (Eq.N269), Pine, and Larch (pine equation is applied) (Eq.N474) from (Zianis et al., 2005).
+
+        For estimating the stem weight the following allometric equations were applied:
+        Beech (Eq.N 282), Birch (Eq.N72), Fir (volume, Eq.N.7), Larch (volume, Eq.N.66), Oak (Eq. N. 597), Pine (Eq.N.491) and Spruce (Eq.N.310) from (Zianis et al., 2005).
+
+        References
+        Drexhage M., Colin F. (2001) Estimating root system biomass from breast-height diameters. Forestry, Vol.74, N.5, pp.491-497
+        Repola J. (2008) Biomass equations for birch in Finland. Silva Fennica 42 (4): 605-624
+        Zianis, D., Muukkonen, P., M�kip��, R. & Mencuccini, M. 2005. Biomass and stem volume equations for tree species in Europe. Silva Fennica Monographs 4. 63 p.
+
+        dbh - diameter of stem at breast height, cm
+        h - height of tree, m
+        felledTreesStem - weight of felled trees, tC
+        stump + coarse root biomass is in tC/tree
+        original functions are multiplied by (0.5 * 1.0e-3) to convert to carbon and ton
+
+        fTimber changed to fTimber.data.at(2000)
+        */
+        [[nodiscard]] double DBHHToStump(const double dbh, const double h, double felledTreesStem) const {
+            double str = 0;
+
+            if (dbh <= 0 || h <= 0 || felledTreesStem <= 0 || fTimber.data.at(2000) <= 0)
+                return str;
+
+            switch (speciesType) {
+                case 1: {
+                    // stump + coarse roots tC per tree
+                    double strOneTree = pow(dbh, 2.33) * pow(10, -1.55) * 5e-4;
+                    // volume of stem of one tree
+                    double V = pow(dbh, 1.942) * pow(h, 0.9836) * 4.52e-5;
+                    // weight of one tree stem
+                    double treeStem = fTimber.data.at(2000) > 0 ? V / fTimber.data.at(2000) : 0;
+                    // number of felled trees per cell if felledTreesStem is per cell
+                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    // stump + roots tC per felled trees
+                    str = strOneTree * treesNumber;
+                }
+                    break;
+
+                case 2: {
+                    // stump + coarse roots tC per tree
+                    double strOneTree = exp(-2.4447 + 10.5381 * dbh / (dbh + 14)) * 5e-4;
+                    // weight of one tree stem
+                    double treeStem = pow(dbh, 1.5953) * pow(h, 0.9336) * 0.0558 * 5e-4;
+                    // number of felled trees per cell if felledTreesStem is per cell
+                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    // stump + roots tC per felled trees
+                    str = strOneTree * treesNumber;
+                }
+                    break;
+
+                case 3:
+                case 4: {
+                    // stump + coarse roots tC per tree
+                    double strOneTree = exp(-3.3913 + 11.1106 * dbh / (dbh + 12)) * 5e-4;
+                    // weight of one tree stem
+                    double treeStem = exp(-2.6768 + 7.5939 * dbh / (dbh + 13) + 0.0151 * h) * pow(h, 0.8799) * 5e-4;
+                    // number of felled trees per cell if felledTreesStem is per cell
+                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    // stump + roots tC per felled trees
+                    str = strOneTree * treesNumber;
+                }
+                    break;
+
+                case 5: {
+                    double tmp_num = 2 + 1.25 * dbh;
+                    // stump
+                    double stump = exp(-3.574 + 11.304 * tmp_num / (tmp_num + 26)) * 5e-4;
+                    // roots > 1cm d
+                    double roots = exp(-3.223 + 6.497 * tmp_num / (tmp_num + 26)) * 5e-4;
+                    // stump + coarse roots tC per tree
+                    double strOneTree = stump + 0.8 * roots;
+                    // weight of one tree stem
+                    double treeStem = exp(-3.5686 + 8.2827 * dbh / (dbh + 7) + 0.0393 * h) * pow(h, 0.5772) * 5e-4;
+                    // number of felled trees per cell if felledTreesStem is per cell
+                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    // stump + roots tC per felled trees
+                    str = strOneTree * treesNumber;
+                }
+                    break;
+
+                case 6: {
+                    // stump + coarse roots tC per tree
+                    double strOneTree = pow(dbh, 2.54) * pow(10, -1.66) * 5e-4;
+                    // weight of one tree stem
+                    double treeStem = exp(-2.2052 + 7.4361 * dbh / (dbh + 14) + 0.0186 * h) * pow(h, 0.7595) * 5e-4;
+                    // number of felled trees per cell if felledTreesStem is per cell
+                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    // stump + roots tC per felled trees
+                    str = strOneTree * treesNumber;
+                }
+                    break;
+
+                case 7: {
+                    // stump + coarse roots tC per tree
+                    double strOneTree = pow(dbh, 2.19) * pow(10, -1.05) * 5e-4;
+                    // weight of one tree stem
+                    double treeStem = pow(dbh, 2.157) * pow(10, -1.088 + 0.039 * h) * 5e-4;
+                    // number of felled trees per cell if felledTreesStem is per cell
+                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    // stump + roots tC per felled trees
+                    str = strOneTree * treesNumber;
+                }
+                    break;
+
+                case 8: {
+                    // stump + roots tC per tree
+                    double strOneTree = exp(-3.3913 + 11.1106 * dbh / (dbh + 12)) * 0.5 * 1.0e-3;
+                    // volume of stem of one tree
+                    double V = -0.0011638 * h - 0.03088 +
+                               dbh * (dbh * (-4.8614e-5 - 3.8178e-6 * dbh + 4.0597e-5 * h) + 0.004676261);
+                    // weight of one tree stem
+                    double treeStem = fTimber.data.at(2000) > 0 ? V / fTimber.data.at(2000) : 0;
+                    // number of felled trees per cell if felledTreesStem is per cell
+                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    // stump + roots tC per felled trees
+                    str = strOneTree * treesNumber;
+                }
+                    break;
+
+                default:
+                    ERROR("Unknown speciesType: {}", speciesType);
+            }
+
+            return str;
         }
     };
 }

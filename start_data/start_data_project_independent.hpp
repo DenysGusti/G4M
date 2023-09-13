@@ -197,6 +197,7 @@ namespace g4m::StartData {
         fun_idCountryGLOBIOM[238] = "Yemen";
         fun_idCountryGLOBIOM[240] = "Zambia";
         fun_idCountryGLOBIOM[241] = "Zimbabwe";
+
         return fun_idCountryGLOBIOM;
     }
 
@@ -383,23 +384,28 @@ namespace g4m::StartData {
         fun_countryGLOBIOMId["Yemen"] = 238;
         fun_countryGLOBIOMId["Zambia"] = 240;
         fun_countryGLOBIOMId["Zimbabwe"] = 241;
+
         return fun_countryGLOBIOMId;
     }
 
     [[nodiscard]] CountryData setCountriesWoodProdStat() noexcept {
         CountryData fun_countriesWoodProdStat;
+
         for (size_t i = 0; i < woodProdEUStats.size(); ++i)
             for (size_t j = 0; j < woodProdEUStats[0].size(); ++j)
                 // Malta is in countryNwp[18], there are no wood production data for Malta
                 fun_countriesWoodProdStat.setVal(countryNwp[i + (i >= 18)], 1990 + j, woodProdEUStats[i][j]);
+
         return fun_countriesWoodProdStat;
     }
 
     [[nodiscard]] CountryData setCountriesFmEmission_unfccc() noexcept {
         CountryData fun_countriesFmEmission_unfccc;
+
         for (size_t i = 0; i < fmEmission_unfccc_CRF.size(); ++i)
             for (size_t j = 0; j < fmEmission_unfccc_CRF[0].size(); ++j)
                 fun_countriesFmEmission_unfccc.setVal(eu28OrderCode[i], 1990 + j, fmEmission_unfccc_CRF[i][j]);
+
         return fun_countriesFmEmission_unfccc;
     }
 
@@ -419,9 +425,11 @@ namespace g4m::StartData {
     [[nodiscard]] vector<DataStruct> filterPlots(const span<const DataStruct> plots) noexcept {
         vector<DataStruct> filteredPlots;
         filteredPlots.reserve(plots.size());
+
         for (const auto &plot: plots)
             if (regions.contains(plot.polesReg) && countriesList.contains(plot.country))
                 filteredPlots.push_back(plot);
+
         return filteredPlots;
     }
 
@@ -533,13 +541,13 @@ namespace g4m::StartData {
                                  1.5,     // sdTabMax
                                  0.25,    // sdTabStep
                                  1);      // timeframe
-        // pinus Halepensis [3]
+        // Pinus halepensis [3]
         fun_species.emplace_back(
                 array{-0.3, -0.306, -2.052, 1.673, 150., 130., 1.898, -1.141, 0.92, 0.07, -4.25, 6.168, -0.4, 0.93237,
                       -0.00468, 0., 0., 0., 0.25, -1., -2., -0.5, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2., 0.01,
                       0.5, 26.59488, 0.62839, -0.02023, 1.05953, -0.03489, 18.7252, 46.3833, -0.2643, 14.1425, -0.6368,
                       0.8948, 0.000422233, -4.9625, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
-        // birch [4]
+        // birch / alder / Alnus incana [4]
         fun_species.emplace_back(
                 array{0., -0.7422, -0.54, 0.5719, 136.958, 100., 0.2972, -0.7543, 0., 0.9, -0.953, -0.9236, -0.4, 1.052,
                       0.108, 0., 0., 0., 0.1, 1., -2.5, -0.4, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2., 0.01, 0.5,
@@ -563,6 +571,7 @@ namespace g4m::StartData {
                       1.3238, 0.4061, 0., 0., 0., 0.1, 1., -2.5, -0.3, 0.5, 1.5, 150., 0.01, 0.5, 0.5, 0.8, 0.002, 2.,
                       0.01, 0.5, 23.63487, 0.50281, -0.01557, 1.16199, -0.18673, 25.196, 9.118, -0.01376, 0.64637,
                       -0.79909, 1.0817, 0.1667, -0.9408, 1.6, 0.95}, 5, 0.25, 600, 1, 0.25, 1.5, 0.25, 1);
+
         return fun_species;
     }
 
@@ -613,7 +622,7 @@ namespace g4m::StartData {
         ffdoe = FFIpolM<double>{doe};
     }
 
-    void correctMAI(const span<DataStruct> plots) noexcept {
+    void correctMAI(const span<DataStruct> plots) {
         for (auto &plot: plots)
             // Test only some regions and some countries
             if (plot.protect.data.at(2000) == 0) {  // if there is no lerp, why not simple map then?
@@ -623,7 +632,7 @@ namespace g4m::StartData {
             }
     }
 
-    [[nodiscard]] array<double, numberOfCountries> calculateAverageMAI(const span<const DataStruct> plots) noexcept {
+    [[nodiscard]] array<double, numberOfCountries> calculateAverageMAI(const span<const DataStruct> plots) {
         INFO("calculating average MAI");
         array<double, numberOfCountries> fun_MAI_CountryUprotect{};
         array<double, numberOfCountries> forestAreaCountry{};
@@ -650,23 +659,27 @@ namespace g4m::StartData {
     }
 
     [[nodiscard]] unordered_set<uint32_t> initPlotsSimuID(const span<const DataStruct> plots) noexcept {
-        unordered_set<uint32_t> plots_Simu_ID;
-        plots_Simu_ID.reserve(plots.size());
+        unordered_set<uint32_t> fun_plotsSimuID;
+        fun_plotsSimuID.reserve(plots.size());
+
         for (const auto &plot: plots)
-            plots_Simu_ID.insert(plot.simuID);
-        return plots_Simu_ID;
+            fun_plotsSimuID.insert(plot.simuID);
+
+        return fun_plotsSimuID;
     }
 
     [[nodiscard]] map<pair<uint32_t, uint32_t>, uint32_t>
     initPlotsXY_SimuID(const span<const DataStruct> plots) noexcept {
-        map<pair<uint32_t, uint32_t>, uint32_t> plots_XY_Simu_ID;
+        map<pair<uint32_t, uint32_t>, uint32_t> fun_plotsXYSimuID;
+
         for (const auto &plot: plots)
-            plots_XY_Simu_ID[{plot.x, plot.y}] = plot.simuID;
-        return plots_XY_Simu_ID;
+            fun_plotsXYSimuID[{plot.x, plot.y}] = plot.simuID;
+
+        return fun_plotsXYSimuID;
     }
 
     // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
-    void scaleMAIClimate2020(heterSimuIdScenariosType &simuIdScenarios) noexcept {
+    void scaleMAIClimate2020(heterSimuIdScenariosType &simuIdScenarios) {
         if (!scaleMAIClimate) {
             INFO("scaleMAIClimate is turned off");
             return;
@@ -675,26 +688,26 @@ namespace g4m::StartData {
         INFO("Scaling MAI climate shifters to the 2020 value!");
         for (auto &[scenario, MAI]: simuIdScenarios)
             for (auto &[simu_id, ipol]: MAI) {
-                double reciprocal_value_2020 = 1 / ipol.data[2020];
+                double reciprocal_value_2020 = 1 / ipol.data.at(2020);
                 ipol *= reciprocal_value_2020;
             }
     }
 
-    void add2020Disturbances() noexcept {
+    void add2020Disturbances() {
         for (auto &[id, ipol]: commonDisturbWind)
-            ipol.data[2020] = ipol.data[2030] / 1.025;
+            ipol.data[2020] = ipol.data.at(2030) / 1.025;
         for (auto &[id, ipol]: commonDisturbFire)
-            ipol.data[2020] = ipol.data[2030] / 1.05;
+            ipol.data[2020] = ipol.data.at(2030) / 1.05;
         for (auto &[id, ipol]: commonDisturbBiotic)
-            ipol.data[2020] = ipol.data[2030] / 1.05;
+            ipol.data[2020] = ipol.data.at(2030) / 1.05;
     }
 
     void scaleDisturbance(simuIdType &disturbance, const uint16_t scaleYear) {
         for (auto &[id, ipol]: disturbance)
-            ipol += -ipol.data[scaleYear];
+            ipol += -ipol.data.at(scaleYear);
     }
 
-    void scaleDisturbances2020() noexcept {
+    void scaleDisturbances2020() {
         if (!scaleDisturbance2020) {
             INFO("scaleDisturbance2020 is turned off");
             return;
@@ -838,14 +851,16 @@ namespace g4m::StartData {
 
     [[nodiscard]] unordered_map<uint8_t, FFIpolsCountry>
     initCountriesFFIpols(const span<const DataStruct> plots) noexcept {
-        unordered_map<uint8_t, FFIpolsCountry> countries_FFIpols;
-        countries_FFIpols.reserve(256);
+        unordered_map<uint8_t, FFIpolsCountry> fun_countriesFFIpols;
+        fun_countriesFFIpols.reserve(256);
+
         for (const auto &plot: plots)
-            countriesFFIpols.emplace(plot.country, plot.country);
-        return countries_FFIpols;
+            fun_countriesFFIpols.emplace(plot.country, plot.country);
+
+        return fun_countriesFFIpols;
     }
 
-    void initLoop() noexcept {
+    void initLoop() {
         INFO("Start initialising cohorts");
         commonCohort_all.reserve(commonPlots.size());
         commonCohort30_all.reserve(commonPlots.size());
@@ -934,9 +949,9 @@ namespace g4m::StartData {
             if (ageStructData.contains(plot.country)) {
                 oldestAgeGroup = distance(ranges::find_if(ageStructData.at(plot.country) | rv::reverse,
                                                           [](const auto x) { return x > 0; }),
-                                          ageStructData.at(plot.country).rend());  // last positive
+                                          ageStructData.at(plot.country).rend()) - 1;  // last positive
 
-                oldestAge = ageBreaks[oldestAgeGroup];
+                oldestAge = ageBreaks.at(oldestAgeGroup);
                 if (oldestAge > 150)
                     oldestAge = rotMaxBm * 7 / 10;  // integer division
 
@@ -1167,7 +1182,7 @@ namespace g4m::StartData {
     // Converts all forest to unused, then converts back to used starting from most productive forest in each country
     // while potential harvest (MAI - harvest losses) satisfies wood demand initial year.
     // Wood and land prices by countries!
-    void initZeroProdArea() noexcept {
+    void initZeroProdArea() {
         if (!zeroProdAreaInit) {
             INFO("initZeroProdArea is turned off");
             return;
@@ -1314,7 +1329,7 @@ namespace g4m::StartData {
     }
 
     void Init() {
-        future<void> settings_future = async([&] {
+        future<void> settings_future = async(launch::async, [] {
             Log::Init("settings");
             settings.readSettings("settings_Europe_dw_v02.ini");
         });
@@ -1323,17 +1338,17 @@ namespace g4m::StartData {
         countryGLOBIOMId = setCountryGLOBIOMId();
         settings_future.get();
 
-        future<void> coef_future = async([&] {
+        future<void> coef_future = async(launch::async, [] {
             Log::Init("coef");
             coef.readCoef(settings.coeffPath);
         });
 
-        future<void> NUTS2_future = async([&] {
+        future<void> NUTS2_future = async(launch::async, [] {
             Log::Init("NUTS2");
             nuts2id = readNUTS2();
         });
 
-        future<void> plots_future = async([&] {
+        future<void> plots_future = async(launch::async, [] {
             Log::Init("plots");
             regions = regionsToConsider();
             countriesList = countriesToConsider();
@@ -1345,14 +1360,14 @@ namespace g4m::StartData {
 
         coef_future.get();
 
-        future<void> globiom_datamaps_future = async([&] {
+        future<void> globiom_datamaps_future = async(launch::async, [] {
             Log::Init("globiom_datamaps");
             readGlobiom();      // created dicts
             readDatamaps();     // adds bau scenario to dicts
             convertUnitsDatamaps();
         });
 
-        future<void> CO2_price_future = async([&] {
+        future<void> CO2_price_future = async(launch::async, [] {
             Log::Init("CO2_price");
             CO2PriceScenarios = readCO2price();
         });
@@ -1360,7 +1375,7 @@ namespace g4m::StartData {
         plots_future.get();
         NUTS2_future.get();
 
-        future<void> MAI_future = async([&] {
+        future<void> MAI_future = async(launch::async, [] {
             Log::Init("MAI");
             correctMAI(commonPlots);
             MAI_CountryUprotect = calculateAverageMAI(commonPlots);
@@ -1368,26 +1383,26 @@ namespace g4m::StartData {
             scaleMAIClimate2020(maiClimateShiftersScenarios);
         });
 
-        future<void> globiom_land_future = async([&] {
+        future<void> globiom_land_future = async(launch::async, [] {
             Log::Init("globiom_land");
             readGlobiomLandCalibrate();
             readGlobiomLand();
         });
 
-        future<void> globiom_land_country_future = async([&] {
+        future<void> globiom_land_country_future = async(launch::async, [] {
             Log::Init("globiom_land_country");
             readGlobiomLandCountryCalibrate_calcCountryLandArea();
             readGlobiomLandCountry();
         });
 
-        future<void> disturbances_future = async([&] {
+        future<void> disturbances_future = async(launch::async, [] {
             Log::Init("disturbances");
             readDisturbances();
             add2020Disturbances();
             scaleDisturbances2020();
         });
 
-        future<void> disturbances_extreme_future = async([&] {
+        future<void> disturbances_extreme_future = async(launch::async, [] {
             Log::Init("disturbances_extreme");
             readDisturbancesExtreme();
         });

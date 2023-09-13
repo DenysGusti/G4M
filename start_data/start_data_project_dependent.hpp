@@ -13,6 +13,7 @@ namespace g4m::StartData {
 
         for (uint16_t year = startYear; year <= endYear; year += yearStep)
             fun_years.insert(year);
+
         return fun_years;
     }
 
@@ -48,6 +49,7 @@ namespace g4m::StartData {
         //  fun_regions.insert(23);     // SouthAfrReg
         //  fun_regions.insert(24);     // SouthKorea
         //  fun_regions.insert(25);     // SubSaharanAfr (Sub-Saharan Africa)
+
         return fun_regions;
     }
 
@@ -107,6 +109,7 @@ namespace g4m::StartData {
         //    fun_countryRegList.insert(48);
         //    fun_countryRegList.insert(49);    // Turkey
         //    fun_countryRegList.insert(50);    // US
+
         return fun_countryRegList;
     }
 
@@ -155,6 +158,7 @@ namespace g4m::StartData {
         //    fun_countriesFmcpol.insert(219);
         //    fun_countriesFmcpol.insert(224);  // Ukraine
         //    fun_countriesFmcpol.insert(227);
+
         return fun_countriesFmcpol;
     }
 
@@ -361,6 +365,7 @@ namespace g4m::StartData {
         //    fun_countriesList.insert(239);
         //    fun_countriesList.insert(240);
         //    fun_countriesList.insert(241);
+
         return fun_countriesList;
     }
 
@@ -413,28 +418,28 @@ namespace g4m::StartData {
     }
 
     // A list of countries and species where stumps can be harvested as compiled by Fulvio
-    [[nodiscard]] vector<CountrySpecies> setCountrySpecies() noexcept {
-        vector<CountrySpecies> fun_stumpHarvCountrySpecies;
-        fun_stumpHarvCountrySpecies.reserve(18);
+    [[nodiscard]] set<pair<uint8_t, uint8_t> > setCountrySpecies() noexcept {
+        set<pair<uint8_t, uint8_t> > fun_stumpHarvCountrySpecies;
 
-        fun_stumpHarvCountrySpecies.emplace_back(58, 2);
-        fun_stumpHarvCountrySpecies.emplace_back(58, 3);
-        fun_stumpHarvCountrySpecies.emplace_back(69, 2);
-        fun_stumpHarvCountrySpecies.emplace_back(71, 2);
-        fun_stumpHarvCountrySpecies.emplace_back(74, 4);
-        fun_stumpHarvCountrySpecies.emplace_back(74, 5);
-        fun_stumpHarvCountrySpecies.emplace_back(78, 2);
-        fun_stumpHarvCountrySpecies.emplace_back(78, 3);
-        fun_stumpHarvCountrySpecies.emplace_back(99, 3);
-        fun_stumpHarvCountrySpecies.emplace_back(103, 2);
-        fun_stumpHarvCountrySpecies.emplace_back(103, 3);
-        fun_stumpHarvCountrySpecies.emplace_back(108, 5);
-        fun_stumpHarvCountrySpecies.emplace_back(130, 2);
-        fun_stumpHarvCountrySpecies.emplace_back(130, 3);
-        fun_stumpHarvCountrySpecies.emplace_back(177, 3);
-        fun_stumpHarvCountrySpecies.emplace_back(202, 3);
-        fun_stumpHarvCountrySpecies.emplace_back(204, 2);
-        fun_stumpHarvCountrySpecies.emplace_back(204, 3);
+        fun_stumpHarvCountrySpecies.emplace(58, 2);
+        fun_stumpHarvCountrySpecies.emplace(58, 3);
+        fun_stumpHarvCountrySpecies.emplace(69, 2);
+        fun_stumpHarvCountrySpecies.emplace(71, 2);
+        fun_stumpHarvCountrySpecies.emplace(74, 4);
+        fun_stumpHarvCountrySpecies.emplace(74, 5);
+        fun_stumpHarvCountrySpecies.emplace(78, 2);
+        fun_stumpHarvCountrySpecies.emplace(78, 3);
+        fun_stumpHarvCountrySpecies.emplace(99, 3);
+        fun_stumpHarvCountrySpecies.emplace(103, 2);
+        fun_stumpHarvCountrySpecies.emplace(103, 3);
+        fun_stumpHarvCountrySpecies.emplace(108, 5);
+        fun_stumpHarvCountrySpecies.emplace(130, 2);
+        fun_stumpHarvCountrySpecies.emplace(130, 3);
+        fun_stumpHarvCountrySpecies.emplace(177, 3);
+        fun_stumpHarvCountrySpecies.emplace(202, 3);
+        fun_stumpHarvCountrySpecies.emplace(204, 2);
+        fun_stumpHarvCountrySpecies.emplace(204, 3);
+
         return fun_stumpHarvCountrySpecies;
     }
 //-----------------------------------------------------------------

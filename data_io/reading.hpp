@@ -68,7 +68,7 @@ namespace g4m::DataIO::reading {
                                  return stod(string{cell.begin(), cell.end()});
                              }) | ranges::to<vector<double> >();
 
-                rawPlots.emplace_back(header, line_cells);
+                plots.emplace_back(header, line_cells);
             }
         }
         INFO("Successfully read {} lines.", line_num);
@@ -248,7 +248,6 @@ namespace g4m::DataIO::reading {
                     DEBUG("Plots don't contain simuId = {}", simuId);
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
     }
 
@@ -308,7 +307,6 @@ namespace g4m::DataIO::reading {
                     DEBUG("Plots don't contain simuId = {}", simuId);
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
     }
 
@@ -374,7 +372,6 @@ namespace g4m::DataIO::reading {
                 }
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
     }
 
@@ -433,7 +430,6 @@ namespace g4m::DataIO::reading {
                 }
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
     }
 
@@ -498,7 +494,6 @@ namespace g4m::DataIO::reading {
                 nuts2_id[{x, y}] = s_row[2];
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
         return nuts2_id;
     }
@@ -541,7 +536,6 @@ namespace g4m::DataIO::reading {
                     }
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
         return simuIdScenarios;
     }
@@ -591,7 +585,6 @@ namespace g4m::DataIO::reading {
                 }
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
     }
 
@@ -607,9 +600,9 @@ namespace g4m::DataIO::reading {
         getline(fp, line);
 
         // "","lon","lat","Year","Agent","value"
-        commonDisturbWind.reserve(25'000);
-        commonDisturbFire.reserve(25'000);
-        commonDisturbBiotic.reserve(25'000);
+        commonDisturbWindExtreme.reserve(25'000);
+        commonDisturbFireExtreme.reserve(25'000);
+        commonDisturbBioticExtreme.reserve(25'000);
 
         uint32_t line_num = 1;
 
@@ -640,7 +633,6 @@ namespace g4m::DataIO::reading {
                 }
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
     }
 
@@ -671,7 +663,6 @@ namespace g4m::DataIO::reading {
                 ageStructData[static_cast<uint8_t>(line_cells[0])] = {line_cells.begin() + 1, line_cells.end()};
             }
         }
-
         INFO("Successfully read {} lines.", line_num);
         return ageStructData;
     }

@@ -10,7 +10,6 @@
 #include <memory>
 
 #include "../init/settings.hpp"
-#include "../init/country_species.hpp"
 #include "../init/country_data.hpp"
 #include "../init/coef_struct.hpp"
 #include "../init/data_struct.hpp"
@@ -93,7 +92,7 @@ namespace g4m::StartData {
     CountryData countriesFmEmission_unfccc;
 
     // countries and species where the stumps can be harvested as compiled by Fulvio 06.06
-    vector<CountrySpecies> stumpHarvCountrySpecies;
+    set <pair<uint8_t, uint8_t>> stumpHarvCountrySpecies;  // [country, species]
 
     // pairs of G4M country ID and GLOBIOM country name
     unordered_map<uint8_t, string> idCountryGLOBIOM;
