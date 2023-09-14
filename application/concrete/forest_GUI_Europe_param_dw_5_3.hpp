@@ -406,6 +406,39 @@ namespace g4m::application::concrete {
             // Calculate salvage logging additional to historical
             if (disturbanceTrend && year > 2020 || disturbanceExtreme && year == disturbanceExtremeYear)
                 disturbanceDamageHarvest(year);
+
+            // Gradually adjust thinning
+            for (const auto &plot: appPlots) {
+                // for the most productive forest (MAI = 6) the forest cleaning time is about 20 years,
+                // and for the least productive (MAI close to 0) the cleaning time is 50 years
+                double SD_conv = (stockingDegree - 1) / 20 - (6 - appMaiForest(plot.x, plot.y)) * 0.0015;
+
+                double thinningTmp = appThinningForest(plot.x, plot.y);
+                if (thinningTmp > 1 && appManageChForest(plot.x, plot.y) > 0) {
+                    thinningTmp = max(1., thinningTmp - SD_conv * modTimeStep);
+                    appThinningForest(plot.x, plot.y) = thinningTmp;
+                    appCohort_all[plot.asID].setStockingDegreeMin(thinningTmp * sdMinCoef);
+                    appCohort_all[plot.asID].setStockingDegreeMax(thinningTmp * sdMaxCoef);
+                }
+
+                double thinningTmpNew = thinningForestNew(plot.x, plot.y);
+                if (thinningTmpNew > 1 && appManageChForest(plot.x, plot.y) > 0) {
+                    thinningTmpNew = max(1., thinningTmpNew - SD_conv * modTimeStep);
+                    thinningForestNew(plot.x, plot.y) = thinningTmpNew;
+                    appNewCohort_all[plot.asID].setStockingDegreeMin(thinningTmpNew * sdMinCoef);
+                    appNewCohort_all[plot.asID].setStockingDegreeMax(thinningTmpNew * sdMaxCoef);
+                }
+            }
+
+            // TEMPORAL SHORTCUT FOR forest10 and forest30 when there are no the forest10 and forest30 policies
+            if (!appForest30_policy)  // write separate loop for no forest10 policy
+                for (const auto &plot: appPlots) {
+                    appCohort30_all[plot.asID].setU(appRotationForest(plot.x, plot.y));
+                    double SD = appThinningForest(plot.x, plot.y);
+                    appThinningForest30(plot.x, plot.y) = SD;
+                    appCohort30_all[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
+                    appCohort30_all[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
+                }
         }
 
         // 17 August 2022
@@ -684,6 +717,67 @@ namespace g4m::application::concrete {
                 if (damagedFireU + damagedFire30 + damagedFire10 + damagedFireNew + damagedFireP <= 0)
                     adjustResiduesDisturbed(plot, year, harvestO, bmH, harvestNew, bmH_new, harvestO30, bmH30,
                                             harvAreaO, harvAreaNew, realAreaO, realAreaNew, harvAreaO30, realAreaO30);
+
+                const auto [deadWoodPoolIn, litterPoolIn] =
+                        shareU > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort_all[plot.asID],
+                                                                     harvestO, shareU, realAreaO, harvAreaO, bmH,
+                                                                     appDat_all[plot.asID].extractedResidues,
+                                                                     appDat_all[plot.asID].extractedStump)
+                                   : pair{0., 0.};
+
+                const auto [deadWoodPoolIn_new, litterPoolIn_new] =
+                        shareNew > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appNewCohort_all[plot.asID],
+                                                                       harvestNew,
+                                                                       appDat_all[plot.asID].AForestSharePrev,
+                                                                       realAreaNew, harvAreaNew, bmH_new,
+                                                                       appDat_all[plot.asID].extractedResidues,
+                                                                       appDat_all[plot.asID].extractedStump)
+                                     : pair{0., 0.};
+
+                const auto [deadWoodPoolIn10, litterPoolIn10] =
+                        share10 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort10_all[plot.asID],
+                                                                      harvestO10 * (1 - cleanedWoodUseCurrent10),
+                                                                      share10, realAreaO10, harvAreaO10, bmH10,
+                                                                      appDat_all[plot.asID].extractedResidues10,
+                                                                      appDat_all[plot.asID].extractedStump10)
+                                    : pair{0., 0.};
+
+                const auto [deadWoodPoolIn30, litterPoolIn30] =
+                        share30 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort30_all[plot.asID], harvestO30,
+                                                                      share30, realAreaO30,
+                                                                      harvAreaO30, bmH30,
+                                                                      appDat_all[plot.asID].extractedResidues30,
+                                                                      appDat_all[plot.asID].extractedStump30)
+                                    : pair{0., 0.};
+
+                const auto [deadWoodPoolInP, litterPoolInP] =
+                        shareP > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort_primary_all[plot.asID], 0, shareP,
+                                                                     realAreaP, harvAreaP, bmHP, 0, 0)
+                                   : pair{0., 0.};
+
+                appDat_all[plot.asID].burntDeadwoodU = min(damagedFireU, 0.9 * appDat_all[plot.asID].deadwood);
+                appDat_all[plot.asID].burntDeadwood30 = min(damagedFire30, 0.9 * appDat_all[plot.asID].deadwood30);
+                appDat_all[plot.asID].burntDeadwood10 = min(damagedFire10, 0.9 * appDat_all[plot.asID].deadwood10);
+                appDat_all[plot.asID].burntDeadwoodNew = min(damagedFireNew, 0.9 * appDat_all[plot.asID].deadwood_new);
+                appDat_all[plot.asID].burntDeadwoodP = min(damagedFireP, 0.9 * appDat_all[plot.asID].deadwoodP);
+
+                appDat_all[plot.asID].burntLitterU = min(damagedFireU, 0.9 * appDat_all[plot.asID].litter);
+                appDat_all[plot.asID].burntLitter30 = min(damagedFire30, 0.9 * appDat_all[plot.asID].litter30);
+                appDat_all[plot.asID].burntLitter10 = min(damagedFire10, 0.9 * appDat_all[plot.asID].litter10);
+                appDat_all[plot.asID].burntLitterNew = min(damagedFireNew, 0.9 * appDat_all[plot.asID].litter_new);
+                appDat_all[plot.asID].burntLitterP = min(damagedFireP, 0.9 * appDat_all[plot.asID].litterP);
+
+                appDat_all[plot.asID].deadwood += deadWoodPoolIn;
+                appDat_all[plot.asID].deadwood_new += deadWoodPoolIn_new;
+                appDat_all[plot.asID].deadwood10 += deadWoodPoolIn10;
+                appDat_all[plot.asID].deadwood30 += deadWoodPoolIn30;
+                appDat_all[plot.asID].deadwoodP += deadWoodPoolInP;
+
+                appDat_all[plot.asID].litter += litterPoolIn;
+                appDat_all[plot.asID].litter_new += litterPoolIn_new;
+                appDat_all[plot.asID].litter10 += litterPoolIn10;
+                appDat_all[plot.asID].litter30 += litterPoolIn30;
+                appDat_all[plot.asID].litterP += litterPoolInP;
             }
         }
 
@@ -735,7 +829,7 @@ namespace g4m::application::concrete {
                 harvRes_fcO = harvestO * (plot.BEF(bmH * realAreaO / harvAreaO) - 2) + bmH;
             em_harvRes_fcO = harvRes_fcO > 0;
 
-            if (harvAreaN > 0 && realAreaN > 0 && harvestNew > 0 && bmHNew)  // tC/ha
+            if (harvAreaN > 0 && realAreaN > 0 && harvestNew > 0 && bmHNew > 0)  // tC/ha
                 harvRes_fcN = harvestNew * (plot.BEF(bmHNew * realAreaN / harvAreaN) - 2) + bmHNew;
             em_harvRes_fcN = harvRes_fcN > 0;
 
@@ -771,7 +865,7 @@ namespace g4m::application::concrete {
                     }
                 }
 
-                if (appThinningForest30(plot.x, plot.y) > 0 && residueUse30) {
+                if (appThinningForest30(plot.x, plot.y) > 0 && residueUse30 > 0) {
                     double hDBHOld30 = appCohort30_all[plot.asID].getDBHFinalCut();
                     double hHOld30 = appCohort30_all[plot.asID].getHFinalCut();
 
@@ -803,8 +897,68 @@ namespace g4m::application::concrete {
             countriesResiduesExtract_m3.inc(plot.country, year, residueHarvestDist);
         }
 
-        void deadWoodPoolDisturbanceCalcFunc() {
+        // Deadwood input (d > 10cm) in the cell, tC/ha, in the old forest
+        // Litter input (d <= 10cm) in the cell, tC/ha, in the old forest
+        // return pair<deadWoodPoolIn, litterPoolIn>
+        [[nodiscard]] static pair<double, double>
+        deadWoodPoolDisturbanceCalcFunc(const DataStruct &plot, const AgeStruct &cohort,
+                                        const double harvestedWood, // wood harvested in the production forest, m3/ha
+                                        const double forestShare, // considered forest share in the cell
+                                        const double realAreaO, // relative forest area in the forest simulator
+                                        const double harvAreaO, // pure harvested area
+                                        const double bmH, // total harvested stem biomass at final felling in the production forest and multifunction forest
+                                        const double extractedResidues, // share of extracted logging residues
+                                        const double extractedStump) // share of extracted stump
+        {
+            // Dead wood
+            double deadWood_fc_unmng = 0;       // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests not used for intensive wood production
+            double deadWood_fc_mng = 0;         // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests used for intensive wood production
 
+            double deadWood_mort = 0;           // deadwood (stem) due to mortality in old forest that is not classified as potentially merchantable
+            double litter_mort = 0;             // litter (stem) due to mortality in old forest that is not classified as potentially merchantable
+
+            double deadWoodBranches_mort = 0;
+            double litterBranches_mort = 0;
+            double deadWoodStump_mort = 0;
+            double litterStump_mort = 0;
+
+            // tC/ha in the cell
+            double deadWoodBranches_fc = 0.3 * bmH * (plot.BEF(harvAreaO > 0 ? (bmH / harvAreaO * realAreaO) : 0) - 1);
+            double litterBranches_fc = deadWoodBranches_fc / 0.3 * 0.7;
+            double litterBranches_th = 0;
+
+            double deadWoodBranches_th = 0;
+
+            const double harvLossShare = 0.25;
+
+            double harvL = max(0., bmH - harvestedWood);
+            // deadwood from harvest losses in intensively managed old forest
+            double deadwood_hRes_mng = (1 - harvLossShare) * harvL;
+            // litter from harvest losses in intensively managed old forest
+            double litter_hRes_mng = harvLossShare * harvL;
+
+            double fcDBH = cohort.getDBHFinalCut();
+            double fcH = cohort.getHFinalCut();
+            double fcGS = bmH / harvAreaO * realAreaO;
+
+            double deadWoodStump_fc = realAreaO > 0 ? plot.DBHHToStump(fcDBH, fcH, fcGS) * harvAreaO / realAreaO : 0;
+            double deadWoodStump_th = 0;
+
+            double thDBHold = 0;
+            double thHold = 0;
+
+            // branches from harvested trees
+            double tmp_share = 1 - extractedResidues * plot.residuesUseShare;
+
+            double deadWoodPoolIn = deadWoodBranches_fc * tmp_share +
+                                    deadWoodStump_fc * (1 - extractedStump * plot.residuesUseShare) +
+                                    deadWood_fc_mng +
+                                    deadwood_hRes_mng * tmp_share;
+
+            double litterPoolIn = litterBranches_fc * tmp_share +
+                                  litter_hRes_mng * tmp_share;
+
+            return {deadWoodPoolIn, litterPoolIn};
         }
     };
 }

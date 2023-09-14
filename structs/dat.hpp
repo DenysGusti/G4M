@@ -28,8 +28,8 @@ namespace g4m::structs {
         double prevOForShareOnly = 0;       // forest share of old forest  without the new forest over 20 y.o. one modelling step back in each cell
         double prevOForShareRP = 0;
         double prevAForShareRP = 0;
-        double aForestSharePrev = 0;        // forest share of new forest one modelling step back in each cell
-        double aForestShareAcc = 0;         // new forest share accumulated from 2001 till a current year
+        double AForestSharePrev = 0;        // forest share of new forest one modelling step back in each cell
+        double AForestShareAcc = 0;         // new forest share accumulated from 2001 till a current year
         double savedCarbonPrev = 0;
         double gainedCarbonPrev = 0;
         double emissionsTotPrev = 0;
