@@ -17,7 +17,7 @@ using namespace std;
 namespace g4m::init {
 
     struct Settings {
-        string coeffPath;
+        string coefPath;
         string inputPath;
         string outputPath;
         set<string, less<> > parametersTable;
@@ -66,7 +66,7 @@ namespace g4m::init {
 
                 switch (line_num) {
                     case 0:
-                        coeffPath = line;
+                        coefPath = line;
                         break;
                     case 1:
                         inputPath = line;

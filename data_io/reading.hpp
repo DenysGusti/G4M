@@ -11,10 +11,11 @@ using namespace g4m::StartData;
 
 namespace g4m::DataIO::reading {
 
-    [[nodiscard]] ifstream checkFile(const string_view fileName) {
+    [[nodiscard]] ifstream checkFile(const string_view fileName, bool binary = false) {
 
         auto filePath = fs::path{settings.inputPath} / fileName;
-        ifstream fp{filePath};
+        ifstream fp;
+        binary ? fp.open(filePath, ios::binary) : fp.open(filePath);
 
         if (!fp.is_open()) {
             FATAL("Cannot read input file: {} !", filePath.string());
@@ -76,7 +77,7 @@ namespace g4m::DataIO::reading {
     }
 
     [[nodiscard]] datamapType readHistoric(const string_view file_path, const string_view message,
-                             const uint16_t firstYear, const uint16_t lastYear) {
+                                           const uint16_t firstYear, const uint16_t lastYear) {
         INFO("> Reading the Historic {} 2000-2020...", message);
         ifstream fp = checkFile(file_path);
         string line;
@@ -132,7 +133,7 @@ namespace g4m::DataIO::reading {
     }
 
     [[nodiscard]] heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message,
-                                                   const uint16_t firstYear, const uint16_t lastYear) {
+                                                                 const uint16_t firstYear, const uint16_t lastYear) {
         INFO("> Reading the Globiom Scenarios {}...", message);
         ifstream fp = checkFile(file_path);
         string line;
@@ -477,13 +478,13 @@ namespace g4m::DataIO::reading {
         return scenariosDatamaps;
     }
 
-    [[nodiscard]] map <pair<uint32_t, uint32_t>, string> readNUTS2() {
+    [[nodiscard]] map<pair<uint32_t, uint32_t>, string> readNUTS2() {
         INFO("> Reading the NUTS2...");
         ifstream fp = checkFile(fileName_nuts2);
         string line;
         getline(fp, line);
 
-        map <pair<uint32_t, uint32_t>, string> nuts2_id;
+        map<pair<uint32_t, uint32_t>, string> nuts2_id;
         uint32_t line_num = 1;
         for (vector<string> s_row; !fp.eof(); ++line_num) {
             getline(fp, line);
@@ -665,6 +666,23 @@ namespace g4m::DataIO::reading {
         }
         INFO("Successfully read {} lines.", line_num);
         return ageStructData;
+    }
+
+    [[nodiscard]] vector<vector<double> > readBau(const string_view file_path, const string_view message) {
+        INFO("> Reading bau data {}...", message);
+        ifstream fp = checkFile(file_path, true);
+
+        int size = 0;
+        fp.read(reinterpret_cast<char *>(&size), sizeof(int));
+        int dimensionsNum = 0;
+        fp.read(reinterpret_cast<char *>(&dimensionsNum), sizeof(int));
+
+        vector<vector<double> > bauData(size, vector<double>(dimensionsNum));
+
+        for (auto &row: bauData)
+            fp.read(reinterpret_cast<char *>(row.data()), static_cast<streamsize>(sizeof(double) * dimensionsNum));
+
+        return bauData;
     }
 }
 

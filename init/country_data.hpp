@@ -21,8 +21,6 @@ namespace g4m::init {
     // class with statistics by regions
     class CountryData {
     public:
-        const static size_t countriesNum = 247;  // 18.07.2021 Added Kosovo
-
         void reset() noexcept {
             for (auto &el: values)
                 el.data.clear();
@@ -40,9 +38,13 @@ namespace g4m::init {
             }
         }
 
-        void setVal(const size_t i, const uint16_t year, const double value) noexcept {
-            values[i].data[year] = value;
-            count[i].data[year]++;
+        [[nodiscard]] double getVal(const size_t country, const uint16_t year) const {
+            return values[country](year);
+        }
+
+        void setVal(const size_t country, const uint16_t year, const double value) noexcept {
+            values[country].data[year] = value;
+            count[country].data[year]++;
         }
 
         void inc(const size_t i, const uint16_t year, const double value) noexcept {

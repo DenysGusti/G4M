@@ -8,6 +8,7 @@
 #include <ranges>
 #include <optional>
 #include <memory>
+#include <semaphore>
 
 #include "../init/settings.hpp"
 #include "../init/country_data.hpp"
@@ -196,6 +197,10 @@ namespace g4m::StartData {
     unordered_map<uint8_t, FFIpolsCountry> countriesFFIpols;
     // data related to harvesting the residues (residues amount, associated costs and soil loss emissions)
     unordered_map<uint8_t, vector<HarvestResidues> > harvestResiduesCountry;  // a vector of harvest residues data for all single countries
+
+    unordered_map<string, binary_semaphore, string_hash, equal_to<> > signalZeroCtoMainScenarios;
+    unordered_map<string, vector<vector<double> >, string_hash, equal_to<> > biomassBauScenarios;
+    unordered_map<string, vector<vector<double> >, string_hash, equal_to<> > NPVBauScenarios;
 }
 
 #endif

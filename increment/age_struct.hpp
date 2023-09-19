@@ -609,6 +609,10 @@ namespace g4m::increment {
             setMinRot();
         }
 
+        [[nodiscard]] double getURef() const noexcept {
+            return uRef;
+        }
+
         void setStockingDegreeMin(const double sd) noexcept {
             sdMin = sd;
         }

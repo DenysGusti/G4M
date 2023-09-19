@@ -678,6 +678,13 @@ namespace g4m::StartData {
         return fun_plotsXYSimuID;
     }
 
+    void correctAndConvertCO2Prices(heterDatamapScenariosType &datamapScenarios) {
+        for (auto &[scenario, datamap]: datamapScenarios)
+            for (auto &[id, ipol]: datamap)
+                for (auto &[year, CO2Price]: ipol.data)
+                    CO2Price = CO2Price < 0.011 ? 0 : CO2Price * deflator * 44 / 12.;  // M(CO2) / M(C)
+    }
+
     // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
     void scaleMAIClimate2020(heterSimuIdScenariosType &simuIdScenarios) {
         if (!scaleMAIClimate) {
@@ -748,7 +755,7 @@ namespace g4m::StartData {
             }
 
             commonOForestShGrid(plot.x, plot.y) = forestShare0;
-            commonOForestShGrid.update1YearForward();  // populate the OforestShGridPrev with forestShare0 data
+            commonOForestShGrid.update1YearForward();  // populate the OForestShGridPrev with forestShare0 data
             double forestArea0 = plot.landArea * 100 * forestShare0; // all forest area in the cell, ha
 
             int biomassRot = 0;     // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
@@ -845,8 +852,8 @@ namespace g4m::StartData {
     }
 
     void setAsIds(const span<DataStruct> plots) noexcept {
-        for (size_t asId = 0; auto &plot: plots)
-            plot.asID = asId++;
+        for (auto &&[i, plot]: plots | rv::enumerate)
+            plot.asID = i;
     }
 
     [[nodiscard]] unordered_map<uint8_t, FFIpolsCountry>
@@ -858,6 +865,18 @@ namespace g4m::StartData {
             fun_countriesFFIpols.emplace(plot.country, plot.country);
 
         return fun_countriesFFIpols;
+    }
+
+    pair<string, vector<vector<double> > > findAndReadBau(const string_view prefix) {
+        string bauName = string{prefix} + string{suffix};
+        for (const auto &dir_entry: fs::directory_iterator{settings.inputPath})
+            if (dir_entry.path().string().contains(bauName))
+                return {dir_entry.path().stem().string().substr(bauName.size())
+                        | rv::transform(::toupper) | ranges::to<string>(),
+                        readBau(dir_entry.path().filename().string(), prefix)};
+
+        FATAL("file with bauName = {} is not found in {}", bauName, settings.inputPath);
+        throw runtime_error{"Missing bau file"};
     }
 
     void initLoop() {
@@ -1340,7 +1359,7 @@ namespace g4m::StartData {
 
         future<void> coef_future = async(launch::async, [] {
             Log::Init("coef");
-            coef.readCoef(settings.coeffPath);
+            coef.readCoef(settings.coefPath);
         });
 
         future<void> NUTS2_future = async(launch::async, [] {
@@ -1370,6 +1389,7 @@ namespace g4m::StartData {
         future<void> CO2_price_future = async(launch::async, [] {
             Log::Init("CO2_price");
             CO2PriceScenarios = readCO2price();
+            correctAndConvertCO2Prices(CO2PriceScenarios);
         });
 
         plots_future.get();
@@ -1407,6 +1427,24 @@ namespace g4m::StartData {
             readDisturbancesExtreme();
         });
 
+        future<void> biomass_bau_future = async(launch::async, [] {
+            Log::Init("biomass_bau");
+            if (fmPol && binFilesOnDisk) {
+                const auto &[scenario, bau_vec] = findAndReadBau("biomass_bau");
+                biomassBauScenarios[scenario] = bau_vec;
+            } else
+                INFO("biomass_bau reading is turned off");
+        });
+
+        future<void> NPV_bau_future = async(launch::async, [] {
+            Log::Init("NPV_bau");
+            if (fmPol && binFilesOnDisk) {
+                const auto &[scenario, bau_vec] = findAndReadBau("NPVbau");
+                NPVBauScenarios[scenario] = bau_vec;
+            } else
+                INFO("NPV_bau reading is turned off");
+        });
+
         years = yearsToConsider(1990, 2070);
         countryRegList = countryRegionsToConsider();
         countriesFmcpol = countriesFmcpolToConsider();
@@ -1429,6 +1467,8 @@ namespace g4m::StartData {
         disturbances_extreme_future.get();
         globiom_land_future.get();
         MAI_future.get();
+        biomass_bau_future.get();
+        NPV_bau_future.get();
 
         // start calculations
         initGlobiomLandAndManagedForestGlobal();

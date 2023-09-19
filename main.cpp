@@ -5,6 +5,8 @@
 #include "thread_pool.hpp"
 #include "init/data_grid.hpp"
 
+#include <print>
+
 using namespace std;
 using namespace g4m;
 using namespace g4m::diagnostics;
@@ -21,7 +23,10 @@ int main(int argc, char *argv[]) {
         Forest_GUI_Europe_param_dw_5_3 app{
                 Application::ConvertToUppercase(Application::CreateArgsFromArgcArgv(argc, argv))};
         app.Run();
-        LOG_DEBUG("Dynamic allocation: {} bytes", s_AllocationMetrics.printMemoryUsage());
+//        s_AllocationMetrics.printMemoryUsage();
+
+        for (auto &[suffix0, signal]: signalZeroCtoMainScenarios)
+            signal.acquire();
 
         // multiple scenarios
 //        g4m::ThreadPool pool;

@@ -17,7 +17,7 @@ namespace g4m::Constants {
     constexpr uint32_t modTimeStep = 1;
 
     constexpr string_view fileName_dat = "b2_euclimit6_bioclima_feu2020_nai2010_11052023.csv";  // as _30032023 but unfccc managed forest area increased for a number of countries
-    constexpr string_view suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_"; // t4 setup; New baseline; // Reduced hurdle 0.9 // 22.06.2023: defShare_correction is introduced (calc v17) // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to o
+    constexpr string_view suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_"; // t4 setup; New baseline; // Reduced hurdle 0.9 // 22.06.2023: defShare_correction is introduced (calc v17) // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
     constexpr string_view bauScenario = "primes_ref_2020_REFERENCE_REFERENCE";
 
     constexpr string_view fileName_lp0 = "output_glo4myk_LandRent_myk_01042023.csv";
@@ -53,7 +53,7 @@ namespace g4m::Constants {
     constexpr bool protectedNatLnd = true;  // Don't afforest Natura2000 natural vegetation and heathland to be protected in 2030 (only EU27); Check if GRLND_PROTECT is available in input data
     constexpr bool zeroProdAreaInit = true; // Let G4M to set up minimum necessary forest area used for satisfying wood demand
 
-    //Get optimal rotation time (getTOpt and getTOptT)
+    // Get optimal rotation time (getTOpt and getTOptT)
     constexpr int optimMAI = 0;     // Highest average increment
     constexpr int optimMaxBm = 1;   // Maximum average Biomass
     constexpr int optimMaxAge = 2;  // Highest possible age
@@ -90,7 +90,13 @@ namespace g4m::Constants {
 
     constexpr uint16_t residueHarvYear = 1999;  // Extraction of residues start next year
 
-//    constexpr bool fmpol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
+    constexpr bool fmPol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
+
+    constexpr bool binFilesOnDisk = true;  // bin files are already on disk, no need for generation in 0 C price app
+
+    constexpr double priceIndexAvgEU27 = 2.8234442; //Average price index for the EU27, to be used with plot.priceIndex
+    constexpr double scaleCostsFactorEs = 0.2; // costs adjustment for Estonia estimated such as to allow historical harvest
+    constexpr double damageRiscCostsYear = 1;  //0.01; // costs that probably can be lost due to disturbances if rotation is extended, used in forNPV: damageRiscCostsYear*(MAIrot-Rot)^2
 }
 
 #endif
