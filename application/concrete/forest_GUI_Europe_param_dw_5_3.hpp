@@ -1023,34 +1023,33 @@ namespace g4m::application::concrete {
                         plot.protect.data.at(2000) == 0)
                         if (appMaiForest(plot.x, plot.y) > 0 && appDat_all[plot.asID].OForestShare > 0) {
                             double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber(coef.bYear);
-                            // TODO biomass_bau files!!!
                             appCoefPriceC = priceC < 0 ? appCO2Price.at(plot.country)(year) : priceC;
                             appCoefPriceC *= plot.corruption.data.at(2000);
-                            auto rotMAI = static_cast<int>(species[plot.speciesType - 1].getTOptT(
-                                    appMaiForest(plot.x, plot.y), optimMAI));
-                            auto rotMaxBmTh = static_cast<int>(species[plot.speciesType - 1].getTOptT(
-                                    appMaiForest(plot.x, plot.y), optimMaxBm));
+                            double rotMAI = species[plot.speciesType - 1].getTOptT(
+                            appMaiForest(plot.x, plot.y), optimMAI);
+                            double rotMaxBmTh = species[plot.speciesType - 1].getTOptT(
+                            appMaiForest(plot.x, plot.y), optimMaxBm);
                             const auto [rotMaxNPV, maxNPV, harvestMaxNPV] =
                                     maxNPVRotation(plot, year, maiV, true, rotMAI, rotMaxBmTh);
                         }
         }
 
-        [[nodiscard]] tuple<int, double, double>
+        [[nodiscard]] tuple<double, double, double>
         maxNPVRotation(const DataStruct &plot, const uint16_t year, const double maiV, const bool used,
-                       const int MAIRot, const int BmMaxRot) {
+                       const double MAIRot, const double BmMaxRot) {
             double OForestShare = appDat_all[plot.asID].OForestShare;
 
             auto cohortTmp = appCohort_all[plot.asID];
-            cohortTmp.setU(MAIRot);  // simplified TODO tell
+            cohortTmp.setU(MAIRot);
             const auto [NPV_maiRot, harv_maiRot] = npvCalc(plot, cohortTmp, year, maiV, OForestShare, used);
 
             cohortTmp = appCohort_all[plot.asID];
             cohortTmp.setU(BmMaxRot);  // simplified
             const auto [NPV_bmMaxRot, harv_bmMaxRot] = npvCalc(plot, cohortTmp, year, maiV, OForestShare, used);
 
-            auto rotTmp1 = static_cast<int>(lerp(MAIRot, BmMaxRot, 2 - phi));  // TODO int?
-            auto rotTmp2 = static_cast<int>(lerp(MAIRot, BmMaxRot, phi - 1));
-            auto rotTmp3 = static_cast<int>(lerp(MAIRot, BmMaxRot, 0.05));
+            double rotTmp1 = lerp(MAIRot, BmMaxRot, 2 - phi);
+            double rotTmp2 = lerp(MAIRot, BmMaxRot, phi - 1);
+            double rotTmp3 = lerp(MAIRot, BmMaxRot, 0.05);
 
             cohortTmp = appCohort_all[plot.asID];
             cohortTmp.setU(rotTmp1);  // simplified
@@ -1064,7 +1063,7 @@ namespace g4m::application::concrete {
             cohortTmp.setU(rotTmp3);  // simplified
             const auto [NPV_rotTmp3, harv_rotTmp3] = npvCalc(plot, cohortTmp, year, maiV, OForestShare, used);
 
-            int RotMaxNPV = 0;
+            double RotMaxNPV = 0;
             double MaxNPV = 0;
             double harvestMaxNPV = 0;
 
@@ -1088,14 +1087,14 @@ namespace g4m::application::concrete {
                     RotMaxNPV = BmMaxRot;
                     harvestMaxNPV = harv_bmMaxRot;
                 }
-            } else
-                for (int NStep = 0, dRot = 100, rotTmpL = MAIRot, rotTmpR = BmMaxRot;
-                     dRot > 1 && NStep < 15; ++NStep, dRot = rotTmpR - rotTmpL) {
+            } else {
+                double dRot = 100, rotTmpL = MAIRot, rotTmpR = BmMaxRot;
+                for (int NStep = 0; dRot > 1 && NStep < 15; ++NStep) {
                     cohortTmp = appCohort_all[plot.asID];
                     if (NPV_rotTmp1 >= NPV_rotTmp2) {
                         rotTmpR = rotTmp2;
                         rotTmp2 = rotTmp1;
-                        rotTmp1 = static_cast<int>(lerp(rotTmpL, rotTmpR, 2 - phi));
+                        rotTmp1 = lerp(rotTmpL, rotTmpR, 2 - phi);
                         cohortTmp.setU(rotTmp1);
                         NPV_rotTmp2 = NPV_rotTmp1;
                         tie(NPV_rotTmp1, harvestMaxNPV) = npvCalc(plot, cohortTmp, year, maiV, OForestShare, used);
@@ -1104,14 +1103,16 @@ namespace g4m::application::concrete {
                     } else {
                         rotTmpL = rotTmp1;
                         rotTmp1 = rotTmp2;
-                        rotTmp2 = static_cast<int>(lerp(rotTmpL, rotTmpR, phi - 1));
+                        rotTmp2 = lerp(rotTmpL, rotTmpR, phi - 1);
                         cohortTmp.setU(rotTmp2);
                         NPV_rotTmp1 = NPV_rotTmp2;
                         tie(NPV_rotTmp2, harvestMaxNPV) = npvCalc(plot, cohortTmp, year, maiV, OForestShare, used);
                         RotMaxNPV = rotTmp2;
                         MaxNPV = NPV_rotTmp2;
                     }
+                    dRot = rotTmpR - rotTmpL;
                 }
+            }
             return {RotMaxNPV, MaxNPV, harvestMaxNPV};
         }
 
@@ -1122,7 +1123,7 @@ namespace g4m::application::concrete {
             double rotMAI = species[plot.speciesType - 1].getTOptT(maiV / plot.fTimber(year), optimMAI);
             double costsScaling = plot.priceIndex(year) / priceIndexAvgEU27;
             if (plot.country == 69)
-                costsScaling *= scaleCostsFactorEs;  // TODO tell v
+                costsScaling *= scaleCostsFactorEs;
             double damageRiscCosts = max(0., (cohortTmp.getURef() - rotMAI) * damageRiscCostsYear * costsScaling);
             double harvestTmp = 0;
             double harvestedArea = 0;
@@ -1130,18 +1131,14 @@ namespace g4m::application::concrete {
             double npvSum = 0;
             size_t n = biomassBauScenarios.at(suffix0).size();
             auto maxYear = min(static_cast<uint16_t>(refYear + n * modTimeStep), coef.eYear);
-            for (int j = 0; year + j + modTimeStep <= maxYear; ++j) {
-                auto resTmp = cohortTmp.aging();  // TODO ask cohortTmp changing??? by reference
-                double realAreaO = cohortTmp.getArea();  // TODO realAreaO > 1???
-                double bm = cohortTmp.getBm();
-                if (realAreaO > 0 && realAreaO < 1)
-                    bm /= realAreaO;
-                else if (realAreaO <= 0)
-                    bm = 0;
+            for (int j = 0; year + j + modTimeStep <= maxYear; j += modTimeStep) {
+                auto resTmp = cohortTmp.aging();
+                double realAreaO = clamp(cohortTmp.getArea(), 0., 1.);
+                double bm = realAreaO > 0 ? cohortTmp.getBm() / realAreaO : 0;
 
                 if (used) {
                     harvestTmp = AgeStruct::cohortRes(realAreaO, resTmp) * plot.fTimber(year);
-                    harvestedArea = cohortTmp.getArea(0ull);  // TODO what function?
+                    harvestedArea = cohortTmp.getArea(0ull);
                 }
 
                 double NPVOne = forNPV_fdc(plot, year + j, maiV, harvestedArea, harvestTmp, OForestShare, bm, wpMult);

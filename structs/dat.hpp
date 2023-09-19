@@ -8,7 +8,7 @@ using namespace std;
 namespace g4m::structs {
 
     struct Dat {
-        int rotation = 0;
+        double rotation = 0;
         double landAreaHa = 0;
         double potHarvest = 0;
         double forestShare = 0;
@@ -71,7 +71,7 @@ namespace g4m::structs {
         double OBiomassPrevP = 0;           // Biomass of primary forest on a previous step, tC/ha
 
         double abBiomassTotPrev = 0;
-        int rotBiomass = 0;
+        double rotBiomass = 0;
         int iReportYear = 0;
         double SD = 0;
         double usedForest = 0;
