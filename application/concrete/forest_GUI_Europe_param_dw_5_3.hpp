@@ -1707,9 +1707,8 @@ namespace g4m::application::concrete {
                                 rotationForestNew(plot.x, plot.y) = rotation;
                                 appNewCohort_all[plot.asID].setU(rotation);
 
-                                // TODO rotationForestTmpNew? previous thinningForestTmpNew
                                 // New forest age > rotation -> change FM for the new forest
-                                if (appNewCohort_all[plot.asID].getActiveAge() > rotation && rotationForestTmpNew > 0) {
+                                if (appNewCohort_all[plot.asID].getActiveAge() > rotation && thinningForestTmpNew > 0) {
                                     thinningForestNew(plot.x, plot.y) = -1;
                                     appNewCohort_all[plot.asID].setStockingDegree(-1);
                                 }
@@ -1775,8 +1774,7 @@ namespace g4m::application::concrete {
                                         appCohort_all[plot.asID].setStockingDegreeMin(thinningForestTmp * sdMinCoef);
                                         appCohort_all[plot.asID].setStockingDegreeMax(thinningForestTmp * sdMaxCoef);
 
-                                        // TODO not rotationForestTmpNew?
-                                        rotationForestNew(plot.x, plot.y) = thinningForestTmpNew;
+                                        rotationForestNew(plot.x, plot.y) = rotationForestTmpNew;
                                         thinningForestNew(plot.x, plot.y) = thinningForestTmpNew;
                                         appNewCohort_all[plot.asID].setU(rotationForestTmpNew);
                                         appNewCohort_all[plot.asID].setStockingDegreeMin(
