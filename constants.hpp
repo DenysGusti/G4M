@@ -96,7 +96,16 @@ namespace g4m::Constants {
 
     constexpr double priceIndexAvgEU27 = 2.8234442; //Average price index for the EU27, to be used with plot.priceIndex
     constexpr double scaleCostsFactorEs = 0.2; // costs adjustment for Estonia estimated such as to allow historical harvest
-    constexpr double damageRiscCostsYear = 1;  //0.01; // costs that probably can be lost due to disturbances if rotation is extended, used in forNPV: damageRiscCostsYear*(MAIrot-Rot)^2
+    constexpr double damageRiscCostsYear = 1;  //0.01; // costs that probably can be lost due to disturbances if rotation is extended, used in forNPV: damageRiscCostsYear*(MAIRot-Rot)^2
+
+    constexpr double meanRoadDensityMultifunctional = 13.4;  // Mean forest road density in multifunctional forests [Recommendations for multifunctional forest management strategies. ARANGE project Deliverable D5.2, 2015]
+    constexpr double meanRoadDensityProduction = 40;  // Average road density in production (commercial) forests in Austria Ref??
+    constexpr double meanOptimalRoadDensityMultifunctional = 20.2;//Optimal forest road density in multifunctional forests [Recommendations for multifunctional forest management strategies. ARANGE project Deliverable D5.2, 2015]
+
+    constexpr double exchangeRate = 1; // EUCLIMIT2; Euro -> USD exchange rate average for 2008 (all prices in the model are in USD)
+    constexpr double forestRoadConstructionCostsEuroM = 15 * exchangeRate * deflator; // Average costs of forest road construction Euro/m; European Forest Institute, the average cost of forest road construction in Europe was �15,000 per km in 2005 https://www.researchgate.net/publication/280528960_Forest_Land_Ownership_Change_in_Europe_COST_Action_FP1201_FACESMAP_Country_Reports_Joint_Volume
+
+    constexpr double tolerance = 0.05;  //0.05;//0.1; // tolerance of forest management adjustment to match domestic wood demand 11.05.2023
 }
 
 #endif

@@ -28,12 +28,12 @@ namespace g4m::increment {
     // ! this class doesn't own ffipols
     class AgeStruct {
     public:
-        static double cohortRes(double realAreaO, const pair<V, V> &res) noexcept {
-            if (realAreaO <= 0)
+        [[nodiscard]] static double cohortRes(double realArea, const pair<V, V> &res) noexcept {
+            if (realArea <= 0)
                 return 0;
 
-            double reciprocalRealAreaO = 1 / realAreaO;
-            double areaRatio = res.second.area * reciprocalRealAreaO;  // harvAreaO / realAreaO
+            double reciprocalRealAreaO = 1 / realArea;
+            double areaRatio = res.second.area * reciprocalRealAreaO;  // harvArea / realArea
 
             // MG: get harvestable sawn-wood for the set (old) forest tC/ha for final cut.
             double sawnW = res.second.sw * areaRatio;
@@ -177,10 +177,8 @@ namespace g4m::increment {
                         return dat0.back().bm;
                     return lerp(dat0[ageH - 1].bm, dat0[ageH].bm, age - static_cast<double>(ageH));
                 case 1:
-                    if (dat.empty()) {
-                        ERROR("dat is empty");
+                    if (dat.empty())
                         return 0;
-                    }
                     if (ageH == 0)
                         return dat.front().bm;
                     if (ageH >= dat.size())
@@ -408,10 +406,8 @@ namespace g4m::increment {
                         return dat0.back().d;
                     return lerp(dat0[ageH - 1].d, dat0[ageH].d, age - static_cast<double>(ageH));
                 case 1:
-                    if (dat.empty()) {
-                        ERROR("dat is empty");
+                    if (dat.empty())
                         return 0;
-                    }
                     if (ageH == 0)
                         return dat.front().d;
                     if (ageH >= dat.size())
@@ -441,10 +437,8 @@ namespace g4m::increment {
                         return dat0.back().h;
                     return lerp(dat0[ageH - 1].h, dat0[ageH].h, age - static_cast<double>(ageH));
                 case 1:
-                    if (dat.empty()) {
-                        ERROR("dat is empty");
+                    if (dat.empty())
                         return 0;
-                    }
                     if (ageH == 0)
                         return dat.front().h;
                     if (ageH >= dat.size())
@@ -851,15 +845,16 @@ namespace g4m::increment {
             maxNumberOfAgeClasses = static_cast<size_t>(ceil(static_cast<double>(maxAge) / timeStep));
         }
 
-        //MG: added : Find "active Age" - the oldest age class with area > 0
-        [[nodiscard]] size_t getActiveAge() const noexcept {
-            if (dat.empty()) {
-                ERROR("dat is empty");
+        //  https://en.cppreference.com/w/cpp/compiler_support/23
+        //  wait for P0330R8 in MSVC, update to C++23 and change 0ll to 0z
+        // MG: added : Find "active Age" - the oldest age class with area > 0
+        [[nodiscard]] double getActiveAge() const noexcept {
+            if (dat.empty())
                 return 0;
-            }
-            size_t i = distance(ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; }),
-                                dat.rend()) - 1;
-            return static_cast<size_t>(static_cast<double>(i) * timeStep);
+            ptrdiff_t i = distance(ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; }),
+                                dat.rend());
+            i = max(0ll, i - 1);
+            return static_cast<double>(i) * timeStep;
         }
 
         // MG: Thinned wood weighted average diameter of harvested (at thinning) trees
@@ -1171,6 +1166,13 @@ namespace g4m::increment {
             // area_disturbDamaged += ret.area;
             // reforest(ret.area, false); // replant the damaged and logged stands
             return ret;
+        }
+
+        [[nodiscard]] double cohortRes() const {
+            auto cohortTmp = *this;
+            auto res = cohortTmp.aging();
+            double realArea = cohortTmp.getArea();
+            return cohortRes(realArea, res);
         }
 
     private:

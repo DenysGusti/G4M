@@ -5,8 +5,6 @@
 #include "thread_pool.hpp"
 #include "init/data_grid.hpp"
 
-#include <print>
-
 using namespace std;
 using namespace g4m;
 using namespace g4m::diagnostics;

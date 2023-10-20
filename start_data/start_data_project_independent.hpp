@@ -1086,7 +1086,7 @@ namespace g4m::StartData {
                 cohort10.createNormalForest(biomassRot10, 1., -1.);
                 cohort10.setU(biomassRot10);
 
-                size_t oldest = cohort10.getActiveAge();
+                double oldest = cohort10.getActiveAge();
                 double stockingDegree = 1;
                 // 16.09.2021: In natural forest stocking 1 is already maximum
                 if (plot.CAboveHa > 0 && cohort10.getArea() > 0)
@@ -1098,7 +1098,7 @@ namespace g4m::StartData {
                 cohort10.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
                 commonThinningForest10(plot.x, plot.y) = -stockingDegree;
 
-                int tmp_max = static_cast<int>(ceil(static_cast<double>(oldest) / modTimeStep)) + 1;
+                int tmp_max = static_cast<int>(ceil(oldest / modTimeStep)) + 1;
                 for (int i = 0; i <= tmp_max; ++i)
                     cohort10.setBm(i, stockingDegree * cohort10.getBm(i * modTimeStep));
 
@@ -1115,7 +1115,7 @@ namespace g4m::StartData {
                 cohort_primary.createNormalForest(biomassRotP, 1, -1);
                 cohort_primary.setU(biomassRotP);
 
-                size_t oldest = cohort_primary.getActiveAge();
+                double oldest = cohort_primary.getActiveAge();
                 double stockingDegree = 1;
                 //16.09.2021: In natural forest stocking 1 is already maximum
                 if (plot.CAboveHa > 0 && cohort_primary.getArea() > 0)
@@ -1125,7 +1125,7 @@ namespace g4m::StartData {
                 cohort_primary.setStockingDegreeMin(-stockingDegree * sdMinCoef);
                 cohort_primary.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
 
-                int tmp_max = static_cast<int>(ceil(static_cast<double>(oldest) / modTimeStep)) + 1;
+                int tmp_max = static_cast<int>(ceil(oldest / modTimeStep)) + 1;
                 for (int i = 0; i <= tmp_max; ++i)
                     cohort_primary.setBm(i, stockingDegree * cohort_primary.getBm(i * modTimeStep));
 
@@ -1237,7 +1237,7 @@ namespace g4m::StartData {
                                   MAI * plot.fTimber.data.at(2000) * (1 - coef.harvLoos)};  // harvMAI
 
                     double thinning = -1;
-                    int rotation = 1;
+                    double rotation = 1;
 
                     if (commonThinningForest(plot.x, plot.y) > 0) {
                         commonThinningForest(plot.x, plot.y) = thinning;

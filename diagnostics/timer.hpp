@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <string>
+#include <print>
 
 #include "../log.hpp"
 
@@ -29,6 +30,7 @@ namespace g4m::diagnostics {
         }
 
         ~Timer() {
+//            println("{}: elapsed time: {}", message, elapsed());
             INFO("{}: elapsed time: {}", message, elapsed());
         }
     };
