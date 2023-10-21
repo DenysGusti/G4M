@@ -1424,7 +1424,7 @@ namespace g4m::application::concrete {
 
                                 appNewCohort_all[plot.asID].setU(rotation);
 
-                                if (static_cast<double>(appNewCohort_all[plot.asID].getActiveAge()) >= rotation) {
+                                if (appNewCohort_all[plot.asID].getActiveAge() >= rotation) {
                                     thinningForestNew(plot.x, plot.y) = stockingDegree;
                                     appNewCohort_all[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
                                     appNewCohort_all[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
@@ -1665,7 +1665,7 @@ namespace g4m::application::concrete {
 
             for (const auto &plot: appPlots)
                 if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0)
-                    if (appDat_all[plot.asID].OForestShareU > 0) {  // TODO no appMaiForest(plot.x, plot.y) > 0?
+                    if (appDat_all[plot.asID].OForestShareU > 0) {
                         double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber(coef.bYear);
                         double countryWoodDemand = appWoodDemand.at(plot.country)(year);
 
@@ -1713,7 +1713,6 @@ namespace g4m::application::concrete {
                                     appNewCohort_all[plot.asID].setStockingDegree(-1);
                                 }
 
-                                // TODO cohortRes could be non static!!!
                                 double harvestO = appCohort_all[plot.asID].cohortRes();
                                 double harvestN = appNewCohort_all[plot.asID].cohortRes();
 
