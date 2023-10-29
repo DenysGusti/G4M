@@ -1,0 +1,24 @@
+void applyMAIClimateShifters() noexcept {
+Alteration of mean annual increment with time in each grid cell with values read in in a dedicated file, e.g. caused by projected climate change.
+
+void modifyDisturbances() noexcept {
+Make projected forest damage sensitive to the climate change scenario
+
+void initGlobiomLandLocal() noexcept {
+Synchronize land use with the GLOBIOM model
+
+void adjustManagedForest(const uint16_t year, const double priceC) {
+Adjust forest management in each grid cell to harvest demanded amount of wood on country scale on every time step. Disturbance damage and respective salvage logging is implemented here as well.
+
+void fmCPol(const double fm_hurdle, const double priceC, const uint16_t year) {
+Adjust forest management in case of non-zero carbon price of the carbon in tree biomass.
+
+void adjustSD(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
+                      const double stockingDegree, const double priceC, const bool CPol = false) {
+Adjust forest management type depending on wood demand and state of the forests
+
+void initLoop() {
+Initialise forest objects with observed parameters in each grid cell
+
+void initZeroProdArea() {
+Estimate area of wood production forests and initialize respective forest objects in each cell.
