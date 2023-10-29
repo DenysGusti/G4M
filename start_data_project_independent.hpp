@@ -875,7 +875,6 @@ namespace g4m::StartData {
     }
 
     void initLoop() {
-    //Initialise forest objects with observed parameters in each grid cell
         INFO("Start initialising cohorts");
         commonCohort_all.reserve(commonPlots.size());
         commonCohort30_all.reserve(commonPlots.size());
@@ -1197,8 +1196,6 @@ namespace g4m::StartData {
     // while potential harvest (MAI - harvest losses) satisfies wood demand initial year.
     // Wood and land prices by countries!
     void initZeroProdArea() {
-    // Estimate area of wood production forests and initialize respective
-    // forest objects in each cell.
         if (!zeroProdAreaInit) {
             INFO("initZeroProdArea is turned off");
             return;

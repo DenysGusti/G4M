@@ -300,6 +300,9 @@ namespace g4m::application::concrete {
         }
 
         void applyMAIClimateShifters() noexcept {
+            // Alteration of mean annual increment with time in each grid cell with 
+            // values read in in a dedicated file, e.g. caused by projected climate
+            // change.
             if (!MAIClimateShift) {
                 INFO("MAIClimateShift is turned off");
                 return;
@@ -329,6 +332,7 @@ namespace g4m::application::concrete {
         }
 
         void modifyDisturbances() noexcept {
+            // Make projected forest damage sensitive to the climate change scenario
             if (!disturbanceClimateSensitive) {
                 INFO("disturbanceClimateSensitive is turned off");
                 return;
@@ -349,6 +353,8 @@ namespace g4m::application::concrete {
         }
 
         void initGlobiomLandLocal() noexcept {
+            // Synchronize land use with the GLOBIOM model
+
             // file_globiom_LC_correction is not implemented
             double sumGrLnd_protect = 0;
 
@@ -400,6 +406,9 @@ namespace g4m::application::concrete {
         }
 
         void adjustManagedForest(const uint16_t year, const double priceC) {
+            // Adjust forest management in each grid cell to harvest demanded 
+            // amount of wood on country scale on every time step.Disturbance
+            // damageand respective salvage logging is implemented here as well.
             double stockingDegree = 1.3;    // test for Belgium
             bool harvControl = true;        // Additional information to control output of the fmCPol module
             bool NPV_postControl_0 = false; // Control of old forest management NPV at 0 C price: Use only for testing!!!!
@@ -1010,6 +1019,8 @@ namespace g4m::application::concrete {
 
         // Wood and land prices by countries
         void fmCPol(const double fm_hurdle, const double priceC, const uint16_t year) {
+            // Adjust forest management in case of non - zero carbon price of the
+            // carbon in tree biomass.
             array<double, numberOfCountries> woodHarvest{};
             array<double, numberOfCountries> woodHarvestPostControl{};
             array<double, numberOfCountries> woodHarvestPostControlU{};
@@ -1364,6 +1375,8 @@ namespace g4m::application::concrete {
         // wood and land prices are by countries!
         void adjustSD(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
                       const double stockingDegree, const double priceC, const bool CPol = false) {
+            // Adjust forest management type depending on wood demand and 
+            // state of the forests
             const double adjustTolerance = 2;
 
             for (const auto &plot: appPlots)
