@@ -874,8 +874,8 @@ namespace g4m::StartData {
         throw runtime_error{"Missing bau file"};
     }
 
+    // Initialise forest objects with observed parameters in each grid cell
     void initLoop() {
-    //Initialise forest objects with observed parameters in each grid cell
         INFO("Start initialising cohorts");
         commonCohort_all.reserve(commonPlots.size());
         commonCohort30_all.reserve(commonPlots.size());
@@ -1196,9 +1196,8 @@ namespace g4m::StartData {
     // Converts all forest to unused, then converts back to used starting from most productive forest in each country
     // while potential harvest (MAI - harvest losses) satisfies wood demand initial year.
     // Wood and land prices by countries!
+    // Estimate area of wood production forests and initialize respective forest objects in each cell.
     void initZeroProdArea() {
-    // Estimate area of wood production forests and initialize respective
-    // forest objects in each cell.
         if (!zeroProdAreaInit) {
             INFO("initZeroProdArea is turned off");
             return;

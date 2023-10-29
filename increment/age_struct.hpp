@@ -2878,13 +2878,12 @@ namespace g4m::increment {
         }
 
         void postponeShelter2CutNegI(const int i) {
-            double maxMaiAge_d = 0;
+            double maxMaiAge = 0;
             double sd = midpoint(sdMin, sdMax);
             if (sd > 0)
-                maxMaiAge_d = sd == 1 ? it->getTOptT(avgMai, 0) : it->getTOptSdTab(avgMai, sd, 0);
+                maxMaiAge = sd == 1 ? it->getTOptT(avgMai, 0) : it->getTOptSdTab(avgMai, sd, 0);
             else
-                maxMaiAge_d = sd == -1 ? it->getTOpt(avgMai, 0) : it->getTOptSdNat(avgMai, abs(sd), 0);
-            int maxMaiAge = static_cast<int>(maxMaiAge_d);
+                maxMaiAge = sd == -1 ? it->getTOpt(avgMai, 0) : it->getTOptSdNat(avgMai, abs(sd), 0);
             for (auto &swt: timerSW)
                 if (swt.age > u + 0.8 * 0.4 * maxMaiAge && swt.timer == 1)
                     swt.timer = 0;
