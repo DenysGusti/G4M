@@ -25,7 +25,8 @@ using namespace g4m::misc::concrete;
 using namespace g4m::init;
 
 namespace g4m::increment {
-    // ! this class doesn't own ffipols
+    // simulator of forest growth, development, and forest management
+    // this class doesn't own ffipols!
     class AgeStruct {
     public:
         [[nodiscard]] static double cohortRes(double realArea, const pair<V, V> &res) noexcept {
