@@ -72,9 +72,9 @@ namespace g4m::Constants {
     constexpr bool commonMultifunction10 = false;  // Apply multifunctional forest management to the 10% forest
     constexpr bool commonMultifunction30 = false;  // Apply multifunctional forest management to the 30% forest
 
-    constexpr uint16_t forPolicyYearBioclima = 2025;  // Nature restoration policies start this year / BIOCLIMA1 and EUCLIMIT6
+    constexpr uint16_t forPolicyYearBioClima = 2025;  // Nature restoration policies start this year / BIOCLIMA1 and EUCLIMIT6
 
-    // policies after forPolicyYearBioclima
+    // policies after forPolicyYearBioClima
     constexpr bool commonForest10_policyKey = true; // true == set-aside
     constexpr bool commonForest30_policyKey = false;
     constexpr bool commonMultifunction10Key = false;
@@ -106,6 +106,7 @@ namespace g4m::Constants {
     constexpr double forestRoadConstructionCostsEuroM = 15 * exchangeRate * deflator; // Average costs of forest road construction Euro/m; European Forest Institute, the average cost of forest road construction in Europe was �15,000 per km in 2005 https://www.researchgate.net/publication/280528960_Forest_Land_Ownership_Change_in_Europe_COST_Action_FP1201_FACESMAP_Country_Reports_Joint_Volume
 
     constexpr double tolerance = 0.05;  //0.05;//0.1; // tolerance of forest management adjustment to match domestic wood demand 11.05.2023
+    constexpr double npvLoss = 0.25;	// 0.03 CHECK for SLOVENIA; share of NPV loss that we allow when adjusting RT 11.05.2023
 }
 
 #endif

@@ -1176,6 +1176,13 @@ namespace g4m::increment {
             return cohortRes(realArea, res);
         }
 
+        // Create and set U inline for the sake of encapsulation
+        [[nodiscard]] AgeStruct createSetU(const double aU) const {
+            auto cohortTmp = *this;
+            cohortTmp.setU(aU);
+            return cohortTmp;
+        }
+
     private:
         // pointer variables
         IncrementTab *it = nullptr;
