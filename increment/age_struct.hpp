@@ -29,6 +29,7 @@ namespace g4m::increment {
     // this class doesn't own ffipols!
     class AgeStruct {
     public:
+        // returns harvest
         [[nodiscard]] static double cohortRes(double realArea, const pair<V, V> &res) noexcept {
             if (realArea <= 0)
                 return 0;
@@ -1169,6 +1170,7 @@ namespace g4m::increment {
             return ret;
         }
 
+        // returns harvest
         [[nodiscard]] double cohortRes() const {
             auto cohortTmp = *this;
             auto res = cohortTmp.aging();
@@ -1176,7 +1178,7 @@ namespace g4m::increment {
             return cohortRes(realArea, res);
         }
 
-        // Create and set U inline for the sake of encapsulation
+        // Create copy and set U inline for the sake of encapsulation
         [[nodiscard]] AgeStruct createSetU(const double aU) const {
             auto cohortTmp = *this;
             cohortTmp.setU(aU);
