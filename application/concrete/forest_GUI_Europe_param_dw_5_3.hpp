@@ -22,6 +22,7 @@
 
 using namespace std;
 
+using namespace numbers;
 using namespace g4m::structs;
 using namespace g4m::misc::concrete;
 using namespace g4m::increment;
@@ -405,7 +406,7 @@ namespace g4m::application::concrete {
                             value -= simuIdDfor[plot.simuID];
         }
 
-        // Adjust forest management in each grid cell to harvest demanded amount of wood on country scale on every
+        // Adjust forest management in each grid cell to harvest the demanded amount of wood on a country scale every
         // time step. Disturbance damage and respective salvage logging is implemented here as well.
         void adjustManagedForest(const uint16_t year, const double priceC) {
             double stockingDegree = 1.3;    // test for Belgium
@@ -541,7 +542,7 @@ namespace g4m::application::concrete {
                             double biomassTmp = max(biomass, appDat_all[plot.asID].OBiomass0);
                             // rotation time to get current biomass (without thinning)
                             biomassRot = species[plot.speciesType - 1].getU(biomassTmp, appMaiForest(plot.x, plot.y));
-                            rotMaxBm = species[plot.speciesType - 1].getTOpt(appMaiForest(plot.x, plot.y), optimMaxBm);
+                            rotMaxBm = species[plot.speciesType - 1].getTOpt(appMaiForest(plot.x, plot.y), ORT::MaxBm);
                         }
 
                         //  TO BE CHANGED to specific cleanedWoodUse10[...] / cleanedWoodUse30[...]
@@ -1031,7 +1032,7 @@ namespace g4m::application::concrete {
             return {deadWoodPoolIn, litterPoolIn};
         }
 
-        // Adjust forest management in case of non-zero carbon price of the carbon in tree biomass.
+        // Adjust forest management in case of a non-zero carbon price of the carbon in tree biomass.
         // Wood and land prices by countries
         void fmCPol(const double fm_hurdle, const double priceC, const uint16_t year) {
             array<double, numberOfCountries> woodHarvest{};
@@ -1051,9 +1052,9 @@ namespace g4m::application::concrete {
 
                             if (appManagedForest(plot.x, plot.y) > 0) {
                                 double rotMAI = species[plot.speciesType - 1].getTOptT(
-                                        appMaiForest(plot.x, plot.y), optimMAI);
+                                        appMaiForest(plot.x, plot.y), ORT::MAI);
                                 double rotMaxBmTh = species[plot.speciesType - 1].getTOptT(
-                                        appMaiForest(plot.x, plot.y), optimMaxBm);
+                                        appMaiForest(plot.x, plot.y), ORT::MaxBm);
                                 const auto [rotMaxNPV, maxNPV, harvestMaxNPV] =
                                         maxNPVRotation(plot, year, true, rotMAI, rotMaxBmTh);
 
@@ -1071,7 +1072,7 @@ namespace g4m::application::concrete {
 
                             } else {  // if managed
                                 double rotMaxBm = species[plot.speciesType - 1].getTOpt(appMaiForest(plot.x, plot.y),
-                                                                                        optimMaxBm);
+                                                                                        ORT::MaxBm);
                                 double maxNPV = npvCalc(plot, appCohort_all[plot.asID].createSetU(rotMaxBm), year,
                                                         rotMaxBm, false).first;
                                 maxNPVGrid(plot.x, plot.y) = maxNPV;
@@ -1318,7 +1319,7 @@ namespace g4m::application::concrete {
         npvCalc(const DataStruct &plot, AgeStruct cohortTmp, const uint16_t year, const double rotation,
                 const bool used, const double wpMult = 1, const bool zeroC = false) const {
             double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber(coef.bYear);
-            double rotMAI = species[plot.speciesType - 1].getTOptT(maiV / plot.fTimber(year), optimMAI);
+            double rotMAI = species[plot.speciesType - 1].getTOptT(maiV / plot.fTimber(year), ORT::MAI);
             double costsScaling = plot.priceIndex(year) / priceIndexAvgEU27;
             if (plot.country == 69)
                 costsScaling *= scaleCostsFactorEs;
@@ -1391,7 +1392,7 @@ namespace g4m::application::concrete {
             return (priceWExt - priceHarvest) * harvestedW - plantingCosts + CBenefit;
         }
 
-        // Adjust forest management type depending on wood demand and state of the forests
+        // Adjust forest management type depending on wood demand and the state of the forests
         // wood and land prices are by countries!
         void adjustSD(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
                       const double stockingDegree, const double priceC, const bool CPol = false) {
@@ -1505,15 +1506,15 @@ namespace g4m::application::concrete {
                                             appDat_all[plot.asID].OBiomass0, appMaiForest(plot.x, plot.y),
                                             stockingDegree);     // rotation time to get current biomass (with thinning)
                                     rotMAI = species[plot.speciesType - 1].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                    optimMAI);
+                                                                                    ORT::MAI);
                                     rotMaxBmTh = species[plot.speciesType - 1].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                        optimMaxBm);
+                                                                                        ORT::MaxBm);
                                 } else if (appDat_all[plot.asID].prevPlantPhytHaBmGr > 0) {
 
                                     rotMAI = species[plot.speciesType - 1].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                    optimMAI);
+                                                                                    ORT::MAI);
                                     rotMaxBmTh = species[plot.speciesType - 1].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                        optimMaxBm);
+                                                                                        ORT::MaxBm);
                                     biomassRotTh2 = rotMaxBmTh;
                                 }
 
@@ -1677,7 +1678,7 @@ namespace g4m::application::concrete {
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDat_all[plot.asID].prevPlantPhytHaBmGr > 0)
                                     rotMaxBm = species[plot.speciesType - 1].getTOpt(appMaiForest(plot.x, plot.y),
-                                                                                     optimMaxBm);
+                                                                                     ORT::MaxBm);
 
                                 double rotation = max(rotMaxBm, appRotationForest(plot.x, plot.y));
 
@@ -1749,7 +1750,7 @@ namespace g4m::application::concrete {
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDat_all[plot.asID].prevPlantPhytHaBmGr > 0)
                                     rotMaxBm = species[plot.speciesType - 1].getTOpt(appMaiForest(plot.x, plot.y),
-                                                                                     optimMaxBm);
+                                                                                     ORT::MaxBm);
 
                                 double rotation = max(rotMaxBm, appRotationForest(plot.x, plot.y));
 
@@ -1871,7 +1872,7 @@ namespace g4m::application::concrete {
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDat_all[plot.asID].prevPlantPhytHaBmGr > 0)
                                     rotMAI = species[plot.speciesType - 1].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                    optimMAI);
+                                                                                    ORT::MAI);
 
                                 if (appRotationForest(plot.x, plot.y) != rotMAI) {
                                     double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohort_all[plot.asID], year,
@@ -1917,7 +1918,7 @@ namespace g4m::application::concrete {
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDat_all[plot.asID].prevPlantPhytHaBmGr > 0)
                                     rotMaxBmTh = species[plot.speciesType - 1].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                        optimMaxBm);
+                                                                                        ORT::MaxBm);
 
                                 if (appRotationForest(plot.x, plot.y) < rotMaxBmTh) {
                                     double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohort_all[plot.asID], year,

@@ -53,13 +53,6 @@ namespace g4m::Constants {
     constexpr bool protectedNatLnd = true;  // Don't afforest Natura2000 natural vegetation and heathland to be protected in 2030 (only EU27); Check if GRLND_PROTECT is available in input data
     constexpr bool zeroProdAreaInit = true; // Let G4M to set up minimum necessary forest area used for satisfying wood demand
 
-    // Get optimal rotation time (getTOpt and getTOptT)
-    constexpr int optimMAI = 0;     // Highest average increment
-    constexpr int optimMaxBm = 1;   // Maximum average Biomass
-    constexpr int optimMaxAge = 2;  // Highest possible age
-    constexpr int optimHarvFin = 3; // Maximum harvest at final cut
-    constexpr int optimHarvAve = 4; // Average Maximum harvest at final cut
-
     constexpr double sdMinCoef = 1; // minimum stocking degree multiplier: sdMin = SD * sdMinCoef
     constexpr double sdMaxCoef = 1; // maximum stocking degree multiplier: sdMax = SD * sdMaxCoef
 
@@ -103,10 +96,11 @@ namespace g4m::Constants {
     constexpr double meanOptimalRoadDensityMultifunctional = 20.2;//Optimal forest road density in multifunctional forests [Recommendations for multifunctional forest management strategies. ARANGE project Deliverable D5.2, 2015]
 
     constexpr double exchangeRate = 1; // EUCLIMIT2; Euro -> USD exchange rate average for 2008 (all prices in the model are in USD)
-    constexpr double forestRoadConstructionCostsEuroM = 15 * exchangeRate * deflator; // Average costs of forest road construction Euro/m; European Forest Institute, the average cost of forest road construction in Europe was �15,000 per km in 2005 https://www.researchgate.net/publication/280528960_Forest_Land_Ownership_Change_in_Europe_COST_Action_FP1201_FACESMAP_Country_Reports_Joint_Volume
+    constexpr double forestRoadConstructionCostsEuroM = 15 * exchangeRate *
+                                                        deflator; // Average costs of forest road construction Euro/m; European Forest Institute, the average cost of forest road construction in Europe was �15,000 per km in 2005 https://www.researchgate.net/publication/280528960_Forest_Land_Ownership_Change_in_Europe_COST_Action_FP1201_FACESMAP_Country_Reports_Joint_Volume
 
     constexpr double tolerance = 0.05;  //0.05;//0.1; // tolerance of forest management adjustment to match domestic wood demand 11.05.2023
-    constexpr double npvLoss = 0.25;	// 0.03 CHECK for SLOVENIA; share of NPV loss that we allow when adjusting RT 11.05.2023
+    constexpr double npvLoss = 0.25;    // 0.03 CHECK for SLOVENIA; share of NPV loss that we allow when adjusting RT 11.05.2023
 }
 
 #endif

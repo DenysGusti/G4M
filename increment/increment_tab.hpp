@@ -5,9 +5,11 @@
 #include <limits>
 #include <vector>
 #include <array>
+#include <span>
 
 #include "increment_curves.hpp"
 #include "opt_rot_times.hpp"
+#include "ort.hpp"
 
 using namespace std;
 
@@ -266,26 +268,26 @@ namespace g4m::increment {
         //2 … Highest possible age
         //3 … Maximum harvest at final cut
         //4 … Average Maximum harvest at final cut
-        [[nodiscard]] double getTOpt(const double mai, const int type) const {
+        [[nodiscard]] double getTOpt(const double mai, const ORT type) const {
             return ip(mai, optTime, type);
         }
 
-        [[nodiscard]] double getTOptT(const double mai, const int type) const {
+        [[nodiscard]] double getTOptT(const double mai, const ORT type) const {
             return ip(mai, optTimeT, type);
         }
 
-        [[nodiscard]] double getTOptSdNat(const double mai, const double sd, const int type) const {
+        [[nodiscard]] double getTOptSdNat(const double mai, const double sd, const ORT type) const {
             return ip(mai, sd, optTimeSdNat, type, true);
         }
 
-        [[nodiscard]] double getTOptSdTab(const double mai, const double sd, const int type) const {
+        [[nodiscard]] double getTOptSdTab(const double mai, const double sd, const ORT type) const {
             return ip(mai, sd, optTimeSdTab, type, false);
         }
 
         //Get rotation time out of mean bm
         [[nodiscard]] double getU(const double avgBm, const double mai) const {
             int tL = 0;
-            int tH = ceil(getTOpt(mai, 1));
+            int tH = ceil(getTOpt(mai, ORT::MaxBm));
             double bmL = 0;
             double bmH = getAvgBm(tH, mai);
             double t = 0;
@@ -312,7 +314,7 @@ namespace g4m::increment {
 
         [[nodiscard]] double getUT(const double avgBm, const double mai) const {
             int tL = 0;
-            int tH = ceil(getTOptT(mai, 1));
+            int tH = ceil(getTOptT(mai, ORT::MaxBm));
             double bmL = 0;
             double bmH = getAvgBmT(tH, mai);
             double t = 0;
@@ -344,7 +346,7 @@ namespace g4m::increment {
             if (sd > 0)
                 return getU(avgBm / min(1., sd), mai);
 
-            return getTOpt(mai, 1);
+            return getTOpt(mai, ORT::MaxBm);
         }
 
         [[nodiscard]] double getUSdTab(const double avgBm, const double mai, const double sd) const {
@@ -355,10 +357,10 @@ namespace g4m::increment {
                 if (avgBm <= 0)
                     return 0;
 
-                return getTOptT(mai, 1);
+                return getTOptT(mai, ORT::MaxBm);
             }
             int tL = 0;
-            int tH = ceil(getTOptSdTab(mai, sd, 1));
+            int tH = ceil(getTOptSdTab(mai, sd, ORT::MaxBm));
             double bmL = 0;
             double bmH = getAvgBmSdTab(tH, mai, sd);
             double t = 0;
@@ -496,38 +498,41 @@ namespace g4m::increment {
         vector<OptRotTimes> optTimeSdTab;
 
         // Interpolate rotation time between mai
-        [[nodiscard]] double ip(double mai, const vector<OptRotTimes> &tab, const int type) const {
+        [[nodiscard]] double ip(double mai, const span<const OptRotTimes> tab, const ORT type) const {
             mai /= maiStep;
             auto maih = static_cast<size_t>(clamp(ceil(mai), 0., static_cast<double>(nmai - 1)));
             auto mail = static_cast<size_t>(clamp(floor(mai), 0., static_cast<double>(nmai - 1)));
             int uh = 0;
             int ul = 0;
             switch (type) {
-                case 1:
+                case ORT::MAI:
+                    uh = tab[maih].maxInc;
+                    ul = tab[mail].maxInc;
+                    break;
+                case ORT::MaxBm:
                     uh = tab[maih].maxBm;
                     ul = tab[mail].maxBm;
                     break;
-                case 2:
+                case ORT::MaxAge:
                     uh = tab[maih].maxAge;
                     ul = tab[mail].maxAge;
                     break;
-                case 3:
+                case ORT::HarvFin:
                     uh = tab[maih].maxHarv;
                     ul = tab[mail].maxHarv;
                     break;
-                case 4:
+                case ORT::HarvAve:
                     uh = tab[maih].maxAvgHarv;
                     ul = tab[mail].maxAvgHarv;
                     break;
                 default:
-                    uh = tab[maih].maxInc;
-                    ul = tab[mail].maxInc;
+                    return nan("");
             }
             return lerp(ul, uh - ul, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
         }
 
         // Interpolate rotation time between mai and stocking degree (sdNat: True..sdNat, false..sdTab)
-        [[nodiscard]] double ip(double mai, double sd, const vector<OptRotTimes> &tab, const int type,
+        [[nodiscard]] double ip(double mai, double sd, const span<const OptRotTimes> tab, const ORT type,
                                 const bool sdNatFlag) const {
             mai = clamp(mai / maiStep, 0., static_cast<double>(nmai - 1));
             size_t maih = ceil(mai);
@@ -555,35 +560,38 @@ namespace g4m::increment {
             }  // MG: 7 July 2019
             int mhsh = 0, mhsl = 0, mlsh = 0, mlsl = 0;
             switch (type) {
-                case 1:
+                case ORT::MAI:
+                    mhsh = tab[maih + sdh * nmai].maxInc;
+                    mhsl = tab[maih + sdl * nmai].maxInc;
+                    mlsh = tab[mail + sdh * nmai].maxInc;
+                    mlsl = tab[mail + sdl * nmai].maxInc;
+                    break;
+                case ORT::MaxBm:
                     mhsh = tab[maih + sdh * nmai].maxBm;
                     mhsl = tab[maih + sdl * nmai].maxBm;
                     mlsh = tab[mail + sdh * nmai].maxBm;
                     mlsl = tab[mail + sdl * nmai].maxBm;
                     break;
-                case 2:
+                case ORT::MaxAge:
                     mhsh = tab[maih + sdh * nmai].maxAge;
                     mhsl = tab[maih + sdl * nmai].maxAge;
                     mlsh = tab[mail + sdh * nmai].maxAge;
                     mlsl = tab[mail + sdl * nmai].maxAge;
                     break;
-                case 3:
+                case ORT::HarvFin:
                     mhsh = tab[maih + sdh * nmai].maxHarv;
                     mhsl = tab[maih + sdl * nmai].maxHarv;
                     mlsh = tab[mail + sdh * nmai].maxHarv;
                     mlsl = tab[mail + sdl * nmai].maxHarv;
                     break;
-                case 4:
+                case ORT::HarvAve:
                     mhsh = tab[maih + sdh * nmai].maxAvgHarv;
                     mhsl = tab[maih + sdl * nmai].maxAvgHarv;
                     mlsh = tab[mail + sdh * nmai].maxAvgHarv;
                     mlsl = tab[mail + sdl * nmai].maxAvgHarv;
                     break;
                 default:
-                    mhsh = tab[maih + sdh * nmai].maxInc;
-                    mhsl = tab[maih + sdl * nmai].maxInc;
-                    mlsh = tab[mail + sdh * nmai].maxInc;
-                    mlsl = tab[mail + sdl * nmai].maxInc;
+                    return nan("");
             }
             //	MG: hot fix check
             double t0 = lerp(mlsl, mhsl - mlsl, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
@@ -592,7 +600,7 @@ namespace g4m::increment {
         }
 
         // Interpolate between age and mai
-        [[nodiscard]] double ip(double u, double mai, const vector<double> &tab) const {
+        [[nodiscard]] double ip(double u, double mai, const span<const double> tab) const {
             mai = clamp(mai / maiStep, 0., static_cast<double>(nmai - 1));
             size_t maih = ceil(mai);
             size_t mail = floor(mai);
@@ -611,7 +619,7 @@ namespace g4m::increment {
 
         // Interpolate between stocking degree, age and mai (sdNat: True..sdNat, false..sdTab)
         [[nodiscard]] double
-        ip(double u, double mai, double sd, const vector<double> &tab, const bool sdNatFlag) const {
+        ip(double u, double mai, double sd, const span<const double> tab, const bool sdNatFlag) const {
             mai = clamp(mai / maiStep, 0., static_cast<double>(nmai - 1));
             size_t maih = ceil(mai);
             size_t mail = floor(mai);
@@ -919,7 +927,7 @@ namespace g4m::increment {
         }
 
         // MG find U when param > param0
-        [[nodiscard]] double u_param(const double param0, const double mai, const vector<double> &tab) const {
+        [[nodiscard]] double u_param(const double param0, const double mai, const span<const double> tab) const {
             double tmp = clamp(mai / maiStep, 0., static_cast<double>(nmai) - 1.);
             size_t mail = floor(tmp);
 

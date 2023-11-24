@@ -326,7 +326,7 @@ namespace g4m::increment {
 
         // Share of biomass of the canopy layer that can be removed without exceeding average maximum increment
         [[nodiscard]] double getMaxAvgIncBmShareSL() const {
-            auto maxIncAge = static_cast<size_t>(it->getTOptSdNat(mai, slShare, 0));
+            auto maxIncAge = static_cast<size_t>(it->getTOptSdNat(mai, slShare, ORT::MAI));
             double bmInc_tmp = getAvgIncBmSL(1, slAge, maxIncAge);
             double bm_tmp = getBmIntSL(1, slAge, maxIncAge);
             return bm_tmp > 0 ? bmInc_tmp / bm_tmp : 0;
@@ -976,9 +976,9 @@ namespace g4m::increment {
             double maxBmAge_d = 0;
             double sd = midpoint(sdMin, sdMax);
             if (sd > 0)
-                maxBmAge_d = sd == 1 ? it->getTOptT(avgMai, 1) : it->getTOptSdTab(avgMai, sd, 1);
+                maxBmAge_d = sd == 1 ? it->getTOptT(avgMai, ORT::MaxBm) : it->getTOptSdTab(avgMai, sd, ORT::MaxBm);
             else
-                maxBmAge_d = sd == -1 ? it->getTOpt(avgMai, 1) : it->getTOptSdNat(avgMai, abs(sd), 1);
+                maxBmAge_d = sd == -1 ? it->getTOpt(avgMai, ORT::MaxBm) : it->getTOptSdNat(avgMai, abs(sd), ORT::MaxBm);
             int maxBmAge = static_cast<int>(maxBmAge_d);
             double areaShelterCut = 0;
             for (const auto &swt: timerSW)
@@ -1261,7 +1261,7 @@ namespace g4m::increment {
                 case 5:
                 case 6:
                 case 7: {
-                    const int type = objOfProd - 3;
+                   auto type = static_cast<ORT>(objOfProd - 3);
                     double sd = midpoint(sdMin, sdMax);
                     if (sd > 0)
                         u = sd == 1 ? it->getTOptT(avgMai, type) : it->getTOptSdTab(avgMai, sd, type);
@@ -1314,7 +1314,7 @@ namespace g4m::increment {
                 case 4:
                 case 5:
                 case 6: {
-                    const int type = minRotRef - 2;
+                    auto type = static_cast<ORT>(minRotRef - 2);
                     double sd = midpoint(sdMin, sdMax);
                     minRot = minRotVal;
                     if (sd > 0)
@@ -1330,7 +1330,7 @@ namespace g4m::increment {
         }
 
         void setAgeSL() {
-            slAge = static_cast<size_t>(it->getTOpt((1 - slShare) * mai, 0) / 3);
+            slAge = static_cast<size_t>(it->getTOpt((1 - slShare) * mai, ORT::MAI) / 3);
         }
 
         // MG: initialize cohorts for the 1 and 2 canopy layer (if selectiveLogging = TRUE)
@@ -1654,7 +1654,7 @@ namespace g4m::increment {
             V ret;
             int timeTo2Cut = 20; // Time, years, after which the shelter will be cut
             // int timeTo2Cut = ceil(0.4 * it->getTOptT(mai, 0)); // Expert suggestion by Fulvio Di Fulvio, 07.08.2019.
-            int maxAge = ceil(it->getTOptT(mai, 1));
+            int maxAge = ceil(it->getTOptT(mai, ORT::MaxBm));
             double areaShelterCut_total = 0;
             size_t endYear = eco || sustainable ? static_cast<size_t>(minRot / timeStep) : 0;
             array<double, 2> dbhBm{}; // Key to ask if harvest is economic
@@ -2662,7 +2662,7 @@ namespace g4m::increment {
             maxNumberOfAgeClasses = max(maxNumberOfAgeClasses, ageClassesL0);
             double aArea1 = aArea;
             aArea /= rotationPeriod;
-            double maxRotationL1 = it->getTOptSdNat(mai, slShare * sd, 1); // maximum average biomass
+            double maxRotationL1 = it->getTOptSdNat(mai, slShare * sd, ORT::MaxBm); // maximum average biomass
             double rotationPeriodL1 = min(rotationPeriod, maxRotationL1);
             size_t ageClassesL1 = ceil(rotationPeriodL1 / timeStep);
             dat.resize(max(dat.size(), ageClassesL1));
@@ -2862,7 +2862,7 @@ namespace g4m::increment {
         }
 
         void postponeShelter2CutPosI(const int i) {
-            int maxBmAge = ceil(it->getTOptT(mai, 1));
+            int maxBmAge = ceil(it->getTOptT(mai, ORT::MaxBm));
 
             for (auto &swt: timerSW)
                 if (swt.age + i < maxBmAge && swt.timer == 0) {
@@ -2891,9 +2891,9 @@ namespace g4m::increment {
             double maxMaiAge = 0;
             double sd = midpoint(sdMin, sdMax);
             if (sd > 0)
-                maxMaiAge = sd == 1 ? it->getTOptT(avgMai, 0) : it->getTOptSdTab(avgMai, sd, 0);
+                maxMaiAge = sd == 1 ? it->getTOptT(avgMai, ORT::MAI) : it->getTOptSdTab(avgMai, sd, ORT::MAI);
             else
-                maxMaiAge = sd == -1 ? it->getTOpt(avgMai, 0) : it->getTOptSdNat(avgMai, abs(sd), 0);
+                maxMaiAge = sd == -1 ? it->getTOpt(avgMai, ORT::MAI) : it->getTOptSdNat(avgMai, abs(sd), ORT::MAI);
             for (auto &swt: timerSW)
                 if (swt.age > u + 0.8 * 0.4 * maxMaiAge && swt.timer == 1)
                     swt.timer = 0;
