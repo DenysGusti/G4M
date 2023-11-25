@@ -141,7 +141,7 @@ namespace g4m::increment {
              const double aPriceTimberMin0,  // Minimal timber price in reference country {$/m3]
              const double aFCUptake,         // Factor of carbon uptake from npp
              const Ipol<double> &aGdp,              // Gross domestic production
-             const double &aHarvLoos,         // Harvesting losses
+             const double aHarvLoos,         // Harvesting losses
              const double aForest,                  // Share of land area used by forest [0-1]
              const Ipol<double> &aWoodPriceCorr,       // MG: Added for wood price correction (+ in year 2000 when price of carbon = 0)
              const double aRotInterM,               // MG: Added rotation interval estimated from Georg's Forest Management Tool

@@ -1109,8 +1109,8 @@ namespace g4m::application::concrete {
                     else if (appForest30_policy && appMultifunction30)
                         cleanedWoodUseCurrent30 = cleanWoodUseShare30 * cleanedWoodUse[plot.country];
 
-                    double newHarvestTmp = 0;           // Total current harvested wood in the cell, m3
-                    double newHarvestChangeableTmp = 0;  // Total current harvested wood in the cell, m3
+                    double newHarvestTmp = 0;               // Total current harvested wood in the cell, m3
+                    double newHarvestChangeableTmp = 0;     // Total current harvested wood in the cell, m3
 
                     if (appThinningForest(plot.x, plot.y) > 0) {
                         newHarvestTmp += (harvestO *
@@ -1223,21 +1223,32 @@ namespace g4m::application::concrete {
                         harvDiff[i] = 0;
                 }
 
-            // ------- Zero Adjust thinning if population density changed --------------------
-
+            // ------- Zero pass = Adjust thinning if population density changed --------------------
             const double stockingDegree = 1.3;
-            if (year > 2000 && year % 10 == 0)
+            if (year > 2000 && year % 10 == 0) {
+                INFO("Start Zero pass = adjust thinning if population density changed");
                 adjustSD(year, 0.12, woodHarvest, stockingDegree, priceC, true);
+            }
 
             // ---- First pass = adjust rotation time -------
             INFO("Start First pass = adjust rotation time");
-
             adjustRT(year, 0.01, woodHarvest, priceC, true);
 
             //----Second pass = adjust rotation time -------
             INFO("Start Second pass = adjust rotation time");
+            adjustRT(year, 0.02, woodHarvest, priceC, true, true);
 
+            //----Third pass = adjust rotation time -------
+            INFO("Start Third pass = adjust thinning");
+            adjustSD(year, 0.01, woodHarvest, stockingDegree, priceC, true);
 
+            //----Forth pass = adjust rotation time -------
+            INFO("Start Forth pass = adjust rotation time");
+            adjustRT(year, 0.01, woodHarvest, priceC, true);
+
+            //----Fifth pass = adjust rotation time -------
+            INFO("Start Fifth pass = adjust rotation time");
+            adjustRT(year, 0.02, woodHarvest, priceC, true, true);
         }
 
         // maiV computes internally
@@ -1498,7 +1509,7 @@ namespace g4m::application::concrete {
                         double rotationForestTmpNew = appCohort_all[plot.asID].getU();
                         double thinningForestTmpNew = appNewCohort_all[plot.asID].getStockingDegree();
 
-                        if (floor(woodHarvest[plot.country]) < (1 - woodProdTolerance) * countryWoodDemand) {
+                        if (woodHarvest[plot.country] < (1 - woodProdTolerance) * countryWoodDemand) {
                             if (appManagedForest(plot.x, plot.y) <= 0) {
                                 double rotMAI = 0;
                                 double rotMaxBmTh = 0;
@@ -1677,7 +1688,7 @@ namespace g4m::application::concrete {
                                 }
                             }
 
-                        } else if (floor(woodHarvest[plot.country]) > (1 + woodProdTolerance) * countryWoodDemand) {
+                        } else if (woodHarvest[plot.country] > (1 + woodProdTolerance) * countryWoodDemand) {
                             if (appManagedForest(plot.x, plot.y) > 0 && appManagedForest(plot.x, plot.y) < 3) {
                                 double rotMaxBm = 0;
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
@@ -1749,7 +1760,7 @@ namespace g4m::application::concrete {
                         double rotationForestTmpNew = appCohort_all[plot.asID].getU();
                         double thinningForestTmpNew = appNewCohort_all[plot.asID].getStockingDegree();
 
-                        if (floor(woodHarvest[plot.country]) > (1 - woodProdTolerance) * countryWoodDemand)
+                        if (woodHarvest[plot.country] > (1 - woodProdTolerance) * countryWoodDemand)
                             if (appManagedForest(plot.x, plot.y) > 0) {
                                 double rotMaxBm = 0;
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
@@ -1816,7 +1827,7 @@ namespace g4m::application::concrete {
         }
 
         void adjustRT(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
-                      const double priceC, const bool CPol = false) {
+                      const double priceC, const bool CPol = false, const bool allMng = false) {
 
             auto CPolPart = [&](const DataStruct &plot, const double rotation, const double countryHarvestTmp,
                                 const double countryWoodDemand, const double newHarvestTmp,
@@ -1871,7 +1882,8 @@ namespace g4m::application::concrete {
                         double rotationForestTmp = appRotationForest(plot.x, plot.y);
 
                         if (woodHarvest[plot.country] < (1 - woodProdTolerance) * countryWoodDemand) {
-                            if (appManagedForest(plot.x, plot.y) >= 2) {
+                            if (appManagedForest(plot.x, plot.y) >= 2 && !allMng ||
+                                appManagedForest(plot.x, plot.y) > 0 && allMng) {
 
                                 double rotMAI = 0;
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
@@ -1917,7 +1929,8 @@ namespace g4m::application::concrete {
                                 }
                             }
                         } else if (woodHarvest[plot.country] > (1 + woodProdTolerance) * countryWoodDemand) {
-                            if (appManagedForest(plot.x, plot.y) > 0 && appManagedForest(plot.x, plot.y) <= 2) {
+                            if (appManagedForest(plot.x, plot.y) > 0 &&
+                                (appManagedForest(plot.x, plot.y) <= 2 && !allMng || allMng)) {
 
                                 double rotMaxBmTh = 0;
                                 if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
