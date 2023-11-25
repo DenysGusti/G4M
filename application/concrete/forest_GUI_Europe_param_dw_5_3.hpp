@@ -1233,6 +1233,11 @@ namespace g4m::application::concrete {
             INFO("Start First pass = adjust rotation time");
 
             adjustRT(year, 0.01, woodHarvest, priceC, true);
+
+            //----Second pass = adjust rotation time -------
+            INFO("Start Second pass = adjust rotation time");
+
+
         }
 
         // maiV computes internally

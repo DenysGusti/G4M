@@ -316,6 +316,7 @@ namespace g4m::increment {
         void precomputeNpvSum() noexcept {
             double currF = 0;
             double r_year = r(year);
+            npvSum = 0;
             for (int j = 0; currF > 0.00001 && j < 400; j += modTimeStep) {
                 currF = pow(1 + r_year, -j);
                 npvSum += currF;
