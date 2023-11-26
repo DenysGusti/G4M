@@ -14,19 +14,20 @@ using namespace g4m::misc::concrete;
 using namespace g4m::Constants;
 
 namespace g4m::increment {
-
+    // Calculating costs for planting and managing forest stands for estimating land use change decisions.
+    // Based on DIMA LUC model (Kindermann et al. 2006, 2006; Rokityanskiy et al. 2007)
     class DIMA {
     public:
         // Value of Forestry during multiple rotation (Eq.4)
         // Changed to multiple years!!!!
         [[nodiscard]] double forVal() const noexcept {
-            return npvSum * forestValueOne() * modTimeStep;
+            return calcNpvSum() * forestValueOne() * modTimeStep;
         }
 
         // Value of Forestry multiple rotation No Carbon Price
         // Changed to multiple years!!!!
         [[nodiscard]] double forValNC() const noexcept {
-            return npvSum * forestValueOneNC() * modTimeStep;
+            return calcNpvSum() * forestValueOneNC() * modTimeStep;
             // Georg's definition (like in Kindermann et al. 2007)
             // return forestValueOneNC() / (1 - pow(1 +r(year), -rotInter())));
         }
@@ -65,7 +66,6 @@ namespace g4m::increment {
 
         void setYear(const int year_) noexcept {
             year = year_;
-            precomputeNpvSum();
         }
 
         void setForest(const double x) noexcept {
@@ -75,19 +75,19 @@ namespace g4m::increment {
         // MG: Value of Forestry during multiple rotation with External Timber price
         // Changed to multiple years!!!!
         [[nodiscard]] double forValExt() const noexcept {
-            return npvSum * forestValueOneExt() * modTimeStep;
+            return calcNpvSum() * forestValueOneExt() * modTimeStep;
         }
 
         // MG: Value of Forestry during multiple rotation with combined (G4M + External) Timber price
         // Changed to multiple years!!!!
         [[nodiscard]] double forValComb() const noexcept {
-            return npvSum * forestValueOneComb() * modTimeStep;
+            return calcNpvSum() * forestValueOneComb() * modTimeStep;
         }
 
         // MG: Value of Forestry multiple rotation No Carbon Price using External wood price
         // Changed to multiple years!!!!
         [[nodiscard]] double forValNCExt() const noexcept {
-            return npvSum * forestValueOneNCExt() * modTimeStep;
+            return calcNpvSum() * forestValueOneNCExt() * modTimeStep;
             // Georg's definition (like in Kindermann et al. 2007)
             // return forestValueOneNCExt() / (1 - pow(1 + r(year), -rotInter()));
         }
@@ -96,7 +96,7 @@ namespace g4m::increment {
         // Changed to multiple years!!!!
         // No carbon price
         [[nodiscard]] double forValNCComb() const noexcept {
-            return npvSum * forestValueOneNCComb() * modTimeStep;
+            return calcNpvSum() * forestValueOneNCComb() * modTimeStep;
         }
 
         // MG: Attention: agrVal changed! Only 2000 value is estimated here
@@ -153,7 +153,6 @@ namespace g4m::increment {
             priceTimberMax0{aPriceTimberMax0}, priceTimberMin0{aPriceTimberMin0}, fCUptake{aFCUptake}, gdp{aGdp},
             forest{aForest}, woodPriceCorr{aWoodPriceCorr}, woodPriceCorr0{aWoodPriceCorr(2000)}, rotInterM{aRotInterM},
             harvWood{aHarvWood} {
-            precomputeNpvSum();
         }
 
         // Timber price internal
@@ -221,8 +220,6 @@ namespace g4m::increment {
         double woodPriceCorr0 = 0;      // MG: Added for wood price correction in year 2000
         double rotInterM = 0;           // MG: Added rotation interval estimated from Georg's Forest Management Tool
         double harvWood = 0;            // MG: Added harvestable wood estimated from Georg's Forest Management Tool
-
-        double npvSum = 0;              // cashed value
 
         double plantingCosts0;          // Costs to Plant 1ha of forests in ref country
         Ipol<double> r;                 // Discount rate
@@ -312,15 +309,16 @@ namespace g4m::increment {
             return (-plantingCosts() + (priceTimberComb() - priceHarvest()) * woodHarvestVol()) / rotInter();
         }
 
-        // cashing npvSum
-        void precomputeNpvSum() noexcept {
-            double currF = 0;
-            double r_year = r(year);
-            npvSum = 0;
-            for (int j = 0; currF > 0.00001 && j < 400; j += modTimeStep) {
-                currF = pow(1 + r_year, -j);
-                npvSum += currF;
-            }
+        // calculate a sum of the series of a discounted value
+        [[nodiscard]] double calcNpvSum() const noexcept {
+//            double currF = 0;
+//            double r_year = r(year);
+//            npvSum = 0;
+//            for (int j = 0; currF > 0.00001 && j < 400; j += modTimeStep) {
+//                currF = pow(1 + r_year, -j);
+//                npvSum += currF;
+//            }
+            return 1 + 1 / r(year);  // sum of infinite geometric series, b_0 = 1, q = 1 / (1 + r(year))
         }
     };
 }

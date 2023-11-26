@@ -14,7 +14,7 @@
 using namespace std;
 
 namespace g4m::increment {
-
+    // Forest stand growth functions and a set of instruments for estimating forest stand parameters.
     class IncrementTab {
     public:
         IncrementTab

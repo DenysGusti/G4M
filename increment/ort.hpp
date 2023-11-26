@@ -4,7 +4,6 @@
 using namespace std;
 
 namespace g4m::increment {
-
     // Get optimal rotation time (getTOpt and getTOptT)
     enum class ORT : uint8_t {
         MAI,       // Highest average increment
