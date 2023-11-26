@@ -1032,7 +1032,7 @@ namespace g4m::application::concrete {
             return {deadWoodPoolIn, litterPoolIn};
         }
 
-        // Adjust forest management in case of a non-zero carbon price of the carbon in tree biomass.
+        // Adjust forest management in the case of a non-zero carbon price of the carbon in tree biomass.
         // Wood and land prices by countries
         void fmCPol(const double fm_hurdle, const double priceC, const uint16_t year) {
             array<double, numberOfCountries> woodHarvest{};
