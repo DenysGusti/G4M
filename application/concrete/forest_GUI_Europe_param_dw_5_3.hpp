@@ -1826,6 +1826,11 @@ namespace g4m::application::concrete {
                     }
         }
 
+        // Adjust rotation time depending on wood demand and the state of the forests
+        // CPol = True - used for non-zero C price
+        // allMng = False - shorten rotation in more productive forests if we need to increase wood harvest
+        //                  and extend rotation in less productive forests if we need to decrease wood harvest
+        // allMng = True - adjust rotation in forests
         void adjustRT(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
                       const double priceC, const bool CPol = false, const bool allMng = false) {
 
