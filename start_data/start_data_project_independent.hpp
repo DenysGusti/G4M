@@ -2,6 +2,7 @@
 #define G4M_EUROPE_DG_START_DATA_PROJECT_INDEPENDENT_HPP
 
 #include <future>
+#include <print>
 
 #include "start_data_project_dependent.hpp"
 #include "../data_io/reading.hpp"
@@ -1201,143 +1202,143 @@ namespace g4m::StartData {
         if (!zeroProdAreaInit) {
             INFO("initZeroProdArea is turned off");
             return;
-
-            auto thinningForestInit = commonThinningForest;
-            array<double, numberOfCountries> woodPotHarvest{};
-
-            INFO("Putting data for current cell into container...");
-            for (const auto &plot: commonPlots)
-                if (plot.protect.data.at(2000) == 0) {
-                    double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
-                    size_t species_tmp = plot.speciesType - 1;
-
-                    double biomassRot = 1;  // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
-                    double biomassRotTh = 1;
-                    double rotMAI = 1;
-                    double rotMaxBm = 1;
-
-                    double Bm = commonCohort_all[plot.asID].getBm();
-
-                    if (plot.CAboveHa > 0 && MAI > 0) {
-                        // rotation time to get current biomass (without thinning)
-//                        biomassRot = species[species_tmp].getU(Bm, MAI);  overwritten
-                        rotMAI = species[species_tmp].getTOpt(MAI, ORT::MAI);
-                        rotMaxBm = species[species_tmp].getTOpt(MAI, ORT::MaxBm);
-                        // rotation time to get current biomass (with thinning)
-                        biomassRotTh = species[species_tmp].getUSdTab(Bm, MAI, commonThinningForest(plot.x, plot.y));
-                    }
-
-                    biomassRot = max(rotMaxBm, commonRotationForest(plot.x, plot.y));
-                    DIMA decision{1990, plot.NPP, plot.sPopDens, plot.sAgrSuit, plot.priceIndex, coef.priceIndexE,
-                                  plot.R, coef.priceC, coef.plantingCostsR, coef.priceLandMinR, coef.priceLandMaxR,
-                                  coef.maxRotInter, coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd,
-                                  coef.baseline, plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR,
-                                  coef.fCUptake, plot.GDP, coef.harvLoos,
-                                  commonOForestShGrid(plot.x, plot.y) -
-                                  plot.strictProtected,  // forestShare0 - forest available for wood supply initially
-                                  woodPriceScenarios.at(s_bauScenario).at(plot.country), rotMAI,
-                                  MAI * plot.fTimber.data.at(2000) * (1 - coef.harvLoos)};  // harvMAI
-
-                    double thinning = -1;
-                    double rotation = 1;
-
-                    if (commonThinningForest(plot.x, plot.y) > 0) {
-                        commonThinningForest(plot.x, plot.y) = thinning;
-                        commonThinningForest30(plot.x, plot.y) = thinning;
-                        commonRotationType(plot.x, plot.y) = 10;
-
-                        commonCohort_all[plot.asID].setStockingDegree(thinning);
-                        commonNewCohort_all[plot.asID].setStockingDegree(thinning);
-                        commonCohort30_all[plot.asID].setStockingDegree(thinning);
-
-                        // defIncome = 0 => decision.agrVal() + defIncome = decision.agrVal()
-                        rotation = max(biomassRot, rotMAI) + 1;
-
-                        if (MAI > MAI_CountryUprotect[plot.country - 1]) {
-                            if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal()) {
-                                commonManagedForest(plot.x, plot.y) = 0;
-                                commonRotationType(plot.x, plot.y) = 1;
-                            } else {
-                                commonManagedForest(plot.x, plot.y) = -1;
-                                commonRotationType(plot.x, plot.y) = 10;
-                            }
-                        } else {
-                            if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal()) {
-                                commonManagedForest(plot.x, plot.y) = -1;
-                                commonRotationType(plot.x, plot.y) = 10;
-                            } else {
-                                commonManagedForest(plot.x, plot.y) = -2;
-                                commonRotationType(plot.x, plot.y) = 10;
-                            }
-                        }
-
-                        commonRotationForest(plot.x, plot.y) = rotation;
-                        commonCohort_all[plot.asID].setU(rotation);
-                        commonNewCohort_all[plot.asID].setU(rotation);
-                        commonCohort30_all[plot.asID].setU(rotation);
-                    }
-                }
-
-            for (const auto &plot: commonPlots)
-                if (plot.protect.data.at(2000) == 0 && thinningForestInit(plot.x, plot.y) > 0) {
-                    double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
-                    size_t species_tmp = plot.speciesType - 1;
-
-                    double rotMAI = 0;
-                    double rotMaxBm = 0;
-                    double rotMaxBmTh = 0;
-                    double biomassRotTh2 = 0;  // MG: rotation time fitted to get certain biomass under certain MAI (with thinning = 2)
-
-                    double stockingDegree = thinningForestInit(plot.x, plot.y);
-                    double Bm = commonCohort_all[plot.asID].getBm();
-                    double rotation = 0;
-
-                    if (plot.CAboveHa > 0 && MAI > 0) {
-                        // rotation time to get current biomass (with thinning)
-                        biomassRotTh2 = species[species_tmp].getUSdTab(Bm, MAI, stockingDegree);
-                        rotMAI = species[species_tmp].getTOptSdTab(MAI, stockingDegree, ORT::MAI);
-                        rotMaxBmTh = species[species_tmp].getTOptSdTab(MAI, stockingDegree, ORT::MaxBm);
-                    } else if (MAI > 0) {
-                        rotMAI = species[species_tmp].getTOpt(MAI, ORT::MAI);
-                        rotMaxBm = species[species_tmp].getTOpt(MAI, ORT::MaxBm);
-                    }
-
-                    if (woodPriceScenarios.at(s_bauScenario).at(plot.country)(coef.bYear) >
-                        woodPotHarvest[plot.country - 1]) {
-                        if (commonManagedForest(plot.x, plot.y) == 0) {
-                            rotation = rotMAI + 1;
-                            commonManagedForest(plot.x, plot.y) = 3;
-                            commonRotationType(plot.x, plot.y) = 1;
-                        } else if (commonManagedForest(plot.x, plot.y) == -1) {
-                            rotation = min(rotMAI + 1, rotMaxBmTh);
-                            commonManagedForest(plot.x, plot.y) = 2;
-                            commonRotationType(plot.x, plot.y) = 2;
-                        } else if (commonManagedForest(plot.x, plot.y) == -2) {
-                            commonManagedForest(plot.x, plot.y) = 1;
-                            commonRotationType(plot.x, plot.y) = 3;
-                            rotation = clamp(biomassRotTh2 + 1, rotMAI, rotMaxBmTh);
-                        }
-
-                        double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
-                        // area of forest available for wood supply
-                        double forestArea0 = plot.landArea * 100 * (plot.forest + plot.oldGrowthForest_thirty);
-                        woodPotHarvest[plot.country - 1] += harvMAI * forestArea0;
-
-                        commonRotationForest(plot.x, plot.y) = rotation;
-                        commonCohort_all[plot.asID].setU(rotation);
-
-                        commonThinningForest(plot.x, plot.y) = stockingDegree;
-                        commonCohort_all[plot.asID].setStockingDegree(stockingDegree);
-
-                        commonNewCohort_all[plot.asID].setU(rotation);
-                        commonNewCohort_all[plot.asID].setStockingDegree(stockingDegree);
-
-                        commonCohort30_all[plot.asID].setU(rotation);
-                        commonThinningForest30(plot.x, plot.y) = stockingDegree;
-                        commonCohort30_all[plot.asID].setStockingDegree(stockingDegree);
-                    }
-                }
         }
+
+        auto thinningForestInit = commonThinningForest;
+        array<double, numberOfCountries> woodPotHarvest{};
+
+        INFO("Putting data for current cell into container...");
+        for (const auto &plot: commonPlots)
+            if (plot.protect.data.at(2000) == 0) {
+                double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
+                size_t species_tmp = plot.speciesType - 1;
+
+                double biomassRot = 1;  // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
+                double biomassRotTh = 1;
+                double rotMAI = 1;
+                double rotMaxBm = 1;
+
+                double Bm = commonCohort_all[plot.asID].getBm();
+
+                if (plot.CAboveHa > 0 && MAI > 0) {
+                    // rotation time to get current biomass (without thinning)
+//                        biomassRot = species[species_tmp].getU(Bm, MAI);  overwritten
+                    rotMAI = species[species_tmp].getTOpt(MAI, ORT::MAI);
+                    rotMaxBm = species[species_tmp].getTOpt(MAI, ORT::MaxBm);
+                    // rotation time to get current biomass (with thinning)
+                    biomassRotTh = species[species_tmp].getUSdTab(Bm, MAI, commonThinningForest(plot.x, plot.y));
+                }
+
+                biomassRot = max(rotMaxBm, commonRotationForest(plot.x, plot.y));
+                DIMA decision{1990, plot.NPP, plot.sPopDens, plot.sAgrSuit, plot.priceIndex, coef.priceIndexE,
+                              plot.R, coef.priceC, coef.plantingCostsR, coef.priceLandMinR, coef.priceLandMaxR,
+                              coef.maxRotInter, coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd,
+                              coef.baseline, plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR,
+                              coef.fCUptake, plot.GDP, coef.harvLoos,
+                              commonOForestShGrid(plot.x, plot.y) -
+                              plot.strictProtected,  // forestShare0 - forest available for wood supply initially
+                              woodPriceScenarios.at(s_bauScenario).at(plot.country), rotMAI,
+                              MAI * plot.fTimber.data.at(2000) * (1 - coef.harvLoos)};  // harvMAI
+
+                double thinning = -1;
+                double rotation = 1;
+
+                if (commonThinningForest(plot.x, plot.y) > 0) {
+                    commonThinningForest(plot.x, plot.y) = thinning;
+                    commonThinningForest30(plot.x, plot.y) = thinning;
+                    commonRotationType(plot.x, plot.y) = 10;
+
+                    commonCohort_all[plot.asID].setStockingDegree(thinning);
+                    commonNewCohort_all[plot.asID].setStockingDegree(thinning);
+                    commonCohort30_all[plot.asID].setStockingDegree(thinning);
+
+                    // defIncome = 0 => decision.agrVal() + defIncome = decision.agrVal()
+                    rotation = max(biomassRot, rotMAI) + 1;
+
+                    if (MAI > MAI_CountryUprotect[plot.country - 1]) {
+                        if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal()) {
+                            commonManagedForest(plot.x, plot.y) = 0;
+                            commonRotationType(plot.x, plot.y) = 1;
+                        } else {
+                            commonManagedForest(plot.x, plot.y) = -1;
+                            commonRotationType(plot.x, plot.y) = 10;
+                        }
+                    } else {
+                        if (decision.forValNC() * hurdle_opt[plot.country - 1] > decision.agrVal()) {
+                            commonManagedForest(plot.x, plot.y) = -1;
+                            commonRotationType(plot.x, plot.y) = 10;
+                        } else {
+                            commonManagedForest(plot.x, plot.y) = -2;
+                            commonRotationType(plot.x, plot.y) = 10;
+                        }
+                    }
+
+                    commonRotationForest(plot.x, plot.y) = rotation;
+                    commonCohort_all[plot.asID].setU(rotation);
+                    commonNewCohort_all[plot.asID].setU(rotation);
+                    commonCohort30_all[plot.asID].setU(rotation);
+                }
+            }
+
+        for (const auto &plot: commonPlots)
+            if (plot.protect.data.at(2000) == 0 && thinningForestInit(plot.x, plot.y) > 0) {
+                double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
+                size_t species_tmp = plot.speciesType - 1;
+
+                double rotMAI = 0;
+                double rotMaxBm = 0;
+                double rotMaxBmTh = 0;
+                double biomassRotTh2 = 0;  // MG: rotation time fitted to get certain biomass under certain MAI (with thinning = 2)
+
+                double stockingDegree = thinningForestInit(plot.x, plot.y);
+                double Bm = commonCohort_all[plot.asID].getBm();
+                double rotation = 0;
+
+                if (plot.CAboveHa > 0 && MAI > 0) {
+                    // rotation time to get current biomass (with thinning)
+                    biomassRotTh2 = species[species_tmp].getUSdTab(Bm, MAI, stockingDegree);
+                    rotMAI = species[species_tmp].getTOptSdTab(MAI, stockingDegree, ORT::MAI);
+                    rotMaxBmTh = species[species_tmp].getTOptSdTab(MAI, stockingDegree, ORT::MaxBm);
+                } else if (MAI > 0) {
+                    rotMAI = species[species_tmp].getTOpt(MAI, ORT::MAI);
+                    rotMaxBm = species[species_tmp].getTOpt(MAI, ORT::MaxBm);
+                }
+
+                if (woodPriceScenarios.at(s_bauScenario).at(plot.country)(coef.bYear) >
+                    woodPotHarvest[plot.country - 1]) {
+                    if (commonManagedForest(plot.x, plot.y) == 0) {
+                        rotation = rotMAI + 1;
+                        commonManagedForest(plot.x, plot.y) = 3;
+                        commonRotationType(plot.x, plot.y) = 1;
+                    } else if (commonManagedForest(plot.x, plot.y) == -1) {
+                        rotation = min(rotMAI + 1, rotMaxBmTh);
+                        commonManagedForest(plot.x, plot.y) = 2;
+                        commonRotationType(plot.x, plot.y) = 2;
+                    } else if (commonManagedForest(plot.x, plot.y) == -2) {
+                        commonManagedForest(plot.x, plot.y) = 1;
+                        commonRotationType(plot.x, plot.y) = 3;
+                        rotation = clamp(biomassRotTh2 + 1, rotMAI, rotMaxBmTh);
+                    }
+
+                    double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
+                    // area of forest available for wood supply
+                    double forestArea0 = plot.landArea * 100 * (plot.forest + plot.oldGrowthForest_thirty);
+                    woodPotHarvest[plot.country - 1] += harvMAI * forestArea0;
+
+                    commonRotationForest(plot.x, plot.y) = rotation;
+                    commonCohort_all[plot.asID].setU(rotation);
+
+                    commonThinningForest(plot.x, plot.y) = stockingDegree;
+                    commonCohort_all[plot.asID].setStockingDegree(stockingDegree);
+
+                    commonNewCohort_all[plot.asID].setU(rotation);
+                    commonNewCohort_all[plot.asID].setStockingDegree(stockingDegree);
+
+                    commonCohort30_all[plot.asID].setU(rotation);
+                    commonThinningForest30(plot.x, plot.y) = stockingDegree;
+                    commonCohort30_all[plot.asID].setStockingDegree(stockingDegree);
+                }
+            }
     }
 
     void Init() {
