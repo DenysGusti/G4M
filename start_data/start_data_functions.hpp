@@ -14,7 +14,7 @@ using namespace g4m::DataIO::printing;
 using namespace g4m::Dicts;
 
 namespace g4m::StartData {
-
+    // TODO project dependent?
     void setCountryData(const unordered_set<uint8_t> &countries_list) noexcept {
         countriesNforCover.setListOfCountries(countries_list);
         countriesAfforHaYear.setListOfCountries(countries_list);
