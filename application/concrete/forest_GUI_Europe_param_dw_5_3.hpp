@@ -14,6 +14,7 @@
 #include "../abstract/application.hpp"
 
 #include "../../start_data/start_data.hpp"
+#include "../../dicts/dicts.hpp"
 
 #include "../../structs/lw_price.hpp"
 #include "../../structs/harvest_residues.hpp"
@@ -29,6 +30,7 @@ using namespace g4m::increment;
 using namespace g4m::diagnostics;
 using namespace g4m::application::abstract;
 using namespace g4m::StartData;
+using namespace g4m::Dicts;
 
 namespace g4m::application::concrete {
 
@@ -1422,7 +1424,7 @@ namespace g4m::application::concrete {
                 if (CPol) {
                     double NPVTmp = 1e20;
 
-                    if (countriesFmcpol.contains(plot.country) &&
+                    if (countriesFmCPol.contains(plot.country) &&
                         !countriesNoFmCPol.contains(plot.country)) {
                         appCoefPriceC = priceC < 0 ? appCO2Price.at(plot.country)(year) : priceC;
                         appCoefPriceC *= plot.corruption.data.at(2000);
@@ -1586,7 +1588,7 @@ namespace g4m::application::concrete {
                                 if (CPol) {
                                     double NPVTmp = 1e32;
 
-                                    if (countriesFmcpol.contains(plot.country) &&
+                                    if (countriesFmCPol.contains(plot.country) &&
                                         !countriesNoFmCPol.contains(plot.country)) {
                                         appCoefPriceC = priceC < 0 ? appCO2Price.at(plot.country)(year) : priceC;
                                         appCoefPriceC *= plot.corruption.data.at(2000);
@@ -1840,7 +1842,7 @@ namespace g4m::application::concrete {
                 if (CPol) {
                     double NPVTmp = 1e20;
 
-                    if (countriesFmcpol.contains(plot.country) &&
+                    if (countriesFmCPol.contains(plot.country) &&
                         !countriesNoFmCPol.contains(plot.country)) {
                         appCoefPriceC = priceC < 0 ? appCO2Price.at(plot.country)(year) : priceC;
                         appCoefPriceC *= plot.corruption.data.at(2000);

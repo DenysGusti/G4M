@@ -1,10 +1,12 @@
-#ifndef G4M_EUROPE_DG_START_DATA_PROJECT_DEPENDENT_HPP
-#define G4M_EUROPE_DG_START_DATA_PROJECT_DEPENDENT_HPP
+#ifndef G4M_EUROPE_DG_DICTS_PROJECT_DEPENDENT_HPP
+#define G4M_EUROPE_DG_DICTS_PROJECT_DEPENDENT_HPP
 
-#include "start_data.hpp"
+#include <unordered_set>
+#include <set>
 
-namespace g4m::StartData {
+using namespace std;
 
+namespace g4m::Dicts {
     // Setting years for output
     [[nodiscard]] unordered_set<uint16_t>
     yearsToConsider(const uint16_t startYear, const uint16_t endYear, const uint16_t yearStep = 1) noexcept {
@@ -369,54 +371,6 @@ namespace g4m::StartData {
         return fun_countriesList;
     }
 
-    void setCountryData(const unordered_set<uint8_t> &countries_list) noexcept {
-        countriesNforCover.setListOfCountries(countries_list);
-        countriesAfforHaYear.setListOfCountries(countries_list);
-
-        countriesNforTotC.setListOfCountries(countries_list);
-        countriesAfforCYear.setListOfCountries(countries_list);
-        countriesAfforCYear_ab.setListOfCountries(countries_list);
-        countriesAfforCYear_bl.setListOfCountries(countries_list);
-        countriesAfforCYear_biom.setListOfCountries(countries_list);
-        countriesAfforCYear_dom.setListOfCountries(countries_list);
-        countriesAfforCYear_soil.setListOfCountries(countries_list);
-//---------
-        countriesOforCover.setListOfCountries(countries_list);
-        countriesDeforHaYear.setListOfCountries(countries_list);
-
-        countriesOfor_ab_C.setListOfCountries(countries_list);
-        countriesOforC_biom.setListOfCountries(countries_list);
-        countriesDeforCYear.setListOfCountries(countries_list);
-        countriesDeforCYear_bl.setListOfCountries(countries_list);
-        countriesDeforCYear_ab.setListOfCountries(countries_list);
-        countriesDeforCYear_biom.setListOfCountries(countries_list);
-        countriesDeforCYear_dom.setListOfCountries(countries_list);
-        countriesDeforCYear_soil.setListOfCountries(countries_list);
-
-//---------
-
-        countriesWoodHarvestM3Year.setListOfCountries(countries_list);
-        countriesWoodHarvestPlusM3Year.setListOfCountries(countries_list);
-        countriesWoodHarvestFmM3Year.setListOfCountries(countries_list);
-        countriesWoodHarvestDfM3Year.setListOfCountries(countries_list);
-        countriesWoodLoosCYear.setListOfCountries(countries_list);
-        countriesHarvLossesYear.setListOfCountries(countries_list);
-//---------
-        countriesManagedForHa.setListOfCountries(countries_list);
-        countriesManagedCount.setListOfCountries(countries_list);
-
-        countriesMAI.setListOfCountries(countries_list);
-        countriesCAI.setListOfCountries(countries_list);
-        countriesCAI_new.setListOfCountries(countries_list);
-
-        countriesFM.setListOfCountries(countries_list);
-        countriesFMbm.setListOfCountries(countries_list);
-//---------
-        //countriesWprod.setListOfCountries(countries_list);
-//---------
-        countriesProfit.setListOfCountries(countries_list);
-    }
-
     // A list of countries and species where stumps can be harvested as compiled by Fulvio
     [[nodiscard]] set<pair<uint8_t, uint8_t> > setCountrySpecies() noexcept {
         set<pair<uint8_t, uint8_t> > fun_stumpHarvCountrySpecies;
@@ -442,7 +396,6 @@ namespace g4m::StartData {
 
         return fun_stumpHarvCountrySpecies;
     }
-//-----------------------------------------------------------------
 }
 
 #endif

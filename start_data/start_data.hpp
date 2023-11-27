@@ -49,12 +49,6 @@ namespace g4m::StartData {
     Settings settings;
     CoefStruct coef;
 
-    unordered_set <uint16_t> years;  // select years for results output
-    unordered_set <uint8_t> regions;
-    unordered_set <uint8_t> countryRegList;    // country and region mixture to be considered
-    unordered_set <uint8_t> countriesFmcpol;   // List of Annex-1 countries for FMcpol
-    unordered_set <uint8_t> countriesList;     // country to be considered
-
     CountryData countriesNforCover;
     CountryData countriesNforTotC;
     CountryData countriesAfforHaYear;
@@ -91,15 +85,6 @@ namespace g4m::StartData {
     // Historic data on total wood production in EU countries (including Croatia) [th.m3/year, over bark); 1990-2010
     CountryData countriesWoodProdStat;
     CountryData countriesFmEmission_unfccc;
-
-    // countries and species where the stumps can be harvested as compiled by Fulvio 06.06
-    set <pair<uint8_t, uint8_t>> stumpHarvCountrySpecies;  // [country, species]
-
-    // pairs of G4M country ID and GLOBIOM country name
-    unordered_map<uint8_t, string> idCountryGLOBIOM;
-    unordered_map<string, uint8_t, string_hash, equal_to<> > countryGLOBIOMId;
-
-    vector<IncrementTab> species;
 
     vector<DataStruct> rawPlots;  // raw structure with data plots[<elNum>].<variable>[year]
     vector<DataStruct> commonPlots;  // structure with data plots[<elNum>].<variable>[year]

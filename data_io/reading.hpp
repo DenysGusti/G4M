@@ -4,10 +4,12 @@
 #include "../constants.hpp"
 #include "../arrays/arrays.hpp"
 #include "../start_data/start_data.hpp"
+#include "../dicts/dicts.hpp"
 #include "../log.hpp"
 
 using namespace std;
 using namespace g4m::StartData;
+using namespace g4m::Dicts;
 
 namespace g4m::DataIO::reading {
 

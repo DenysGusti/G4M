@@ -310,6 +310,7 @@ namespace g4m::increment {
         }
 
         // calculate a sum of the series of a discounted value
+        // TODO j += modTimeStep is necessary?
         [[nodiscard]] double calcNpvSum() const noexcept {
 //            double currF = 0;
 //            double r_year = r(year);
