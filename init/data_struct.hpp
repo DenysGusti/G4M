@@ -8,6 +8,7 @@
 
 #include "../misc/concrete/ipol.hpp"
 #include "../constants.hpp"
+#include "species.hpp"
 
 using namespace g4m::misc::concrete;
 
@@ -24,16 +25,7 @@ namespace g4m::init {
         uint8_t polesReg = 0;
         uint8_t countryRegMix = 0;
 
-        // a tree species code
-        // 1 - fir
-        // 2 - spruce
-        // 3 - pine
-        // 4 - Pinus halepensis
-        // 5 - birch / alder / Alnus incana
-        // 6 - beech
-        // 7 - oak
-        // 8 - larch
-        uint8_t speciesType = 0;
+        Species speciesType = Species::NoTree;
 
         int8_t mngmType = 0;
 
@@ -137,7 +129,7 @@ namespace g4m::init {
                     else if (name == "MNGMTYPE")
                         mngmType = static_cast<int8_t>(cell);
                     else if (name == "SPECIESTYPE")
-                        speciesType = static_cast<uint8_t>(cell);
+                        speciesType = static_cast<Species>(cell);
                         // doubleing point vars
                     else if (name == "LANDAREA")
                         landArea = cell;
@@ -227,7 +219,8 @@ namespace g4m::init {
         [[nodiscard]] string str() const noexcept {
             string format_integral = format(
                     "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\nspeciesType = {}\nmngmType = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n",
-                    x, y, simuID, country, IIASA_region, polesReg, countryRegMix, speciesType, mngmType, managedFlag,
+                    x, y, simuID, country, IIASA_region, polesReg, countryRegMix, speciesName.at(speciesType), mngmType,
+                    managedFlag,
                     managed_UNFCCC);
             string format_doubleing_point = format(
                     "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\nCBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\nresiduesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\noldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\nGL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\n",
@@ -327,30 +320,31 @@ namespace g4m::init {
                 return bef;
 
             switch (speciesType) {
-                case 1:
+                case Species::Fir:
                     bef = clamp(1.069 + 1.919 * pow(growingStock, -0.524), 1.1, 3.5);
                     break;
-                case 2:
+                case Species::Spruce:
                     bef = clamp(1.204 + 0.903 * exp(-0.009 * growingStock), 1.1, 4.);
                     break;
-                case 3:
-                case 4:
+                case Species::Pine:
+                case Species::PinusHalepensis:
                     bef = clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
                     break;
-                case 5:
+                case Species::Birch:
                     bef = clamp(1.105 + 9.793 / growingStock, 1.1, 1.6);
                     break;
-                case 6:
+                case Species::Beech:
                     bef = clamp(1.197 + 0.386 * exp(-0.009 * growingStock), 1.1, 3.5);
                     break;
-                case 7:
+                case Species::Oak:
                     bef = clamp(1.202 + 0.422 * exp(-0.013 * growingStock), 1.1, 3.5);
                     break;
-                case 8:
+                case Species::Larch:
                     bef = clamp(1.023 + 2.058 * pow(growingStock, -0.508), 1.1, 3.5);
                     break;
                 default:
-                    ERROR("Unknown speciesType: {}", speciesType);
+                    ERROR("Unknown speciesType: {}", static_cast<int>(speciesType));
+                    bef = nan("");
             }
 
             return bef;
@@ -388,7 +382,7 @@ namespace g4m::init {
                 return str;
 
             switch (speciesType) {
-                case 1: {
+                case Species::Fir: {
                     // stump + coarse roots tC per tree
                     double strOneTree = pow(dbh, 2.33) * pow(10, -1.55) * 5e-4;
                     // volume of stem of one tree
@@ -402,7 +396,7 @@ namespace g4m::init {
                 }
                     break;
 
-                case 2: {
+                case Species::Spruce: {
                     // stump + coarse roots tC per tree
                     double strOneTree = exp(-2.4447 + 10.5381 * dbh / (dbh + 14)) * 5e-4;
                     // weight of one tree stem
@@ -414,8 +408,8 @@ namespace g4m::init {
                 }
                     break;
 
-                case 3:
-                case 4: {
+                case Species::Pine:
+                case Species::PinusHalepensis: {
                     // stump + coarse roots tC per tree
                     double strOneTree = exp(-3.3913 + 11.1106 * dbh / (dbh + 12)) * 5e-4;
                     // weight of one tree stem
@@ -427,7 +421,7 @@ namespace g4m::init {
                 }
                     break;
 
-                case 5: {
+                case Species::Birch: {
                     double tmp_num = 2 + 1.25 * dbh;
                     // stump
                     double stump = exp(-3.574 + 11.304 * tmp_num / (tmp_num + 26)) * 5e-4;
@@ -444,7 +438,7 @@ namespace g4m::init {
                 }
                     break;
 
-                case 6: {
+                case Species::Beech: {
                     // stump + coarse roots tC per tree
                     double strOneTree = pow(dbh, 2.54) * pow(10, -1.66) * 5e-4;
                     // weight of one tree stem
@@ -456,7 +450,7 @@ namespace g4m::init {
                 }
                     break;
 
-                case 7: {
+                case Species::Oak: {
                     // stump + coarse roots tC per tree
                     double strOneTree = pow(dbh, 2.19) * pow(10, -1.05) * 5e-4;
                     // weight of one tree stem
@@ -468,7 +462,7 @@ namespace g4m::init {
                 }
                     break;
 
-                case 8: {
+                case Species::Larch: {
                     // stump + roots tC per tree
                     double strOneTree = exp(-3.3913 + 11.1106 * dbh / (dbh + 12)) * 0.5 * 1.0e-3;
                     // volume of stem of one tree
@@ -484,7 +478,8 @@ namespace g4m::init {
                     break;
 
                 default:
-                    ERROR("Unknown speciesType: {}", speciesType);
+                    ERROR("Unknown speciesType: {}", static_cast<int>(speciesType));
+                    str = nan("");
             }
 
             return str;

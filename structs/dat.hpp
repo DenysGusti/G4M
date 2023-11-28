@@ -3,7 +3,11 @@
 
 #include <array>
 
+#include "../init/species.hpp"
+
 using namespace std;
+
+using namespace g4m::init;
 
 namespace g4m::structs {
 
@@ -181,7 +185,7 @@ namespace g4m::structs {
         double deforRW = 0;                 // / defArea;  // tC per deforested ha
         double slashBurn = 0;               // share of burnt wood at deforestation
 
-        int species = 0;
+        Species species = Species::NoTree;
 
         bool SpeciesChangeSwitch = false;
 

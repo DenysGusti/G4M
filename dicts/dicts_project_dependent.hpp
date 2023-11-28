@@ -115,53 +115,53 @@ namespace g4m::Dicts {
         return fun_countryRegList;
     }
 
-    // List of Annex-1 countries for FMcpol
-    [[nodiscard]] unordered_set<uint8_t> countriesFmcpolToConsider() noexcept {
-        unordered_set<uint8_t> fun_countriesFmcpol;
-        fun_countriesFmcpol.reserve(256);
+    // List of Annex-1 countries for FMCPol
+    [[nodiscard]] unordered_set<uint8_t> countriesFmCPolToConsider() noexcept {
+        unordered_set<uint8_t> fun_countriesFmCPol;
+        fun_countriesFmCPol.reserve(256);
 
-        //    fun_countriesFmcpol.insert(16);
-        fun_countriesFmcpol.insert(17);         // Austria
-        fun_countriesFmcpol.insert(20);         // Belgium
-        fun_countriesFmcpol.insert(24);         // Bulgaria
-        //    fun_countriesFmcpol.insert(28);   // Belarus
-        //    fun_countriesFmcpol.insert(39);
-        //    fun_countriesFmcpol.insert(41);   // Switzerland
-        //    fun_countriesFmcpol.insert(56);   // Cyprus
-        fun_countriesFmcpol.insert(57);         // Czech
-        //    fun_countriesFmcpol.insert(58);
-        fun_countriesFmcpol.insert(61);
-        fun_countriesFmcpol.insert(68);
-        fun_countriesFmcpol.insert(69);
-        fun_countriesFmcpol.insert(71);
-        fun_countriesFmcpol.insert(74);
-        fun_countriesFmcpol.insert(78);
-        fun_countriesFmcpol.insert(87);
-        fun_countriesFmcpol.insert(97);         // Croatia
-        fun_countriesFmcpol.insert(99);
-        fun_countriesFmcpol.insert(103);
-        //    fun_countriesFmcpol.insert(106);
-        fun_countriesFmcpol.insert(108);
-        //    fun_countriesFmcpol.insert(111);
-        fun_countriesFmcpol.insert(128);
-        fun_countriesFmcpol.insert(129);
-        fun_countriesFmcpol.insert(130);
-        //    fun_countriesFmcpol.insert(141);  // Malta
-        fun_countriesFmcpol.insert(161);
-        //    fun_countriesFmcpol.insert(162);  // Norway
-        //    fun_countriesFmcpol.insert(165);
-        fun_countriesFmcpol.insert(174);        // Poland
-        fun_countriesFmcpol.insert(177);        //  Portugal
-        fun_countriesFmcpol.insert(183);
-        //   fun_countriesFmcpol.insert(184);
-        fun_countriesFmcpol.insert(202);
-        fun_countriesFmcpol.insert(203);
-        fun_countriesFmcpol.insert(204);
-        //    fun_countriesFmcpol.insert(219);
-        //    fun_countriesFmcpol.insert(224);  // Ukraine
-        //    fun_countriesFmcpol.insert(227);
+        //    fun_countriesFmCPol.insert(16);
+        fun_countriesFmCPol.insert(17);         // Austria
+        fun_countriesFmCPol.insert(20);         // Belgium
+        fun_countriesFmCPol.insert(24);         // Bulgaria
+        //    fun_countriesFmCPol.insert(28);   // Belarus
+        //    fun_countriesFmCPol.insert(39);
+        //    fun_countriesFmCPol.insert(41);   // Switzerland
+        //    fun_countriesFmCPol.insert(56);   // Cyprus
+        fun_countriesFmCPol.insert(57);         // Czech
+        //    fun_countriesFmCPol.insert(58);
+        fun_countriesFmCPol.insert(61);
+        fun_countriesFmCPol.insert(68);
+        fun_countriesFmCPol.insert(69);
+        fun_countriesFmCPol.insert(71);
+        fun_countriesFmCPol.insert(74);
+        fun_countriesFmCPol.insert(78);
+        fun_countriesFmCPol.insert(87);
+        fun_countriesFmCPol.insert(97);         // Croatia
+        fun_countriesFmCPol.insert(99);
+        fun_countriesFmCPol.insert(103);
+        //    fun_countriesFmCPol.insert(106);
+        fun_countriesFmCPol.insert(108);
+        //    fun_countriesFmCPol.insert(111);
+        fun_countriesFmCPol.insert(128);
+        fun_countriesFmCPol.insert(129);
+        fun_countriesFmCPol.insert(130);
+        //    fun_countriesFmCPol.insert(141);  // Malta
+        fun_countriesFmCPol.insert(161);
+        //    fun_countriesFmCPol.insert(162);  // Norway
+        //    fun_countriesFmCPol.insert(165);
+        fun_countriesFmCPol.insert(174);        // Poland
+        fun_countriesFmCPol.insert(177);        //  Portugal
+        fun_countriesFmCPol.insert(183);
+        //   fun_countriesFmCPol.insert(184);
+        fun_countriesFmCPol.insert(202);
+        fun_countriesFmCPol.insert(203);
+        fun_countriesFmCPol.insert(204);
+        //    fun_countriesFmCPol.insert(219);
+        //    fun_countriesFmCPol.insert(224);  // Ukraine
+        //    fun_countriesFmCPol.insert(227);
 
-        return fun_countriesFmcpol;
+        return fun_countriesFmCPol;
     }
 
     // countries to be considered
@@ -372,27 +372,27 @@ namespace g4m::Dicts {
     }
 
     // A list of countries and species where stumps can be harvested as compiled by Fulvio
-    [[nodiscard]] set<pair<uint8_t, uint8_t> > setCountrySpecies() noexcept {
-        set<pair<uint8_t, uint8_t> > fun_stumpHarvCountrySpecies;
+    [[nodiscard]] set<pair<uint8_t, Species> > setCountrySpecies() noexcept {
+        set<pair<uint8_t, Species> > fun_stumpHarvCountrySpecies;
 
-        fun_stumpHarvCountrySpecies.emplace(58, 2);
-        fun_stumpHarvCountrySpecies.emplace(58, 3);
-        fun_stumpHarvCountrySpecies.emplace(69, 2);
-        fun_stumpHarvCountrySpecies.emplace(71, 2);
-        fun_stumpHarvCountrySpecies.emplace(74, 4);
-        fun_stumpHarvCountrySpecies.emplace(74, 5);
-        fun_stumpHarvCountrySpecies.emplace(78, 2);
-        fun_stumpHarvCountrySpecies.emplace(78, 3);
-        fun_stumpHarvCountrySpecies.emplace(99, 3);
-        fun_stumpHarvCountrySpecies.emplace(103, 2);
-        fun_stumpHarvCountrySpecies.emplace(103, 3);
-        fun_stumpHarvCountrySpecies.emplace(108, 5);
-        fun_stumpHarvCountrySpecies.emplace(130, 2);
-        fun_stumpHarvCountrySpecies.emplace(130, 3);
-        fun_stumpHarvCountrySpecies.emplace(177, 3);
-        fun_stumpHarvCountrySpecies.emplace(202, 3);
-        fun_stumpHarvCountrySpecies.emplace(204, 2);
-        fun_stumpHarvCountrySpecies.emplace(204, 3);
+        fun_stumpHarvCountrySpecies.emplace(58, Species::Spruce);
+        fun_stumpHarvCountrySpecies.emplace(58, Species::Pine);
+        fun_stumpHarvCountrySpecies.emplace(69, Species::Spruce);
+        fun_stumpHarvCountrySpecies.emplace(71, Species::Spruce);
+        fun_stumpHarvCountrySpecies.emplace(74, Species::PinusHalepensis);
+        fun_stumpHarvCountrySpecies.emplace(74, Species::Birch);
+        fun_stumpHarvCountrySpecies.emplace(78, Species::Spruce);
+        fun_stumpHarvCountrySpecies.emplace(78, Species::Pine);
+        fun_stumpHarvCountrySpecies.emplace(99, Species::Pine);
+        fun_stumpHarvCountrySpecies.emplace(103, Species::Spruce);
+        fun_stumpHarvCountrySpecies.emplace(103, Species::Pine);
+        fun_stumpHarvCountrySpecies.emplace(108, Species::Birch);
+        fun_stumpHarvCountrySpecies.emplace(130, Species::Spruce);
+        fun_stumpHarvCountrySpecies.emplace(130, Species::Pine);
+        fun_stumpHarvCountrySpecies.emplace(177, Species::Pine);
+        fun_stumpHarvCountrySpecies.emplace(202, Species::Pine);
+        fun_stumpHarvCountrySpecies.emplace(204, Species::Spruce);
+        fun_stumpHarvCountrySpecies.emplace(204, Species::Pine);
 
         return fun_stumpHarvCountrySpecies;
     }

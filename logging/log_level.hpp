@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "../diagnostics/enum_hasher.hpp"
+
 using namespace std;
 
 namespace g4m::logging {
@@ -40,13 +42,6 @@ namespace g4m::logging {
     bool operator!(const LogLevel op) {
         return !static_cast<LogLevelType>(op);
     }
-
-    struct EnumHasher {
-        template<typename T>
-        size_t operator()(const T t) const noexcept {
-            return static_cast<size_t>(t);
-        }
-    };
 
     const static unordered_map<LogLevel, string, EnumHasher> convert_level = {
             {LogLevel::Trace, "TRACE"},

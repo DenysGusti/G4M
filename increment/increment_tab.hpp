@@ -17,6 +17,8 @@ namespace g4m::increment {
     // Forest stand growth functions and a set of instruments for estimating forest stand parameters.
     class IncrementTab {
     public:
+        IncrementTab() = default;
+
         IncrementTab
                 (const span<const double> a, const double aMaiMax, const double aMaiStep, const double atMax,
                  const double atStep, const double asdNatStep, const double asdTabMax,
@@ -502,32 +504,8 @@ namespace g4m::increment {
             mai /= maiStep;
             auto maih = static_cast<size_t>(clamp(ceil(mai), 0., static_cast<double>(nmai - 1)));
             auto mail = static_cast<size_t>(clamp(floor(mai), 0., static_cast<double>(nmai - 1)));
-            int uh = 0;
-            int ul = 0;
-            switch (type) {
-                case ORT::MAI:
-                    uh = tab[maih].maxInc;
-                    ul = tab[mail].maxInc;
-                    break;
-                case ORT::MaxBm:
-                    uh = tab[maih].maxBm;
-                    ul = tab[mail].maxBm;
-                    break;
-                case ORT::MaxAge:
-                    uh = tab[maih].maxAge;
-                    ul = tab[mail].maxAge;
-                    break;
-                case ORT::HarvFin:
-                    uh = tab[maih].maxHarv;
-                    ul = tab[mail].maxHarv;
-                    break;
-                case ORT::HarvAve:
-                    uh = tab[maih].maxAvgHarv;
-                    ul = tab[mail].maxAvgHarv;
-                    break;
-                default:
-                    return nan("");
-            }
+            int uh = tab[maih][type];
+            int ul = tab[mail][type];
             return lerp(ul, uh - ul, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
         }
 
@@ -558,41 +536,10 @@ namespace g4m::increment {
                 sdl = 0;
                 sdh = 0;
             }  // MG: 7 July 2019
-            int mhsh = 0, mhsl = 0, mlsh = 0, mlsl = 0;
-            switch (type) {
-                case ORT::MAI:
-                    mhsh = tab[maih + sdh * nmai].maxInc;
-                    mhsl = tab[maih + sdl * nmai].maxInc;
-                    mlsh = tab[mail + sdh * nmai].maxInc;
-                    mlsl = tab[mail + sdl * nmai].maxInc;
-                    break;
-                case ORT::MaxBm:
-                    mhsh = tab[maih + sdh * nmai].maxBm;
-                    mhsl = tab[maih + sdl * nmai].maxBm;
-                    mlsh = tab[mail + sdh * nmai].maxBm;
-                    mlsl = tab[mail + sdl * nmai].maxBm;
-                    break;
-                case ORT::MaxAge:
-                    mhsh = tab[maih + sdh * nmai].maxAge;
-                    mhsl = tab[maih + sdl * nmai].maxAge;
-                    mlsh = tab[mail + sdh * nmai].maxAge;
-                    mlsl = tab[mail + sdl * nmai].maxAge;
-                    break;
-                case ORT::HarvFin:
-                    mhsh = tab[maih + sdh * nmai].maxHarv;
-                    mhsl = tab[maih + sdl * nmai].maxHarv;
-                    mlsh = tab[mail + sdh * nmai].maxHarv;
-                    mlsl = tab[mail + sdl * nmai].maxHarv;
-                    break;
-                case ORT::HarvAve:
-                    mhsh = tab[maih + sdh * nmai].maxAvgHarv;
-                    mhsl = tab[maih + sdl * nmai].maxAvgHarv;
-                    mlsh = tab[mail + sdh * nmai].maxAvgHarv;
-                    mlsl = tab[mail + sdl * nmai].maxAvgHarv;
-                    break;
-                default:
-                    return nan("");
-            }
+            int mhsh = tab[maih + sdh * nmai][type];
+            int mhsl = tab[maih + sdl * nmai][type];
+            int mlsh = tab[mail + sdh * nmai][type];
+            int mlsl = tab[mail + sdl * nmai][type];
             //	MG: hot fix check
             double t0 = lerp(mlsl, mhsl - mlsl, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
             double t1 = lerp(mlsh, mhsh - mlsh, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));

@@ -14,6 +14,8 @@ namespace g4m::increment {
 
     class IncrementCurves {
     public:
+        IncrementCurves() = default;
+
         IncrementCurves(const span<const double> a, const double aMai) : coef{a}, mai{aMai} {
             calc();
         }

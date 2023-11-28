@@ -14,7 +14,6 @@ using namespace g4m::DataIO::printing;
 using namespace g4m::Dicts;
 
 namespace g4m::StartData {
-    // TODO project dependent?
     void setCountryData(const unordered_set<uint8_t> &countries_list) noexcept {
         countriesNforCover.setListOfCountries(countries_list);
         countriesAfforHaYear.setListOfCountries(countries_list);
@@ -235,28 +234,28 @@ namespace g4m::StartData {
 
     [[nodiscard]] array<double, numberOfCountries> calculateAverageMAI(const span<const DataStruct> plots) {
         INFO("calculating average MAI");
-        array<double, numberOfCountries> fun_MAI_CountryUprotect{};
+        array<double, numberOfCountries> fun_MAI_CountryUProtect{};
         array<double, numberOfCountries> forestAreaCountry{};
         for (const auto &plot: plots)
             if (plot.protect.data.at(2000) == 0) {
                 double forestArea0 = plot.landArea * 100 * clamp(plot.forest, 0., 1.);
                 if (forestArea0 > 0) {
                     // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
-                    fun_MAI_CountryUprotect[plot.country - 1] += plot.MAIE.data.at(2000) * forestArea0;
+                    fun_MAI_CountryUProtect[plot.country - 1] += plot.MAIE.data.at(2000) * forestArea0;
                     forestAreaCountry[plot.country - 1] += forestArea0;
                 }
             }
 
-        for (auto &&[MAI, area]: rv::zip(fun_MAI_CountryUprotect, forestAreaCountry))
+        for (auto &&[MAI, area]: rv::zip(fun_MAI_CountryUProtect, forestAreaCountry))
             if (area > 0)
                 MAI /= area;
 
-        for (size_t i = 0; i < fun_MAI_CountryUprotect.size(); ++i)
-            if (fun_MAI_CountryUprotect[i] > 0)
-                DEBUG("fun_MAI_CountryUprotect[{}] = {}", i, fun_MAI_CountryUprotect[i]);
+        for (size_t i = 0; i < fun_MAI_CountryUProtect.size(); ++i)
+            if (fun_MAI_CountryUProtect[i] > 0)
+                DEBUG("fun_MAI_CountryUProtect[{}] = {}", i, fun_MAI_CountryUProtect[i]);
 
         INFO("calculated average MAI");
-        return fun_MAI_CountryUprotect;
+        return fun_MAI_CountryUProtect;
     }
 
     [[nodiscard]] unordered_set<uint32_t> initPlotsSimuID(const span<const DataStruct> plots) noexcept {
@@ -377,18 +376,20 @@ namespace g4m::StartData {
             double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
 
             if (plot.CAboveHa > 0 && commonMaiForest(plot.x, plot.y) > 0) {
-                if (plot.speciesType == 0)
-                    DEBUG("plot.speciesType = {}", plot.speciesType);
+                if (plot.speciesType == Species::NoTree) {
+                    ERROR("plot.speciesType = {}", static_cast<int>(plot.speciesType));
+                    return;
+                }
                 // rotation time to get current biomass (without thinning)
-                biomassRot = species[plot.speciesType - 1].getU(plot.CAboveHa, MAI);
+                biomassRot = species[plot.speciesType].getU(plot.CAboveHa, MAI);
                 // rotation time to get current biomass (with thinning)
-                biomassRotTh = species[plot.speciesType - 1].getUT(plot.CAboveHa, MAI);
+                biomassRotTh = species[plot.speciesType].getUT(plot.CAboveHa, MAI);
             }
 
             if (commonMaiForest(plot.x, plot.y) > 0) {
-                rotMAI = species[plot.speciesType - 1].getTOptT(MAI, ORT::MAI);
-                rotMaxBm = species[plot.speciesType - 1].getTOpt(MAI, ORT::MaxBm);
-                rotMaxBmTh = species[plot.speciesType - 1].getTOptT(MAI, ORT::MaxBm);
+                rotMAI = species[plot.speciesType].getTOptT(MAI, ORT::MAI);
+                rotMaxBm = species[plot.speciesType].getTOpt(MAI, ORT::MaxBm);
+                rotMaxBmTh = species[plot.speciesType].getTOptT(MAI, ORT::MaxBm);
             }
 
             DIMA decision{1990, plot.NPP, plot.sPopDens, plot.sAgrSuit, plot.priceIndex, coef.priceIndexE, plot.R,
@@ -517,17 +518,16 @@ namespace g4m::StartData {
 
             double mai_tmp = commonMaiForest(plot.x, plot.y);
             double thinning_tmp = commonThinningForest(plot.x, plot.y);
-            size_t species_tmp = plot.speciesType - 1;
 
             if (mai_tmp > 0) {
-                MAIRot = max(1., species[species_tmp].getTOptT(mai_tmp, ORT::MAI));
-                rotMaxBm = max(1., species[species_tmp].getTOpt(mai_tmp, ORT::MaxBm));
-                rotMaxBmTh = max(1., species[species_tmp].getTOptT(mai_tmp, ORT::MaxBm));
+                MAIRot = max(1., species[plot.speciesType].getTOptT(mai_tmp, ORT::MAI));
+                rotMaxBm = max(1., species[plot.speciesType].getTOpt(mai_tmp, ORT::MaxBm));
+                rotMaxBmTh = max(1., species[plot.speciesType].getTOptT(mai_tmp, ORT::MaxBm));
 
                 if (plot.CAboveHa > 0) {
-                    biomassRot = max(1., species[species_tmp].getU(plot.CAboveHa, mai_tmp));
-                    biomassRotTh = max(1., species[species_tmp].getUSdTab(plot.CAboveHa, mai_tmp,
-                                                                          abs(thinning_tmp))); // with thinning
+                    biomassRot = max(1., species[plot.speciesType].getU(plot.CAboveHa, mai_tmp));
+                    biomassRotTh = max(1., species[plot.speciesType].getUSdTab(plot.CAboveHa, mai_tmp,
+                                                                               abs(thinning_tmp))); // with thinning
 
                     forFlag = plot.forest > 0;
                     forFlag10 = plot.oldGrowthForest_ten > 0;
@@ -542,12 +542,14 @@ namespace g4m::StartData {
 
             // Stocking degree depending on tree height is not implemented
             // saving results to initial vectors
-            commonCohort_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov,
+            commonCohort_all.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
+                                          &ffcov,
                                           &ffcoe,
                                           &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, thinning_tmp * sdMaxCoef,
                                           thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0, 1);
             commonCohort30_all.push_back(commonCohort_all.back());
-            commonCohort10_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov,
+            commonCohort10_all.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
+                                            &ffcov,
                                             &ffcoe,
                                             &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, -sdMaxCoef, -sdMinCoef, 30,
                                             minRotVal,
@@ -641,8 +643,9 @@ namespace g4m::StartData {
                         auto ignored = cohort.aging();
                     }
 
-                    rotation = max(MAIRot, species[species_tmp].getUSdTab(cohort.getBm() / cohort.getArea(), mai_tmp,
-                                                                          thinning_tmp) + 1);
+                    rotation = max(MAIRot,
+                                   species[plot.speciesType].getUSdTab(cohort.getBm() / cohort.getArea(), mai_tmp,
+                                                                       thinning_tmp) + 1);
                     cohort.setU(rotation);
 
                     if (plot.oldGrowthForest_thirty > 0)
@@ -679,8 +682,8 @@ namespace g4m::StartData {
             }
 
             if (plot.oldGrowthForest_ten > 0) {
-                double biomassRot10 = species[species_tmp].getU(1.3 * plot.CAboveHa, mai_tmp);
-                double MAIRot10 = species[species_tmp].getTOpt(mai_tmp, ORT::MAI);
+                double biomassRot10 = species[plot.speciesType].getU(1.3 * plot.CAboveHa, mai_tmp);
+                double MAIRot10 = species[plot.speciesType].getTOpt(mai_tmp, ORT::MAI);
 
                 biomassRot10 = max(biomassRot10, 0.5 * oldestAge);
                 biomassRot10 = max(biomassRot10, 1.5 * MAIRot10);
@@ -708,8 +711,8 @@ namespace g4m::StartData {
                 cohort10.createNormalForest(1, 0, -1);
 
             if (plot.strictProtected > 0) {
-                double biomassRotP = species[species_tmp].getU(1.3 * plot.CAboveHa, mai_tmp);
-                double MAIRotP = species[species_tmp].getTOpt(mai_tmp, ORT::MAI);
+                double biomassRotP = species[plot.speciesType].getU(1.3 * plot.CAboveHa, mai_tmp);
+                double MAIRotP = species[plot.speciesType].getTOpt(mai_tmp, ORT::MAI);
 
                 biomassRotP = max(biomassRotP, oldestAge);
                 biomassRotP = max(biomassRotP, MAIRotP);
@@ -735,7 +738,8 @@ namespace g4m::StartData {
                 cohort_primary.createNormalForest(1, 0, -1);
 
             // rotation changes
-            commonNewCohort_all.emplace_back(&species[species_tmp], &ffsws, &countriesFFIpols.at(plot.country), &ffcov,
+            commonNewCohort_all.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
+                                             &ffcov,
                                              &ffcoe, &ffdov, &ffdoe, mai_tmp, 0, rotation, 0, 0, 0, 0,
                                              thinning_tmp * sdMaxCoef, thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0,
                                              1);
@@ -811,7 +815,6 @@ namespace g4m::StartData {
         for (const auto &plot: commonPlots)
             if (plot.protect.data.at(2000) == 0) {
                 double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
-                size_t species_tmp = plot.speciesType - 1;
 
                 double biomassRot = 1;  // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
                 double biomassRotTh = 1;
@@ -822,11 +825,11 @@ namespace g4m::StartData {
 
                 if (plot.CAboveHa > 0 && MAI > 0) {
                     // rotation time to get current biomass (without thinning)
-//                        biomassRot = species[species_tmp].getU(Bm, MAI);  overwritten
-                    rotMAI = species[species_tmp].getTOpt(MAI, ORT::MAI);
-                    rotMaxBm = species[species_tmp].getTOpt(MAI, ORT::MaxBm);
+//                        biomassRot = species[plot.speciesType].getU(Bm, MAI);  overwritten
+                    rotMAI = species[plot.speciesType].getTOpt(MAI, ORT::MAI);
+                    rotMaxBm = species[plot.speciesType].getTOpt(MAI, ORT::MaxBm);
                     // rotation time to get current biomass (with thinning)
-                    biomassRotTh = species[species_tmp].getUSdTab(Bm, MAI, commonThinningForest(plot.x, plot.y));
+                    biomassRotTh = species[plot.speciesType].getUSdTab(Bm, MAI, commonThinningForest(plot.x, plot.y));
                 }
 
                 biomassRot = max(rotMaxBm, commonRotationForest(plot.x, plot.y));
@@ -883,7 +886,6 @@ namespace g4m::StartData {
         for (const auto &plot: commonPlots)
             if (plot.protect.data.at(2000) == 0 && thinningForestInit(plot.x, plot.y) > 0) {
                 double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
-                size_t species_tmp = plot.speciesType - 1;
 
                 double rotMAI = 0;
                 double rotMaxBm = 0;
@@ -896,12 +898,12 @@ namespace g4m::StartData {
 
                 if (plot.CAboveHa > 0 && MAI > 0) {
                     // rotation time to get current biomass (with thinning)
-                    biomassRotTh2 = species[species_tmp].getUSdTab(Bm, MAI, stockingDegree);
-                    rotMAI = species[species_tmp].getTOptSdTab(MAI, stockingDegree, ORT::MAI);
-                    rotMaxBmTh = species[species_tmp].getTOptSdTab(MAI, stockingDegree, ORT::MaxBm);
+                    biomassRotTh2 = species[plot.speciesType].getUSdTab(Bm, MAI, stockingDegree);
+                    rotMAI = species[plot.speciesType].getTOptSdTab(MAI, stockingDegree, ORT::MAI);
+                    rotMaxBmTh = species[plot.speciesType].getTOptSdTab(MAI, stockingDegree, ORT::MaxBm);
                 } else if (MAI > 0) {
-                    rotMAI = species[species_tmp].getTOpt(MAI, ORT::MAI);
-                    rotMaxBm = species[species_tmp].getTOpt(MAI, ORT::MaxBm);
+                    rotMAI = species[plot.speciesType].getTOpt(MAI, ORT::MAI);
+                    rotMaxBm = species[plot.speciesType].getTOpt(MAI, ORT::MaxBm);
                 }
 
                 if (woodPriceScenarios.at(s_bauScenario).at(plot.country)(coef.bYear) >
