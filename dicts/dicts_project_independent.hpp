@@ -200,8 +200,8 @@ namespace g4m::Dicts {
         return fun_idCountryGLOBIOM;
     }
 
-    [[nodiscard]] unordered_map<string, uint8_t, string_hash, equal_to<> > setCountryGLOBIOMId() noexcept {
-        unordered_map<string, uint8_t, string_hash, equal_to<> > fun_countryGLOBIOMId;
+    [[nodiscard]] unordered_map<string, uint8_t, StringHash, equal_to<> > setCountryGLOBIOMId() noexcept {
+        unordered_map<string, uint8_t, StringHash, equal_to<> > fun_countryGLOBIOMId;
         fun_countryGLOBIOMId.reserve(256);
 
         fun_countryGLOBIOMId["Albania"] = 6;

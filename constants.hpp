@@ -102,7 +102,7 @@ namespace g4m::Constants {
     constexpr double tolerance = 0.05;  //0.05;//0.1; // tolerance of forest management adjustment to match domestic wood demand 11.05.2023
     constexpr double npvLoss = 0.25;    // 0.03 CHECK for SLOVENIA; share of NPV loss that we allow when adjusting RT 11.05.2023
 
-    constexpr bool simulateHarvestEfficiencyImprovement = false; // Switch to simulate improvement of efficiency of wood removals from multipurpose forests if wood price increases due to C tax
+    constexpr bool disturbanceSwitch = true;    // Switch simulation of the disturbance event in CZ
 }
 
 #endif

@@ -570,6 +570,136 @@ namespace g4m::Arrays {
                 }};
         return fmEmission_unfccc_CRF;
     }
+
+    // CZ: m3 salvage fellings that can be used for processing, only (infested) spruce
+    consteval array<double, 32> initSalvageLoggingUsed() noexcept {
+        array<double, 32> salvageLoggingUsed{};
+
+        //salvageLoggingUsed[0] = 23.18181818;
+        //salvageLoggingUsed[1] = 23.18181818;
+        salvageLoggingUsed[0] = 22.78;  // Table 6-7 NIR2022 / according to NIR2022 95% of wood removals was from salvage logging
+        salvageLoggingUsed[1] = 26.24;  // Table 6-7 NIR2022 / according to NIR2022 95% of wood removals was from salvage logging
+        salvageLoggingUsed[2] = 14.09090909;
+        salvageLoggingUsed[3] = 14.09090909;
+        salvageLoggingUsed[4] = 14.09090909;
+        salvageLoggingUsed[5] = 14.09090909;
+        salvageLoggingUsed[6] = 14.09090909;
+        salvageLoggingUsed[7] = 14.09090909;
+        salvageLoggingUsed[8] = 14.09090909;
+        salvageLoggingUsed[9] = 23.18181818;
+        salvageLoggingUsed[10] = 23.18181818;
+        salvageLoggingUsed[11] = 23.18181818;
+        salvageLoggingUsed[12] = 12.27272727;
+        salvageLoggingUsed[13] = 12.27272727;
+        salvageLoggingUsed[14] = 12.27272727;
+        salvageLoggingUsed[15] = 12.27272727;
+        salvageLoggingUsed[16] = 12.72727273;
+        salvageLoggingUsed[17] = 12.72727273;
+        salvageLoggingUsed[18] = 12.72727273;
+        salvageLoggingUsed[19] = 23.18181818;
+        salvageLoggingUsed[20] = 23.18181818;
+        salvageLoggingUsed[21] = 23.18181818;
+        salvageLoggingUsed[22] = 10.45454545;
+        salvageLoggingUsed[23] = 10.45454545;
+        salvageLoggingUsed[24] = 10.45454545;
+        salvageLoggingUsed[25] = 10.45454545;
+        salvageLoggingUsed[26] = 10.45454545;
+        salvageLoggingUsed[27] = 9.999999999;
+        salvageLoggingUsed[28] = 9.999999999;
+        salvageLoggingUsed[29] = 23.18181818;
+        salvageLoggingUsed[30] = 23.18181818;
+        salvageLoggingUsed[31] = 22.72727273;
+
+        return salvageLoggingUsed;
+    }
+
+    // CZ:  m3 total salvage, including the dead trees that cannot be felled/used
+    consteval array<double, 32> initSalvageLoggingTotal() noexcept {
+        array<double, 32> salvageLoggingTotal{};
+
+        //salvageLoggingTotal[0] = 25;
+        //salvageLoggingTotal[1] = 25;
+        //salvageLoggingTotal[0] = 1.078 * 22.78;    // Table 6-7 NIR2022 / according to NIR2022 95% of wood removals was from salvage logging
+        //salvageLoggingTotal[1] = 1.15 * 26.24;      // Table 6-7 NIR2022 / according to NIR2022 95% of wood removals was from salvage logging
+        // Table 6-7 NIR2022 / according to NIR2022 95% of wood removals was from salvage logging
+        salvageLoggingTotal[0] = 1.03 * 22.78;
+        // Table 6-7 NIR2022 / according to NIR2022 95% of wood removals was from salvage logging
+        salvageLoggingTotal[1] = 1.179 * 26.24;
+        salvageLoggingTotal[2] = 17.72727273;
+        salvageLoggingTotal[3] = 14.09090909;
+        salvageLoggingTotal[4] = 14.09090909;
+        salvageLoggingTotal[5] = 14.09090909;
+        salvageLoggingTotal[6] = 14.09090909;
+        salvageLoggingTotal[7] = 14.09090909;
+        salvageLoggingTotal[8] = 14.09090909;
+        salvageLoggingTotal[9] = 23.18181818;
+        salvageLoggingTotal[10] = 25;
+        salvageLoggingTotal[11] = 25;
+        salvageLoggingTotal[12] = 15;
+        salvageLoggingTotal[13] = 12.27272727;
+        salvageLoggingTotal[14] = 12.27272727;
+        salvageLoggingTotal[15] = 12.27272727;
+        salvageLoggingTotal[16] = 12.72727273;
+        salvageLoggingTotal[17] = 12.72727273;
+        salvageLoggingTotal[18] = 12.72727273;
+        salvageLoggingTotal[19] = 23.18181818;
+        salvageLoggingTotal[20] = 25;
+        salvageLoggingTotal[21] = 25;
+        salvageLoggingTotal[22] = 10.45454545;
+        salvageLoggingTotal[23] = 10.45454545;
+        salvageLoggingTotal[24] = 10.45454545;
+        salvageLoggingTotal[25] = 10.45454545;
+        salvageLoggingTotal[26] = 10.45454545;
+        salvageLoggingTotal[27] = 9.999999999;
+        salvageLoggingTotal[28] = 9.999999999;
+        salvageLoggingTotal[29] = 23.18181818;
+        salvageLoggingTotal[30] = 24.54545454;
+        salvageLoggingTotal[31] = 24.09090909;
+
+        return salvageLoggingTotal;
+    }
+
+    // CZ:  m3 total harvested wood used by the industry
+    consteval array<double, 32> initAllHarvestedUsed() noexcept {
+        array<double, 32> allHarvestedUsed{};
+
+        allHarvestedUsed[0] = 26.81818182;
+        allHarvestedUsed[1] = 26.81818182;
+        // allHarvestedUsed[0] = wprod[countryprice].g(2019)/1000000;// according to NIR2022 95% of wood removals was from salvage logging
+        // allHarvestedUsed[1] = wprod[countryprice].g(2020)/1000000;// according to NIR2022 95% of wood removals was from salvage logging
+        allHarvestedUsed[2] = 19.54545454;
+        allHarvestedUsed[3] = 19.54545454;
+        allHarvestedUsed[4] = 19.54545454;
+        allHarvestedUsed[5] = 19.54545454;
+        allHarvestedUsed[6] = 19.54545454;
+        allHarvestedUsed[7] = 19.54545454;
+        allHarvestedUsed[8] = 19.54545454;
+        allHarvestedUsed[9] = 26.81818182;
+        allHarvestedUsed[10] = 26.81818182;
+        allHarvestedUsed[11] = 26.81818182;
+        allHarvestedUsed[12] = 18.40909091;
+        allHarvestedUsed[13] = 18.40909091;
+        allHarvestedUsed[14] = 18.40909091;
+        allHarvestedUsed[15] = 18.40909091;
+        allHarvestedUsed[16] = 18.63636363;
+        allHarvestedUsed[17] = 18.63636363;
+        allHarvestedUsed[18] = 19.09090909;
+        allHarvestedUsed[19] = 26.81818182;
+        allHarvestedUsed[20] = 26.81818182;
+        allHarvestedUsed[21] = 26.81818182;
+        allHarvestedUsed[22] = 17.95454545;
+        allHarvestedUsed[23] = 17.95454545;
+        allHarvestedUsed[24] = 17.95454545;
+        allHarvestedUsed[25] = 17.95454545;
+        allHarvestedUsed[26] = 17.95454545;
+        allHarvestedUsed[27] = 17.72727273;
+        allHarvestedUsed[28] = 17.72727273;
+        allHarvestedUsed[29] = 26.81818182;
+        allHarvestedUsed[30] = 26.81818182;
+        allHarvestedUsed[31] = 25.90909091;
+
+        return allHarvestedUsed;
+    }
 }
 
 #endif

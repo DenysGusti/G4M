@@ -798,7 +798,7 @@ namespace g4m::StartData {
     }
 
     // MG: 22 July 2022
-    // Converts all forest to unused, then converts back to used starting from most productive forest in each country
+    // Converts all forests to unused, then converts back to used starting from most productive forest in each country
     // while potential harvest (MAI - harvest losses) satisfies wood demand initial year.
     // Wood and land prices by countries!
     // Estimate area of wood production forests and initialize respective forest objects in each cell.

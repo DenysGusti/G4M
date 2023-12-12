@@ -29,29 +29,34 @@ namespace g4m::increment {
     // this class doesn't own ffipols!
     class AgeStruct {
     public:
-        // returns harvest
-        [[nodiscard]] static double cohortRes(double realArea, const pair<V, V> &res) noexcept {
+        // Calculate total harvestable stem wood for forest tC/ha (final cut + thinning) and
+        // total wood (including harvest losses) at final felling and thinning
+        // returns harvestW, bmH, bmTh
+        [[nodiscard]] static array<double, 3> cohortRes(const double realArea, const pair<V, V> &res) noexcept {
             if (realArea <= 0)
-                return 0;
+                return {0, 0, 0};
 
-            double reciprocalRealAreaO = 1 / realArea;
-            double areaRatio = res.second.area * reciprocalRealAreaO;  // harvArea / realArea
+            double reciprocalRealArea = 1 / realArea;
+            double areaRatio = res.second.area * reciprocalRealArea;  // harvArea / realArea
 
             // MG: get harvestable sawn-wood for the set (old) forest tC/ha for final cut.
             double sawnW = res.second.sw * areaRatio;
             // MG: get harvestable rest-wood for the set (old) forest tC/ha for final cut.
             double restW = res.second.rw * areaRatio;
             // MG: get harvestable sawn-wood for the set (old) forest tC/ha for thinning.
-            double sawnThW = res.first.sw * reciprocalRealAreaO;
+            double sawnThW = res.first.sw * reciprocalRealArea;
             // MG: get harvestable rest-wood for the set (old) forest tC/ha for thinning.
-            double restThW = res.first.rw * reciprocalRealAreaO;
+            double restThW = res.first.rw * reciprocalRealArea;
             // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
             double bmH = res.second.bm * areaRatio;
             // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for thinning
-            double bmTh = res.first.bm * reciprocalRealAreaO;
+            double bmTh = res.first.bm * reciprocalRealArea;
             // MG: usable harvest residues for the set (old) forest tC/ha
             double harvRes = (bmH + bmTh - (sawnW + restW + sawnThW + restThW)) * resUse;
-            return (sawnW + restW + sawnThW + restThW + harvRes) / modTimeStep;  // harvestW
+            // harvestW, bmH, bmTh
+            return {(sawnW + restW + sawnThW + restThW + harvRes) / modTimeStep,
+                    bmH / modTimeStep,
+                    bmTh / modTimeStep};
         }
 
         AgeStruct(
@@ -1170,8 +1175,8 @@ namespace g4m::increment {
             return ret;
         }
 
-        // returns harvest
-        [[nodiscard]] double cohortRes() const {
+        // returns harvestW, bmH, bmTh, performs aging and doesn't modify the cohort
+        [[nodiscard]] array<double, 3> cohortRes() const {
             auto cohortTmp = *this;
             auto res = cohortTmp.aging();
             double realArea = cohortTmp.getArea();

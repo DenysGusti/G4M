@@ -56,7 +56,7 @@ namespace g4m::application::concrete {
             countriesNoFmCPol.reserve(256);
             doneList.reserve(256);
             if (fmPol && !binFilesOnDisk && inputPriceC == 0)
-                signalZeroCtoMainScenarios.emplace(suffix0, 0);
+                signalZeroCToMainScenarios.emplace(suffix0, 0);
         }
 
         // start calculations
@@ -103,7 +103,7 @@ namespace g4m::application::concrete {
             }
 
             if (fmPol && !binFilesOnDisk && inputPriceC == 0)
-                signalZeroCtoMainScenarios.at(suffix0).release();
+                signalZeroCToMainScenarios.at(suffix0).release();
         }
 
     protected:
@@ -189,6 +189,7 @@ namespace g4m::application::concrete {
         unordered_set<uint8_t> toAdjust;            // country where FM to be adjusted
         unordered_set<uint8_t> countriesNoFmCPol;   // List of countries where it's impossible to match demanded wood production in current year
         unordered_set<uint8_t> doneList;            // countries already adjusted
+        unordered_set<uint8_t> toAdjustSalvage;     // country where Salvage Logging to be adjusted
 
         CountryData CountryRegMaxHarvest;
         CountryData CountryRegWoodProd;
@@ -555,7 +556,7 @@ namespace g4m::application::concrete {
 
                         if (biomass > 0 && appMaiForest(plot.x, plot.y) > 0 && SD != 0) {
                             double harvestTmp = appHarvestGrid(plot.x, plot.y);
-                            double harvestO = cohortVec[plot.asID].cohortRes();
+                            double harvestO = cohortVec[plot.asID].cohortRes()[0];
                             double lostHarvestTmp = cleanedWoodUseCurrent * harvestO * forestShareConcerned *
                                                     appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
                             appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp - lostHarvestTmp);
@@ -581,7 +582,7 @@ namespace g4m::application::concrete {
                                     cleanedWoodUseNew *= cleanWoodUseShare30;
 
                                 harvestTmp = appHarvestGrid(plot.x, plot.y);
-                                harvestO = cohortVec[plot.asID].cohortRes();
+                                harvestO = cohortVec[plot.asID].cohortRes()[0];
                                 double harvestNewTmp = cleanedWoodUseNew * harvestO * forestShareConcerned *
                                                        appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
                                 appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp + harvestNewTmp);
@@ -591,6 +592,9 @@ namespace g4m::application::concrete {
                 }
         }
 
+        // Calculate harvest of wood damaged by disturbances.
+        // The damaged amount is informed for each disturbance agent, grid cell and year by a special file.
+        // Apply the harvest taking into account forest stand vulnerability criteria like tree species, Dbh, height, age
         void disturbanceDamageHarvest(const uint16_t year) {
             for (const auto &plot: appPlots) {
                 double reciprocalFTimber = 1 / plot.fTimber.data.at(2000);
@@ -1095,10 +1099,10 @@ namespace g4m::application::concrete {
 
             for (const auto &plot: appPlots)
                 if (plot.protect.data.at(2000) == 0) {
-                    double harvestO = appCohort_all[plot.asID].cohortRes();
-                    double harvestO10 = appCohort10_all[plot.asID].cohortRes();
-                    double harvestO30 = appCohort30_all[plot.asID].cohortRes();
-                    double harvestN = appNewCohort_all[plot.asID].cohortRes();
+                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                    double harvestO10 = appCohort10_all[plot.asID].cohortRes()[0];
+                    double harvestO30 = appCohort30_all[plot.asID].cohortRes()[0];
+                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
 
                     double cleanedWoodUseCurrent10 = 0;
                     if (!appForest10_policy)
@@ -1213,20 +1217,7 @@ namespace g4m::application::concrete {
                 }
 
             if (toAdjust.size() > 1)
-                for (size_t i = 0; i < numberOfCountries; ++i) {
-                    if (appWoodDemand[i](year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i)) {
-                        harvDiff[i] = abs(woodHarvest[i] / appWoodDemand[i](year) - 1);
-                        TRACE("i = {}\tyear = \tharvDiff0 = {}\twoodHarvest = {}\twoodDemand = {}\tcountriesWoodHarvestM3Year = {}",
-                              i, year, harvDiff[i], woodHarvest[i], appWoodDemand[i](year),
-                              countriesWoodHarvestM3Year.getVal(i, year));
-
-                        if (countriesNoFmCPol.contains(i)) {
-                            harvDiff[i] = 0;
-                            TRACE("No NoFmCPol for country");
-                        }
-                    } else
-                        harvDiff[i] = 0;
-                }
+                printWoodHarvestPostControl(year, woodHarvest);
 
             // ------- Zero pass = Adjust thinning if population density changed --------------------
             const double stockingDegree = 1.3;
@@ -1254,10 +1245,22 @@ namespace g4m::application::concrete {
             //----Fifth pass = adjust rotation time -------
             INFO("Start Fifth pass = adjust rotation time");
             adjustRT(year, 0.02, woodHarvest, priceC, true, true);
+
+            // adjustHarvestEfficiency was deprecated
+            //**************** Adjust Salvage logging ************************
+
+            if (disturbanceSwitch && toAdjust.contains(57)) // currently only for the Czech Republic
+                //	if (year > 2019 && year < 2038)         //salvage logging in Czech Black scenario (NFAP, 2019)
+                if (year > 2018 && year < 2051) {            //salvage logging in Czech Red scenario (NFAP, 2019)
+                    INFO("Adjust salvage logging");
+                    salvageLoggingCZ(year, 0.02, stockingDegree, woodHarvest, priceC);
+                }
         }
 
+        // Calculate rotation that maximizes NPV
         // maiV computes internally
-        [[nodiscard]] tuple<double, double, double>
+        // returns RotMaxNPV, MaxNPV, harvestMaxNPV
+        [[nodiscard]] array<double, 3>
         maxNPVRotation(const DataStruct &plot, const uint16_t year, const bool used,
                        const double MAIRot, const double BmMaxRot) {
             double OForestShare = appDat_all[plot.asID].OForestShare;
@@ -1357,7 +1360,7 @@ namespace g4m::application::concrete {
                 double bm = realAreaO > 0 && !zeroC ? cohortTmp.getBm() / realAreaO : 0;
 
                 if (used) {
-                    harvestTmp = AgeStruct::cohortRes(realAreaO, resTmp) * plot.fTimber(year);
+                    harvestTmp = AgeStruct::cohortRes(realAreaO, resTmp)[0] * plot.fTimber(year);
                     harvestedArea = cohortTmp.getArea(0ull);
                 }
 
@@ -1372,6 +1375,7 @@ namespace g4m::application::concrete {
             return {npvSum, harvestTmp};
         }
 
+        // Calculate value of one rotation
         // fd if fdcFlag is false
         // maiV computes internally
         [[nodiscard]] double
@@ -1565,8 +1569,8 @@ namespace g4m::application::concrete {
                                     appNewCohort_all[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
                                 }
 
-                                double harvestO = appCohort_all[plot.asID].cohortRes();
-                                double harvestN = appNewCohort_all[plot.asID].cohortRes();
+                                double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                                double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
 
                                 double forestShareApplied =
                                         appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1724,8 +1728,8 @@ namespace g4m::application::concrete {
                                     appNewCohort_all[plot.asID].setStockingDegree(-1);
                                 }
 
-                                double harvestO = appCohort_all[plot.asID].cohortRes();
-                                double harvestN = appNewCohort_all[plot.asID].cohortRes();
+                                double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                                double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
 
                                 double forestShareApplied =
                                         appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1802,8 +1806,8 @@ namespace g4m::application::concrete {
                                     appNewCohort_all[plot.asID].setStockingDegree(-1);
                                 }
 
-                                double harvestO = appCohort_all[plot.asID].cohortRes();
-                                double harvestN = appNewCohort_all[plot.asID].cohortRes();
+                                double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                                double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
 
                                 double forestShareApplied =
                                         appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1868,8 +1872,7 @@ namespace g4m::application::concrete {
                         appNewCohort_all[plot.asID].setU(rotationForestTmp);
                     }
                 } else {
-                    double NPVTmp1 = npvCalc(plot, appCohort_all[plot.asID], year, rotation, true,
-                                             1, true).first;
+                    double NPVTmp1 = npvCalc(plot, appCohort_all[plot.asID], year, rotation, true, 1, true).first;
                     if (abs(countryHarvestTmp - countryWoodDemand) <
                         (1 + tolerance) * abs(woodHarvest[plot.country] - countryWoodDemand) &&
                         NPVTmp1 > 0 && NPVTmp1 >= (1 - npvLoss) * NPVTmp0) {
@@ -1916,8 +1919,8 @@ namespace g4m::application::concrete {
                                     appCohort_all[plot.asID].setU(rotation);
                                     appNewCohort_all[plot.asID].setU(rotation);
 
-                                    double harvestO = appCohort_all[plot.asID].cohortRes();
-                                    double harvestN = appNewCohort_all[plot.asID].cohortRes();
+                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
 
                                     double forestShareApplied =
                                             appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1959,8 +1962,8 @@ namespace g4m::application::concrete {
                                     appCohort_all[plot.asID].setU(rotation);
                                     appNewCohort_all[plot.asID].setU(rotation);
 
-                                    double harvestO = appCohort_all[plot.asID].cohortRes();
-                                    double harvestN = appNewCohort_all[plot.asID].cohortRes();
+                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
 
                                     double forestShareApplied =
                                             appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1982,6 +1985,303 @@ namespace g4m::application::concrete {
                                 }
                             }
                         }
+                    }
+        }
+
+        // Force logging of the damaged wood.
+        // 1. Mark the grid cells which are infested following vulnerability criteria
+        // 2. Do salvage logging
+        // 3. Adjust forest management in the grid cells, which we re not infested
+        void salvageLoggingCZ(const uint16_t year, const double woodProdTolerance, const double stockingDegree,
+                              const span<double> woodHarvest, const double priceC, const bool CPol = false) {
+            constexpr array<double, 32> salvageLoggingUsed = initSalvageLoggingUsed();  // CZ: m3 salvage fellings that can be used for processing, only (infested) spruce
+            constexpr array<double, 32> salvageLoggingTotal = initSalvageLoggingTotal();  // CZ:  m3 total salvage, including the dead trees that cannot be felled/used
+            array<double, 32> allHarvestedUsed = initAllHarvestedUsed();  // CZ:  m3 total harvested wood used by the industry
+            // according to NIR2022 95% of wood removals was from salvage logging
+            allHarvestedUsed[0] = appWoodDemand.at(57)(2019) * 1e-6;
+            // according to NIR2022 95% of wood removals was from salvage logging
+            allHarvestedUsed[1] = appWoodDemand.at(57)(2020) * 1e-6;
+            array<double, 32> salvageHarvest{};
+
+            const uint16_t yearSalvage = year - 2019;
+            const double rotationSalvage = 30;
+
+            unordered_set<uint8_t> infested;  // mark cells with infested forest
+            infested.reserve(appPlots.size());
+
+            // For all countries, values are only for years in multiples of 10, others are interpolated.
+            // Here the value must be written to 2051 before everything is changed for the 57th country.
+            if (yearSalvage == 0)
+                appWoodDemand.at(57).data[2051] = appWoodDemand.at(57)(2051);
+
+            if (year > 2020) // now we have real data by 2020
+                appWoodDemand.at(57).data[year] = allHarvestedUsed[yearSalvage] * 1e6;
+
+            if (yearSalvage >= 0 && yearSalvage < salvageLoggingTotal.size()) {
+                for (const auto &plot: appPlots)  // additionally filtered by countriesList (see filter plots)
+                    if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0 &&
+                        plot.speciesType == Species::Spruce)
+                        if (salvageHarvest[yearSalvage] <
+                            (1 - woodProdTolerance) * salvageLoggingTotal[yearSalvage] * 1e6) {
+                            if (appManagedForest(plot.x, plot.y) <= 0) {
+                                appManagedForest(plot.x, plot.y) = appManagedForest(plot.x, plot.y) == 0 ? 3 : 2;
+
+                                appThinningForest(plot.x, plot.y) = stockingDegree;
+                                appCohort_all[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
+                                appCohort_all[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
+
+                                // if (newCohort_all[asID]->getActiveAge() >= Rotation_salvage)
+                                thinningForestNew(plot.x, plot.y) = stockingDegree;
+                                appNewCohort_all[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
+                                appNewCohort_all[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
+
+                                appManageChForest(plot.x, plot.y) = 1;
+                            }
+
+                            appRotationForest(plot.x, plot.y) = rotationSalvage;
+                            appCohort_all[plot.asID].setU(rotationSalvage);
+                            appNewCohort_all[plot.asID].setU(rotationSalvage);
+
+                            const auto [harvestO, bmH, bmTh] =
+                                    appDat_all[plot.asID].OForestShare > 0 ? appCohort_all[plot.asID].cohortRes()
+                                                                           : array{0., 0., 0.};
+                            const auto [harvestN, bmHNew, bmThNew] =
+                                    appDat_all[plot.asID].AForestShare > 0 ? appNewCohort_all[plot.asID].cohortRes()
+                                                                           : array{0., 0., 0.};
+
+                            double forestShareApplied =
+                                    appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;
+
+                            // Total current harvested wood in the cell, m3
+                            double newHarvestTmp = (harvestO * forestShareApplied +
+                                                    harvestN * appDat_all[plot.asID].AForestShare) *
+                                                   appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
+
+                            woodHarvest[plot.country] += newHarvestTmp - appHarvestGrid(plot.x, plot.y);
+
+                            appHarvestGrid(plot.x, plot.y) = newHarvestTmp;
+
+                            // total salvage felling in the cell m3
+                            double salvageFelled = ((bmH + bmTh) * forestShareApplied +
+                                                    (bmHNew + bmThNew) * appDat_all[plot.asID].AForestShare) *
+                                                   appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
+                            salvageHarvest[yearSalvage] += salvageFelled;
+
+                            infested.insert(plot.asID);
+                        }
+
+                TRACE("PostControl 1");
+                printWoodHarvestPostControl(year, woodHarvest);
+
+                // Not all felled salvage is used
+                woodHarvest[57] -= (salvageLoggingTotal[yearSalvage] - salvageLoggingUsed[yearSalvage]) * 1e6;
+
+                for (const auto tolerance: {0.02, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01})
+                    adjustRT_allMngSalvage(year, tolerance, woodHarvest, priceC, infested, CPol);
+
+                TRACE("PostControl 2");
+                printWoodHarvestPostControl(year, woodHarvest);
+            } else
+                WARN("salvageYear > available salvage data");
+        }
+
+        // Control (calculate) the amount of harvested wood after adjusting forest management.
+        // Used together with printWoodHarvestPostControl to check how do the adjustment functions work.
+        // Not necessary for release.
+        [[nodiscard]] array<double, numberOfCountries> getWoodHarvestPostControl() const {
+            array<double, numberOfCountries> woodHarvestPostControl{};
+
+            for (const auto &plot: appPlots)  // additionally filtered by countriesList (see filter plots)
+                if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0) {
+                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+
+                    double forestShareApplied =
+                            appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;
+
+                    // Total current harvested wood in the cell, m3
+                    double newHarvestTmp = (harvestO * forestShareApplied +
+                                            harvestN * appDat_all[plot.asID].AForestShare) *
+                                           appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
+
+                    if (appThinningForest(plot.x, plot.y) <= 0)
+                        newHarvestTmp *= cleanedWoodUse[plot.country];
+
+                    woodHarvestPostControl[plot.country] += newHarvestTmp + appDat_all[plot.asID].deforWoodTotM3;
+                }
+            return woodHarvestPostControl;
+        }
+
+        // Control (output) the amount of harvested wood after adjusting forest management.
+        // Used together with getWoodHarvestPostControl to check how do the adjustment functions work.
+        // Not necessary for release.
+        void printWoodHarvestPostControl(const uint16_t year, const span<const double> woodHarvest) const {
+            array<double, numberOfCountries> woodHarvestPostControl = getWoodHarvestPostControl();
+            array<double, numberOfCountries> harvDiffLocal{};
+
+            for (size_t i = 0; i < numberOfCountries; ++i) {
+                if (appWoodDemand.at(i)(year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i)) {
+                    if (countriesNoFmCPol.contains(i)) {
+                        TRACE("No NoFmCPol for country");
+                        continue;
+                    }
+                    harvDiffLocal[i] = abs(woodHarvest[i] / appWoodDemand.at(i)(year) - 1);
+                    TRACE("i = {}\tyear = \tharvDiff = {}\twoodHarvest = {}\twoodDemand = {}\tcountriesWoodHarvestM3Year = {}",
+                          i, year, harvDiffLocal[i], woodHarvest[i], appWoodDemand.at(i)(year),
+                          countriesWoodHarvestM3Year.getVal(i, year));
+                }
+            }
+        }
+
+        // Adjust rotation time for the forest that is not infested
+        // wood and land prices are by countries!
+        // 18 February 2019: As _3_01 but the bug with region wood prices applied to countries is corrected
+        void adjustRT_allMngSalvage(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
+                                    const double priceC, const unordered_set<uint8_t> &infested,
+                                    const bool CPol = false) {
+            auto CPolPart = [&](const DataStruct &plot, const double rotation, const double countryHarvestTmp,
+                                const double countryWoodDemand, const double newHarvestTmp,
+                                const double rotationForestTmp, const double NPVTmp0) -> void {
+                if (CPol) {
+                    double NPVTmp = 1e20;
+
+                    if (countriesFmCPol.contains(plot.country) &&
+                        !countriesNoFmCPol.contains(plot.country)) {
+                        appCoefPriceC = priceC < 0 ? appCO2Price.at(plot.country)(year) : priceC;
+                        appCoefPriceC *= plot.corruption.data.at(2000);
+
+                        bool used = appThinningForest(plot.x, plot.y) > 0;
+                        // fmHurdle as wpMult in the future
+                        NPVTmp = npvCalc(plot, appCohort_all[plot.asID], year, rotation,
+                                         used).first;
+                    }
+
+                    if (abs(countryHarvestTmp - countryWoodDemand) <
+                        (1 + tolerance) * abs(woodHarvest[plot.country] - countryWoodDemand) &&
+                        NPVTmp >= maxNPVGrid(plot.x, plot.y)) {
+                        woodHarvest[plot.country] = countryHarvestTmp;
+                        appHarvestGrid(plot.x, plot.y) = newHarvestTmp;
+
+                    } else { // return old values
+                        appRotationForest(plot.x, plot.y) = rotationForestTmp;
+                        appCohort_all[plot.asID].setU(rotationForestTmp);
+                        appNewCohort_all[plot.asID].setU(rotationForestTmp);
+                    }
+                } else {
+                    // TODO ask about ignored NPVTmp1 in second branch
+                    double NPVTmp1 = npvCalc(plot, appCohort_all[plot.asID], year, rotation, true, 1, true).first;
+                    if (abs(countryHarvestTmp - countryWoodDemand) <
+                        (1 + tolerance) * abs(woodHarvest[plot.country] - countryWoodDemand) &&
+                        NPVTmp1 > 0 && NPVTmp1 >= (1 - npvLoss) * NPVTmp0) {
+                        woodHarvest[plot.country] = countryHarvestTmp;
+                        appHarvestGrid(plot.x, plot.y) = newHarvestTmp;
+
+                    } else { // return old values
+                        appRotationForest(plot.x, plot.y) = rotationForestTmp;
+                        appCohort_all[plot.asID].setU(rotationForestTmp);
+                        appNewCohort_all[plot.asID].setU(rotationForestTmp);
+                    }
+                }
+            };
+
+            for (const auto &plot: appPlots)
+                if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0)
+                    if (plot.country == 57 && !infested.contains(plot.asID)) {
+                        double countryWoodDemand = appWoodDemand.at(plot.country)(year);
+
+                        double rotationForestTmp = appRotationForest(plot.x, plot.y);
+
+                        if (woodHarvest[plot.country] < (1 - woodProdTolerance) * countryWoodDemand) {
+                            if (appManagedForest(plot.x, plot.y) > 0) {
+
+                                double rotMAI = 0;
+                                if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || appDat_all[plot.asID].prevPlantPhytHaBmGr > 0)
+                                    rotMAI = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                ORT::MAI);
+
+                                if (appRotationForest(plot.x, plot.y) != rotMAI) {
+                                    double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohort_all[plot.asID], year,
+                                                                        appRotationForest(plot.x, plot.y), true, 1,
+                                                                        true).first;
+
+                                    double rotation = 0;
+                                    if (rotMAI < appRotationForest(plot.x, plot.y)) // TEST for AT
+                                        rotation = max(appRotationForest(plot.x, plot.y) - 5, rotMAI);
+                                    else if (rotMAI > appRotationForest(plot.x, plot.y))
+                                        rotation = min(appRotationForest(plot.x, plot.y) + 5, rotMAI);
+
+                                    appRotationForest(plot.x, plot.y) = rotation;
+                                    appCohort_all[plot.asID].setU(rotation);
+                                    appNewCohort_all[plot.asID].setU(rotation);
+
+                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+
+                                    double forestShareApplied =
+                                            appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;
+
+                                    // TODO no 30 policy, OForestShareU?
+
+                                    // Total current harvested wood in the cell, m3
+                                    double newHarvestTmp = (harvestO * forestShareApplied +
+                                                            harvestN * appDat_all[plot.asID].AForestShare) *
+                                                           appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
+                                                           appDat_all[plot.asID].deforWoodTotM3;
+
+                                    double countryHarvestTmp =
+                                            woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
+
+                                    CPolPart(plot, rotation, countryHarvestTmp, countryWoodDemand, newHarvestTmp,
+                                             rotationForestTmp, NPVTmp0);
+                                }
+                            }
+                        } else if (woodHarvest[plot.country] > (1 + woodProdTolerance) * countryWoodDemand) {
+                            if (appManagedForest(plot.x, plot.y) > 0) {
+
+                                double rotMaxBmTh = 0;
+                                if (appDat_all[plot.asID].OBiomassPrev > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || appDat_all[plot.asID].prevPlantPhytHaBmGr > 0)
+                                    rotMaxBmTh = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                    ORT::MaxBm);
+
+                                if (appRotationForest(plot.x, plot.y) < rotMaxBmTh) {
+                                    double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohort_all[plot.asID], year,
+                                                                        appRotationForest(plot.x, plot.y), true, 1,
+                                                                        true).first;
+
+                                    double rotation = min(appRotationForest(plot.x, plot.y) + 5, rotMaxBmTh);
+
+                                    appRotationForest(plot.x, plot.y) = rotation;
+                                    appCohort_all[plot.asID].setU(rotation);
+                                    appNewCohort_all[plot.asID].setU(rotation);
+
+                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+
+                                    double forestShareApplied =
+                                            appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;
+
+                                    // TODO no 30 policy, OForestShareU?
+
+                                    // Total current harvested wood in the cell, m3
+                                    double newHarvestTmp = (harvestO * forestShareApplied +
+                                                            harvestN * appDat_all[plot.asID].AForestShare) *
+                                                           appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
+                                                           appDat_all[plot.asID].deforWoodTotM3;
+
+                                    double countryHarvestTmp =
+                                            woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
+
+                                    CPolPart(plot, rotation, countryHarvestTmp, countryWoodDemand, newHarvestTmp,
+                                             rotationForestTmp, NPVTmp0);
+                                }
+                            }
+                        }
+
+                        if (appCohort_all[plot.asID].getU() < 20)
+                            DEBUG("asID_RT2 = {}\tcountry = {}\tyear = {}\trotation = {}", plot.asID, plot.country,
+                                  year, appCohort_all[plot.asID].getU());
                     }
         }
     };

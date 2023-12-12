@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         app.Run();
 //        s_AllocationMetrics.printMemoryUsage();
 
-        for (auto &[suffix0, signal]: signalZeroCtoMainScenarios)
+        for (auto &[suffix0, signal]: signalZeroCToMainScenarios)
             signal.acquire();
 
         // multiple scenarios

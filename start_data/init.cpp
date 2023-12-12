@@ -1,7 +1,7 @@
 #include "start_data_functions.hpp"
 
 namespace g4m::StartData {
-
+    // Initialisation of input datasets
     void Init() {
         future<void> settings_future = async(launch::async, [] {
             Log::Init("settings");

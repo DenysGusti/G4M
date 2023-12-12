@@ -15,14 +15,14 @@ using namespace g4m::Constants;
 namespace g4m::Arrays {
 
     // compile time
-    constexpr array <uint8_t, numberOfCountries> countryCodeOrder = initCountryCodeOrder();
-    constexpr array <uint8_t, numberOfCountries> countryNwp = initCountryNwp();
-    constexpr array <uint8_t, numberOfCountries> countryRegion = initCountryRegion();
+    constexpr array<uint8_t, numberOfCountries> countryCodeOrder = initCountryCodeOrder();
+    constexpr array<uint8_t, numberOfCountries> countryNwp = initCountryNwp();
+    constexpr array<uint8_t, numberOfCountries> countryRegion = initCountryRegion();
 
-    constexpr array <string_view, numberOfCountries> countryOrderISO = initCountryOrderISO();
-    constexpr array <string_view, numberOfCountries> countryOrderISO2 = initCountryOrderISO2();
-    constexpr array <string_view, numberOfCountriesRegMix> countryRegName = initCountryRegName();
-    constexpr array <string_view, numberOfCountries> countryOrderName = initCountryOrderName();
+    constexpr array<string_view, numberOfCountries> countryOrderISO = initCountryOrderISO();
+    constexpr array<string_view, numberOfCountries> countryOrderISO2 = initCountryOrderISO2();
+    constexpr array<string_view, numberOfCountriesRegMix> countryRegName = initCountryRegName();
+    constexpr array<string_view, numberOfCountries> countryOrderName = initCountryOrderName();
 
     constexpr array<double, numberOfCountries> countryLosses = initCountryLosses();
     constexpr array<double, numberOfCountries> cleanedWoodUse = initCleanedWoodUse();  // share of cleaned wood put to the market (thinned in forests that are not used for wood production in current year).

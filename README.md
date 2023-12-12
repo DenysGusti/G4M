@@ -13,3 +13,6 @@ https://climate.ec.europa.eu/eu-action/climate-strategies-targets/economic-analy
 The model code uses some open-source scripts developed and put on GitHub by Georg Kindermann 
 (https://github.com/GeorgKindermann/g4m) and the other code in private repositories. The model code is written in C++. 
 The model code has been developed since 2006 by a few people, usually non-professional programmers.
+
+# Structure
+![img.png](media/img.png)

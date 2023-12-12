@@ -15,7 +15,7 @@ namespace g4m::Dicts {
 
     // pairs of G4M country ID and GLOBIOM country name
     unordered_map<uint8_t, string> idCountryGLOBIOM = setIdCountryGLOBIOM();
-    unordered_map<string, uint8_t, string_hash, equal_to<> > countryGLOBIOMId = setCountryGLOBIOMId();
+    unordered_map<string, uint8_t, StringHash, equal_to<> > countryGLOBIOMId = setCountryGLOBIOMId();
 
     unordered_map<Species, IncrementTab, EnumHasher> species = defineSpecies();
     // countries and species where the stumps can be harvested as compiled by Fulvio 06.06

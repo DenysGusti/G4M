@@ -6,7 +6,7 @@
 using namespace std;
 
 //  https://www.cppstories.com/2021/heterogeneous-access-cpp20/
-struct string_hash {
+struct StringHash {
     using is_transparent = void;
 
     [[nodiscard]] size_t operator()(const char *txt) const {

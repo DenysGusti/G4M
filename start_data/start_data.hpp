@@ -99,7 +99,7 @@ namespace g4m::StartData {
     map <pair<uint32_t, uint32_t>, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
 
     using datamapType = unordered_map<uint8_t, Ipol < double> >;
-    using heterDatamapScenariosType = unordered_map<string, datamapType, string_hash, equal_to<> >;
+    using heterDatamapScenariosType = unordered_map<string, datamapType, StringHash, equal_to<> >;
 
     heterDatamapScenariosType globiomAfforMaxCountryScenarios;  // Country maximum allowed afforestation estimated from GLOBIOM natural land (kha)
     heterDatamapScenariosType globiomLandCountryScenarios;      // Country GLOBIOM land (kha) reserved for croplands, pastures and short rotation plantations (also wetlands and infrastructure)
@@ -139,7 +139,7 @@ namespace g4m::StartData {
     FFIpolM<double> ffdoe;
 
     using simuIdType = unordered_map<uint32_t, Ipol < double> >;
-    using heterSimuIdScenariosType = unordered_map<string, simuIdType, string_hash, equal_to<>>;
+    using heterSimuIdScenariosType = unordered_map<string, simuIdType, StringHash, equal_to<> >;
 
     heterSimuIdScenariosType globiomAfforMaxScenarios;         // Maximum allowed afforestation estimated from GLOBIOM natural land
     heterSimuIdScenariosType globiomLandScenarios;      // Country GLOBIOM land (kha) reserved for croplands, pastures and short rotation plantations (also wetlands and infrastructure)
@@ -183,9 +183,9 @@ namespace g4m::StartData {
     // data related to harvesting the residues (residues amount, associated costs and soil loss emissions)
     unordered_map<uint8_t, vector<HarvestResidues> > harvestResiduesCountry;  // a vector of harvest residues data for all single countries
 
-    unordered_map<string, binary_semaphore, string_hash, equal_to<> > signalZeroCtoMainScenarios;
-    unordered_map<string, vector<vector<double> >, string_hash, equal_to<> > biomassBauScenarios;
-    unordered_map<string, vector<vector<double> >, string_hash, equal_to<> > NPVBauScenarios;
+    unordered_map<string, binary_semaphore, StringHash, equal_to<> > signalZeroCToMainScenarios;
+    unordered_map<string, vector<vector<double> >, StringHash, equal_to<> > biomassBauScenarios;
+    unordered_map<string, vector<vector<double> >, StringHash, equal_to<> > NPVBauScenarios;
 }
 
 #endif
