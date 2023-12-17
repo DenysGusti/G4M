@@ -495,7 +495,7 @@ namespace g4m::StartData {
         constexpr array ageSize = {11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
 
         for (size_t asId = 0; const auto &plot: commonPlots) {
-            coef.priceC = priceCiS[0] * plot.corruption(coef.bYear);
+            coef.priceC = priceCiS[0] * plot.corruption;
 
             double forestShare = clamp(plot.getForestShare(), 0., plot.getMaxAffor());
 
@@ -579,7 +579,7 @@ namespace g4m::StartData {
 
             if (plot.forest + plot.oldGrowthForest_thirty > 0 && mai_tmp > 0) {
                 if (ageStructData.contains(plot.country) && thinning_tmp > 0 && (forFlag || forFlag30) &&
-                    plot.potVeg.data.at(2000) < 10) {
+                    plot.potVeg < 10) {
                     cohort.createNormalForest(321, 0, 1);
 
                     for (size_t i = 1; i < 161; ++i) {

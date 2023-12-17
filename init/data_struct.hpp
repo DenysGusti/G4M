@@ -28,6 +28,7 @@ namespace g4m::init {
         Species speciesType = Species::NoTree;
 
         int8_t mngmType = 0;
+        uint8_t potVeg = 0;
 
         bool managedFlag = false;
         bool managed_UNFCCC = false;  // Flag: true: the cell is counted as managed land for the UNFCCC reporting
@@ -54,8 +55,8 @@ namespace g4m::init {
         double GL_correction = 0;
         double natLnd_correction = 0;
         double grLnd_protect = 0;  // Natural vegetation and heathland protected under Nature2000 or to be protected! EU27 only!
+        double corruption = 0;
 
-        Ipol<double> potVeg;
         Ipol<double> protect;
         Ipol<double> NPP;
         Ipol<double> popDens;
@@ -66,7 +67,6 @@ namespace g4m::init {
         Ipol<double> builtUp;
         Ipol<double> crop;
         Ipol<double> fracLongProd;
-        Ipol<double> corruption;
         Ipol<double> slashBurn;
         Ipol<double> decHerb;
         Ipol<double> decWood;
@@ -128,9 +128,11 @@ namespace g4m::init {
                         managed_UNFCCC = static_cast<bool>(cell);
                     else if (name == "MNGMTYPE")
                         mngmType = static_cast<int8_t>(cell);
+                    else if (name == "POTVEG")
+                        potVeg = static_cast<uint8_t>(cell);
                     else if (name == "SPECIESTYPE")
                         speciesType = static_cast<Species>(cell);
-                        // doubleing point vars
+                        // floating point vars
                     else if (name == "LANDAREA")
                         landArea = cell;
                     else if (name == "FOREST")
@@ -175,17 +177,15 @@ namespace g4m::init {
                         natLnd_correction = cell;
                     else if (name == "GRLND_PROTECT")
                         grLnd_protect = cell;
-                        // Ipol vars with default key 2000
                     else if (name == "CORRUPTION")
-                        corruption.data[2000] = cell;
+                        corruption = cell;
+                        // Ipol vars with default key 2000
                     else if (name == "R")
                         R.data[2000] = cell;
                     else if (name == "PRICEINDEX")
                         priceIndex.data[2000] = cell;
                     else if (name == "FTIMBER")
                         fTimber.data[2000] = cell;
-                    else if (name == "POTVEG")
-                        potVeg.data[2000] = cell;
                     else if (name == "PROTECT")
                         protect.data[2000] = cell;
                     else if (name == "MAIE")
@@ -218,23 +218,22 @@ namespace g4m::init {
 
         [[nodiscard]] string str() const noexcept {
             string format_integral = format(
-                    "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\nspeciesType = {}\nmngmType = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n",
-                    x, y, simuID, country, IIASA_region, polesReg, countryRegMix, speciesName.at(speciesType), mngmType,
-                    managedFlag,
-                    managed_UNFCCC);
-            string format_doubleing_point = format(
-                    "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\nCBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\nresiduesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\noldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\nGL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\n",
+                    "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\nspeciesType = {}\nmngmType = {}\npotVeg = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n",
+                    x, y, simuID, country, int{IIASA_region}, int{polesReg}, int{countryRegMix},
+                    speciesName.at(speciesType), int{mngmType}, int{potVeg}, managedFlag, managed_UNFCCC);
+            string format_floating_point = format(
+                    "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\nCBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\nresiduesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\noldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\nGL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\ncorruption = {}\n",
                     landArea, forest, forLoss, agrSuit, sAgrSuit, CAboveHa, CBelowHa, CDeadHa, CLitterHa, SOCHa,
                     managedShare, residuesUseShare, residuesUseCosts, deadWood, oldGrowthForest_ten,
                     oldGrowthForest_thirty, strictProtected, forestAll, forest_correction, GL_correction,
-                    natLnd_correction, grLnd_protect);
+                    natLnd_correction, grLnd_protect, corruption);
             string format_ipol = format(
-                    "potVeg:\n{}\nprotect:\n{}\nNPP:\n{}\npopDens:\n{}\nsPopDens\n{}\npriceIndex:\n{}\nR:\n{}\nGDP:\n{}\nbuiltUp:\n{}\ncrop:\n{}\nfracLongProd:\n{}\ncorruption:\n{}\nslashBurn:\n{}\ndecHerb:\n{}\ndecWood:\n{}\ndecSOC:\n{}\nfTimber:\n{}\nMAIE:\n{}\nMAIN:\n{}\nroad:\n{}\nGLOBIOM_reserved:\n{}\nafforMax:\n{}\nharvestCosts:\n{}\n",
-                    potVeg.str(), protect.str(), NPP.str(), popDens.str(), sPopDens.str(), priceIndex.str(), R.str(),
-                    GDP.str(), builtUp.str(), crop.str(), fracLongProd.str(), corruption.str(), slashBurn.str(),
-                    decHerb.str(), decWood.str(), decSOC.str(), fTimber.str(), MAIE.str(), MAIN.str(), road.str(),
-                    GLOBIOM_reserved.str(), afforMax.str(), harvestCosts.str());
-            return format_integral + format_doubleing_point + format_ipol;
+                    "protect:\n{}\nNPP:\n{}\npopDens:\n{}\nsPopDens\n{}\npriceIndex:\n{}\nR:\n{}\nGDP:\n{}\nbuiltUp:\n{}\ncrop:\n{}\nfracLongProd:\n{}\nslashBurn:\n{}\ndecHerb:\n{}\ndecWood:\n{}\ndecSOC:\n{}\nfTimber:\n{}\nMAIE:\n{}\nMAIN:\n{}\nroad:\n{}\nGLOBIOM_reserved:\n{}\nafforMax:\n{}\nharvestCosts:\n{}\n",
+                    protect.str(), NPP.str(), popDens.str(), sPopDens.str(), priceIndex.str(), R.str(), GDP.str(),
+                    builtUp.str(), crop.str(), fracLongProd.str(), slashBurn.str(), decHerb.str(), decWood.str(),
+                    decSOC.str(), fTimber.str(), MAIE.str(), MAIN.str(), road.str(), GLOBIOM_reserved.str(),
+                    afforMax.str(), harvestCosts.str());
+            return format_integral + format_floating_point + format_ipol;
         }
 
         friend ostream &operator<<(ostream &os, const DataStruct &obj) {
