@@ -1,5 +1,5 @@
 #include "log.hpp"
-#include "start_data/init.cpp"
+#include "start_data/init.hpp"
 #include "application/abstract/application.hpp"
 #include "application/concrete/forest_GUI_Europe_param_dw_5_3.hpp"
 #include "thread_pool.hpp"

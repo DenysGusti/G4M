@@ -18,18 +18,9 @@ namespace g4m::DataIO::printing {
             TRACE("plots[{}]:\n{}", i++, plot.str());
     }
 
-    void printDatamapScenarios(const heterDatamapScenariosType &datamapScenarios, const string_view message) noexcept {
-        TRACE("{}", message);
-        for (const auto &[scenario, datamap]: datamapScenarios) {
-            TRACE("{}", scenario);
-            for (const auto &[id, ipol]: datamap)
-                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
-        }
-    }
-
     void printCountryLandArea() noexcept {
-        for (uint16_t i = 0; const auto area: countryLandArea)
-            TRACE("{} area = {}", idCountryGLOBIOM.at(i++), area);
+        for (const auto& [i, area]: countryLandArea | rv::enumerate)
+            TRACE("{} area = {}", idCountryGLOBIOM.at(i), area);
     }
 
     void printNuts2Id() noexcept {
@@ -55,13 +46,7 @@ namespace g4m::DataIO::printing {
     void printData() noexcept {
         printPlots();
 
-        printDatamapScenarios(landPriceScenarios, "Globiom scenarios Land Price");
-        printDatamapScenarios(woodPriceScenarios, "Globiom scenarios Wood Price");
-        printDatamapScenarios(woodDemandScenarios, "Globiom scenarios Wood Demand");
-        printDatamapScenarios(residuesDemandScenarios, "Globiom scenarios Residues Demand");
-        printDatamapScenarios(globiomAfforMaxCountryScenarios, "globiomAfforMaxCountryScenarios");
-        printDatamapScenarios(globiomLandCountryScenarios, "globiomLandCountryScenarios");
-        printDatamapScenarios(CO2PriceScenarios, "CO2PriceScenarios");
+        datamapScenarios.printData();
 
         printCountryLandArea();
         printNuts2Id();

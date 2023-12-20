@@ -6,7 +6,7 @@
 #include <array>
 #include <vector>
 
-#include "../helper/heterogeneous_lookup.hpp"
+#include "../helper/string_hash.hpp"
 #include "../increment/increment_tab.hpp"
 
 using namespace std;

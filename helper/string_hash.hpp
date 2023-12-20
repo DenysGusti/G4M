@@ -1,5 +1,5 @@
-#ifndef G4M_EUROPE_DG_HETEROGENEOUS_LOOKUP_HPP
-#define G4M_EUROPE_DG_HETEROGENEOUS_LOOKUP_HPP
+#ifndef G4M_EUROPE_DG_STRING_HASH_HPP
+#define G4M_EUROPE_DG_STRING_HASH_HPP
 
 #include <string>
 
@@ -14,7 +14,7 @@ namespace g4m::helper {
             return hash<string_view>{}(txt);
         }
 
-        [[nodiscard]] size_t operator()(string_view txt) const {
+        [[nodiscard]] size_t operator()(const string_view txt) const {
             return hash<string_view>{}(txt);
         }
 

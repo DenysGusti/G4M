@@ -6,6 +6,7 @@
 #include "../start_data/start_data.hpp"
 #include "../dicts/dicts.hpp"
 #include "../log.hpp"
+#include "../helper/check_file.hpp"
 
 using namespace std;
 using namespace g4m::StartData;
@@ -13,32 +14,9 @@ using namespace g4m::Dicts;
 
 namespace g4m::DataIO::reading {
 
-    [[nodiscard]] ifstream checkFile(const string_view fileName, bool binary = false) {
-
-        auto filePath = fs::path{settings.inputPath} / fileName;
-        ifstream fp;
-        binary ? fp.open(filePath, ios::binary) : fp.open(filePath);
-
-        if (!fp.is_open()) {
-            FATAL("Cannot read input file: {} !", filePath.string());
-            throw runtime_error{format("Cannot read input file: {} !", filePath.string())};
-        }
-
-        string line;
-        getline(fp, line);
-
-        if (line.empty()) {
-            FATAL("Empty input file: {} !", filePath.string());
-            throw runtime_error{format("Empty input file: {} !", filePath.string())};
-        }
-
-        fp.seekg(0, ios::beg);
-        return fp;
-    }
-
     [[nodiscard]] vector<DataStruct> readPlots() {
         INFO("> Reading the rest of input data...");
-        ifstream fp = checkFile(fileName_dat);
+        ifstream fp = checkFile(fileNames.at("dat"));
         string line;
         getline(fp, line);
 
@@ -78,133 +56,14 @@ namespace g4m::DataIO::reading {
         return plots;
     }
 
-    [[nodiscard]] datamapType readHistoric(const string_view file_path, const string_view message,
-                                           const uint16_t firstYear, const uint16_t lastYear) {
-        INFO("> Reading the Historic {} 2000-2020...", message);
-        ifstream fp = checkFile(file_path);
-        string line;
-        getline(fp, line);
-
-        auto year_columns = line | rv::split(',') | rv::drop_while(
-                [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
-                            rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
-                            ranges::to<vector<uint16_t> >();
-
-        auto getTrimmingOffsets = [&]() -> pair<size_t, size_t> {
-            return {distance(year_columns.begin(), ranges::lower_bound(year_columns, firstYear)),
-                    distance(year_columns.begin(), prev(ranges::upper_bound(year_columns, lastYear)))};
-        };
-
-        const auto [offset_first, offset_last] = getTrimmingOffsets();
-        auto trimmed_year_columns = span{year_columns}.subspan(offset_first, offset_last - offset_first + 1);
-
-        datamapType datamap;
-        datamap.reserve(30);
-
-        vector<double> d_row;
-        uint32_t line_num = 1;
-        for (vector<string> s_row; !fp.eof(); ++line_num) {
-            getline(fp, line);
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                d_row = s_row | rv::drop(s_row.size() - year_columns.size() + offset_first) |
-                        rv::take(trimmed_year_columns.size()) |
-                        rv::transform([&](const auto &cell) {  // subrange
-                            if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
-                                return 0.;
-                            }
-                            return stod(string{cell.begin(), cell.end()});
-                        }) | ranges::to<vector<double> >();
-                if (countryGLOBIOMId.contains(s_row[0]))
-                    datamap[countryGLOBIOMId[s_row[0]]] = {trimmed_year_columns, d_row};
-                else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
-            }
-        }
-        INFO("Successfully read {} lines.", line_num);
-        return datamap;
-    }
-
-    void readDatamaps() {
-        landPriceScenarios[s_bauScenario] = readHistoric(fileName_lp0, "Land Price", 2000, 2020);
-        woodPriceScenarios[s_bauScenario] = readHistoric(fileName_wp0, "Wood Price", 2000, 2020);
-        woodDemandScenarios[s_bauScenario] = readHistoric(fileName_wd0, "Wood Demand", 1990, 2021);
-        residuesDemandScenarios[s_bauScenario] = readHistoric(fileName_rd0, "Residues Demand", 2000, 2020);
-    }
-
-    [[nodiscard]] heterDatamapScenariosType readGlobiomScenarios(const string_view file_path, const string_view message,
-                                                                 const uint16_t firstYear, const uint16_t lastYear) {
-        INFO("> Reading the Globiom Scenarios {}...", message);
-        ifstream fp = checkFile(file_path);
-        string line;
-        getline(fp, line);
-
-        auto year_columns = line | rv::split(',') | rv::drop_while(
-                [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
-                            rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
-                            ranges::to<vector<uint16_t> >();
-
-        auto getTrimmingOffsets = [&]() -> pair<size_t, size_t> {
-            return {distance(year_columns.begin(), ranges::lower_bound(year_columns, firstYear)),
-                    distance(year_columns.begin(), prev(ranges::upper_bound(year_columns, lastYear)))};
-        };
-
-        const auto [offset_first, offset_last] = getTrimmingOffsets();
-        auto trimmed_year_columns = span{year_columns}.subspan(offset_first, offset_last - offset_first + 1);
-
-        heterDatamapScenariosType scenariosDatamaps;
-        scenariosDatamaps.reserve(3'400);
-
-        vector<double> d_row;
-        string scenario_name;
-        uint32_t line_num = 1;
-        for (vector<string> s_row; !fp.eof(); ++line_num) {
-            getline(fp, line);
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                d_row = s_row | rv::drop(s_row.size() - year_columns.size() + offset_first) |
-                        rv::take(trimmed_year_columns.size()) |
-                        rv::transform([&](const auto &cell) {  // subrange
-                            if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
-                                return 0.;
-                            }
-                            return stod(string{cell.begin(), cell.end()});
-                        }) | ranges::to<vector<double> >();
-                scenario_name =
-                        s_row[3] + '_' + s_row[4] + '_' + s_row[5] | rv::transform(::toupper) | ranges::to<string>();
-                if (countryGLOBIOMId.contains(s_row[0]))
-                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]] = {trimmed_year_columns, d_row};
-                else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
-            }
-        }
-        INFO("Successfully read {} lines.", line_num);
-        return scenariosDatamaps;
-    }
-
-    void readGlobiom() {
-        landPriceScenarios = readGlobiomScenarios(fileName_lp, "Land Price", 2030, coef.eYear);
-        woodPriceScenarios = readGlobiomScenarios(fileName_wp, "Wood Price", 2030, coef.eYear);
-        woodDemandScenarios = readGlobiomScenarios(fileName_wd, "Wood Demand", 2030, coef.eYear);
-        residuesDemandScenarios = readGlobiomScenarios(fileName_rd, "Residues Demand", 2030, coef.eYear);
-
-//        years
-//        cout << landPriceScenarios.begin()->second.begin()->second.data.begin()->first << '\n';
-//        cout << landPriceScenarios.begin()->second.begin()->second.data.rbegin()->first << '\n';
-    }
-
     void readGlobiomLandCalibrate() {
-        if (fileName_gl_0.empty()) {
+        if (fileNames.at("gl_0").empty()) {
             WARN("No GLOBIOM LC data for 2000-2020!!!!");
             return;
         }
 
         INFO("> Reading the GLOBIOM LC data for 2000-2020...");
-        ifstream fp = checkFile(fileName_gl_0);
+        ifstream fp = checkFile(fileNames.at("gl_0"));
         string line;
         getline(fp, line);
 
@@ -212,8 +71,8 @@ namespace g4m::DataIO::reading {
         auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
                       ranges::to<vector<string> >();
 
-        globiomAfforMaxScenarios[s_bauScenario].reserve(3'100);
-        globiomLandScenarios[s_bauScenario].reserve(3'100);
+        globiomAfforMaxScenarios[bauScenario].reserve(3'100);
+        globiomLandScenarios[bauScenario].reserve(3'100);
 
         vector<double> d_row;
 
@@ -241,11 +100,11 @@ namespace g4m::DataIO::reading {
                         double gl_tmp = 0;
                         for (const auto &[type, cell]: rv::zip(header, d_row)) {
                             if (type == "NATURAL")
-                                globiomAfforMaxScenarios[s_bauScenario][simuId].data[year] = cell;
+                                globiomAfforMaxScenarios[bauScenario][simuId].data[year] = cell;
                             else if (type == "ARABLE" || type == "WETLAND" || type == "BLOCKED")
                                 gl_tmp += cell;
                         }
-                        globiomLandScenarios[s_bauScenario][simuId].data[year] = gl_tmp;
+                        globiomLandScenarios[bauScenario][simuId].data[year] = gl_tmp;
                     }
                 } else
                     DEBUG("Plots don't contain simuId = {}", simuId);
@@ -255,13 +114,13 @@ namespace g4m::DataIO::reading {
     }
 
     void readGlobiomLand() {
-        if (fileName_gl.empty()) {
+        if (fileNames.at("gl").empty()) {
             WARN("No GLOBIOM LC data!!!!");
             return;
         }
 
         INFO("> Reading the GLOBIOM LC data...");
-        ifstream fp = checkFile(fileName_gl);
+        ifstream fp = checkFile(fileNames.at("gl"));
         string line;
         getline(fp, line);
 
@@ -313,176 +172,9 @@ namespace g4m::DataIO::reading {
         INFO("Successfully read {} lines.", line_num);
     }
 
-    void readGlobiomLandCountryCalibrate_calcCountryLandArea() {
-        if (fileName_gl_country_0.empty()) {
-            WARN("No GLOBIOM LC country data for 2000-2020!!!!");
-            return;
-        }
-
-        INFO("> Reading the GLOBIOM land country data for 2000-2020...");
-        ifstream fp = checkFile(fileName_gl_country_0);
-        string line;
-        getline(fp, line);
-
-        size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
-        auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
-                      ranges::to<vector<string> >();
-
-        globiomAfforMaxCountryScenarios[s_bauScenario].reserve(250);
-        globiomLandCountryScenarios[s_bauScenario].reserve(250);
-
-        vector<double> d_row;
-
-        uint32_t line_num = 1;
-        for (vector<string> s_row; !fp.eof(); ++line_num) {
-            getline(fp, line);
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                uint16_t year = stoi(s_row[first_data_column - 1]);
-
-                if (year <= 2020) {
-                    d_row = s_row | rv::drop(first_data_column) |
-                            rv::transform([&](const auto &cell) {  // subrange
-                                if (cell.empty()) {
-                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
-                                    return 0.;
-                                }
-                                return stod(string{cell.begin(), cell.end()});
-                            }) | ranges::to<vector<double> >();
-
-                    if (countryGLOBIOMId.contains(s_row[0])) {
-                        uint8_t id = countryGLOBIOMId[s_row[0]];
-                        double gl_tmp = 0;
-                        double gl_tot = 0;
-
-                        for (const auto &[type, cell]: rv::zip(header, d_row)) {
-                            if (year == 2000 && type == "FOREST")
-                                gl_tot = cell;
-                            else if (type == "NATURAL") {
-                                globiomAfforMaxCountryScenarios[s_bauScenario][id].data[year] = cell;
-                                if (year == 2000)
-                                    gl_tot += cell;
-                            } else if (type == "ARABLE" || type == "WETLAND" || type == "BLOCKED")
-                                gl_tmp += cell;
-                        }
-
-                        globiomLandCountryScenarios[s_bauScenario][id].data[year] = gl_tmp;
-                        if (year == 2000)
-                            countryLandArea[id] = gl_tot + gl_tmp;
-                    } else
-                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
-                }
-            }
-        }
-        INFO("Successfully read {} lines.", line_num);
-    }
-
-    void readGlobiomLandCountry() {
-        if (fileName_gl_country.empty()) {
-            WARN("No GLOBIOM LC country data!!!!");
-            return;
-        }
-
-        INFO("> Reading the GLOBIOM land country data...");
-        ifstream fp = checkFile(fileName_gl_country);
-        string line;
-        getline(fp, line);
-
-        const size_t first_data_column = 5;  // Forest,Arable,Natural,Wetland,Blocked
-        auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
-                      ranges::to<vector<string> >();
-
-        globiomAfforMaxCountryScenarios.reserve(27'500);
-        globiomLandCountryScenarios.reserve(27'500);
-
-        vector<double> d_row;
-        string scenario_name;
-        uint32_t line_num = 1;
-        for (vector<string> s_row; !fp.eof(); ++line_num) {
-            getline(fp, line);
-
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                uint16_t year = stoi(s_row[first_data_column - 1]);
-
-                if (year > 2020 && year <= coef.eYear) {
-                    d_row = s_row | rv::drop(first_data_column) |
-                            rv::transform([&](const auto &cell) {  // subrange
-                                if (cell.empty()) {
-                                    ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
-                                    return 0.;
-                                }
-                                return stod(string{cell.begin(), cell.end()});
-                            }) | ranges::to<vector<double> >();
-
-                    if (countryGLOBIOMId.contains(s_row[0])) {
-                        uint8_t id = countryGLOBIOMId[s_row[0]];
-                        scenario_name = s_row[1] + '_' + s_row[2] + '_' + s_row[3] |
-                                        rv::transform(::toupper) | ranges::to<string>();
-                        double gl_tmp = 0;
-                        for (const auto &[type, cell]: rv::zip(header, d_row)) {
-                            if (type == "NATURAL") {
-                                globiomAfforMaxCountryScenarios[scenario_name][id].data[year] = cell;
-                            } else if (type == "ARABLE" || type == "WETLAND" || type == "BLOCKED")
-                                gl_tmp += cell;
-                        }
-                        globiomLandCountryScenarios[scenario_name][id].data[year] = gl_tmp;
-                    } else
-                        ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
-                }
-            }
-        }
-        INFO("Successfully read {} lines.", line_num);
-    }
-
-    [[nodiscard]] heterDatamapScenariosType readCO2price() {
-        INFO("> Reading the CO2 prices...");
-        ifstream fp = checkFile(fileName_co2p);
-        string line;
-        getline(fp, line);
-
-        auto year_columns = line | rv::split(',') | rv::drop_while(
-                [](const auto &s) { return string_view{s}.find_first_of("012345789") == string::npos; }) |
-                            rv::transform([](const auto &s) { return stoi(string{s.begin(), s.end()}); }) |
-                            ranges::to<vector<uint16_t> >();
-        size_t idx_ge_refYear = distance(year_columns.begin(), ranges::lower_bound(year_columns, refYear));
-
-        heterDatamapScenariosType scenariosDatamaps;
-        scenariosDatamaps.reserve(3'400);
-
-        vector<double> d_row;
-        string scenario_name;
-        uint32_t line_num = 1;
-        for (vector<string> s_row; !fp.eof(); ++line_num) {
-            getline(fp, line);
-            if (!line.empty() && line[0] != '#') {
-                s_row = line | rv::split(',') | ranges::to<vector<string> >();
-                d_row = s_row | rv::drop(s_row.size() - year_columns.size()) |
-                        rv::transform([&](const auto &cell) {  // subrange
-                            if (cell.empty()) {
-                                ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
-                                return 0.;
-                            }
-                            return stod(string{cell.begin(), cell.end()});
-                        }) | ranges::to<vector<double> >();
-                scenario_name =
-                        s_row[3] + '_' + s_row[4] + '_' + s_row[5] | rv::transform(::toupper) | ranges::to<string>();
-
-                if (countryGLOBIOMId.contains(s_row[0])) {
-                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]] = {year_columns, d_row};
-                    scenariosDatamaps[scenario_name][countryGLOBIOMId[s_row[0]]].data[refYear] = d_row[idx_ge_refYear];
-                } else
-                    ERROR("!!! No such country: {}, line: {}", s_row[0], line_num + 1);
-            }
-        }
-        INFO("Successfully read {} lines.", line_num);
-        return scenariosDatamaps;
-    }
-
-    [[nodiscard]] map<pair<uint32_t, uint32_t>, string> readNUTS2() {
+    [[nodiscard]] map <pair<uint32_t, uint32_t>, string> readNUTS2() {
         INFO("> Reading the NUTS2...");
-        ifstream fp = checkFile(fileName_nuts2);
+        ifstream fp = checkFile(fileNames.at("nuts2"));
         string line;
         getline(fp, line);
 
@@ -502,13 +194,13 @@ namespace g4m::DataIO::reading {
     }
 
     [[nodiscard]] heterSimuIdScenariosType readMAIClimate() {
-        if (fileName_maic.empty()) {
+        if (fileNames.at("maic").empty()) {
             WARN("No MAI climate data!!!!");
             return {};
         }
 
         INFO("> Reading the MAI climate data...");
-        ifstream fp = checkFile(fileName_maic);
+        ifstream fp = checkFile(fileNames.at("maic"));
         string line;
         getline(fp, line);
 
@@ -544,13 +236,13 @@ namespace g4m::DataIO::reading {
     }
 
     void readDisturbances() {
-        if (fileName_disturbance.empty()) {
+        if (fileNames.at("disturbance").empty()) {
             WARN("No disturbance projection data!!!!");
             return;
         }
 
         INFO("> Reading the disturbance data...");
-        ifstream fp = checkFile(fileName_disturbance);
+        ifstream fp = checkFile(fileNames.at("disturbance"));
         string line;
         getline(fp, line);
 
@@ -592,13 +284,13 @@ namespace g4m::DataIO::reading {
     }
 
     void readDisturbancesExtreme() {
-        if (fileName_disturbanceExtreme.empty()) {
+        if (fileNames.at("disturbanceExtreme").empty()) {
             WARN("No extreme disturbance projection data!!!!");
             return;
         }
 
         INFO("> Reading the extreme disturbance data ...");
-        ifstream fp = checkFile(fileName_disturbanceExtreme);
+        ifstream fp = checkFile(fileNames.at("disturbanceExtreme"));
         string line;
         getline(fp, line);
 
@@ -641,7 +333,7 @@ namespace g4m::DataIO::reading {
 
     [[nodiscard]] unordered_map<uint8_t, vector<double> > readAgeStructData() {
         INFO("> Reading the age struct data...");
-        ifstream fp = checkFile(fileName_ageStruct);
+        ifstream fp = checkFile(fileNames.at("ageStruct"));
 
         string line;
         getline(fp, line);

@@ -107,17 +107,6 @@ namespace g4m::StartData {
         return filteredPlots;
     }
 
-    void convertUnitsDatamaps() noexcept {
-        for (auto &[scenario, datamap]: woodDemandScenarios)
-            for (auto &[id, ipol]: datamap)
-                for (auto &[key, value]: ipol.data)
-                    value *= 1'000;
-        for (auto &[scenario, datamap]: residuesDemandScenarios)
-            for (auto &[id, ipol]: datamap)
-                for (auto &[key, value]: ipol.data)
-                    value *= 250;
-    }
-
     void correctNUTS2Data(const span<const DataStruct> plots) noexcept {
         for (const auto &plot: plots)
             // Test only some regions and some countries
@@ -278,13 +267,6 @@ namespace g4m::StartData {
         return fun_plotsXYSimuID;
     }
 
-    void correctAndConvertCO2Prices(heterDatamapScenariosType &datamapScenarios) {
-        for (auto &[scenario, datamap]: datamapScenarios)
-            for (auto &[id, ipol]: datamap)
-                for (auto &[year, CO2Price]: ipol.data)
-                    CO2Price = CO2Price < 0.011 ? 0 : CO2Price * deflator * 44 / 12.;  // M(CO2) / M(C)
-    }
-
     // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
     void scaleMAIClimate2020(heterSimuIdScenariosType &simuIdScenarios) {
         if (!scaleMAIClimate) {
@@ -351,7 +333,7 @@ namespace g4m::StartData {
                 optional<double> opt_dfor = plot.initForestArea(forestShare0 - maxAffor);
                 if (opt_dfor) {
                     // take years from globiomAfforMaxScenarios (initForestArea corrects in)
-                    for (const auto year: globiomAfforMaxScenarios.at(s_bauScenario).at(plot.simuID).data | rv::keys)
+                    for (const auto year: globiomAfforMaxScenarios.at(bauScenario).at(plot.simuID).data | rv::keys)
                         if (year > 2000)
                             // before subtraction was later in initManagedForestLocal (values are negative!!!)
                             plot.GLOBIOM_reserved.data[year] = -*opt_dfor;
@@ -401,8 +383,8 @@ namespace g4m::StartData {
                           coef.priceC, coef.plantingCostsR, coef.priceLandMinR, coef.priceLandMaxR, coef.maxRotInter,
                           coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd, coef.baseline,
                           plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR, coef.fCUptake, plot.GDP,
-                          coef.harvLoos, forestShare0, woodPriceScenarios.at(s_bauScenario).at(plot.country),
-                          rotMAI, harvMAI};
+                          coef.harvLoos, forestShare0,
+                          datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country), rotMAI, harvMAI};
 
             double rotation = 0;
             if (plot.protect.data.at(2000) < 1) {
@@ -845,7 +827,7 @@ namespace g4m::StartData {
                               coef.fCUptake, plot.GDP, coef.harvLoos,
                               commonOForestShGrid(plot.x, plot.y) -
                               plot.strictProtected,  // forestShare0 - forest available for wood supply initially
-                              woodPriceScenarios.at(s_bauScenario).at(plot.country), rotMAI,
+                              datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country), rotMAI,
                               MAI * plot.fTimber.data.at(2000) * (1 - coef.harvLoos)};  // harvMAI
 
                 double thinning = -1;
@@ -911,7 +893,7 @@ namespace g4m::StartData {
                     rotMaxBm = species[plot.speciesType].getTOpt(MAI, ORT::MaxBm);
                 }
 
-                if (woodPriceScenarios.at(s_bauScenario).at(plot.country)(coef.bYear) >
+                if (datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country)(coef.bYear) >
                     woodPotHarvest[plot.country - 1]) {
                     if (commonManagedForest(plot.x, plot.y) == 0) {
                         rotation = rotMAI + 1;

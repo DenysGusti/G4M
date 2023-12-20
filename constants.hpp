@@ -2,6 +2,7 @@
 #define G4M_EUROPE_DG_VARS_HPP
 
 #include <string>
+#include "helper/string_hash.hpp"
 
 using namespace std;
 
@@ -16,34 +17,45 @@ namespace g4m::Constants {
 
     constexpr uint32_t modTimeStep = 1;
 
-    constexpr string_view fileName_dat = "b2_euclimit6_bioclima_feu2020_nai2010_11052023.csv";  // as _30032023 but unfccc managed forest area increased for a number of countries
-    constexpr string_view suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_"; // t4 setup; New baseline; // Reduced hurdle 0.9 // 22.06.2023: defShare_correction is introduced (calc v17) // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
-    constexpr string_view bauScenario = "primes_ref_2020_REFERENCE_REFERENCE";
+    // runtime string because is used as a key in dictionaries
+    const string bauScenario = "primes_ref_2020_REFERENCE_REFERENCE";
+    // t4 setup; New baseline; Reduced hurdle 0.9
+    // 22.06.2023: defShare_correction is introduced (calc v17)
+    // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
+    constexpr string_view suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_";
 
-    constexpr string_view fileName_lp0 = "output_glo4myk_LandRent_myk_01042023.csv";
-    constexpr string_view fileName_wp0 = "output_glo4myk_SupplyWood_myk_price_01042023.csv";
-    constexpr string_view fileName_wd0 = "output_glo4myk_SupplyWood_CntDet_01042023.csv"; // 18 Jan 2021 NL corrected according to NFAP / a share of wood reported to FAOSTAT comes from non-forest sources (communication with NL experts in Dec 2020)
-    constexpr string_view fileName_rd0 = "output_glo4myk_Residues_myk_01042023.csv"; // in m3
+    const unordered_map<string, string, StringHash, equal_to<> > fileNames = {
+            {"lp0",                "output_glo4myk_LandRent_myk_01042023.csv"},
+            {"wp0",                "output_glo4myk_SupplyWood_myk_price_01042023.csv"},
+            // 18 Jan 2021 NL corrected according to NFAP / a share of wood reported to FAOSTAT comes from non-forest sources (communication with NL experts in Dec 2020)
+            {"wd0",                "output_glo4myk_SupplyWood_CntDet_01042023.csv"},
+            {"rd0",                "output_glo4myk_Residues_myk_01042023.csv"}, // in m^3
 
-    constexpr string_view fileName_lp = "output_glo4myk_LandRent_myk_04072023.csv";
-    constexpr string_view fileName_wp = "output_glo4myk_SupplyWood_myk_price_04072023.csv";
-    constexpr string_view fileName_wd = "output_glo4myk_SupplyWood_CntDet_04072023.csv";
-    constexpr string_view fileName_rd = "output_glo4myk_Residues_myk_04072023.csv"; // in th t
+            {"lp",                 "output_glo4myk_LandRent_myk_04072023.csv"},
+            {"wp",                 "output_glo4myk_SupplyWood_myk_price_04072023.csv"},
+            {"wd",                 "output_glo4myk_SupplyWood_CntDet_04072023.csv"},
+            {"rd",                 "output_glo4myk_Residues_myk_04072023.csv"}, // in th t
 
-    // could be empty
-    constexpr string_view fileName_gl_0 = "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_devANBEXT_02052023_newClasses_updated_2000_2020.csv"; // GLOBIOM land cell scale
-    constexpr string_view fileName_gl = "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_FinJune11_11062023_newClasses_updated_CORRECTED.csv"; // GLOBIOM land cell scale
-    constexpr string_view fileName_gl_country_0 = "GLOBIOM_LC_CountryLevel_Ref2070_05042023.csv"; // GLOBIOM land country scale
-    constexpr string_view fileName_gl_country = "GLOBIOM_LC_CountryLevel_CTP_S2_CC_04072023_04072023.csv"; // GLOBIOM land country scale
+            // could be empty
 
-    constexpr string_view fileName_co2p = "output_glo4myk_CO2price_myk_04072023.csv";
-    constexpr string_view fileName_nuts2 = "nuts2_xy_05.csv";
+            // GLOBIOM land cell scale
+            {"gl_0",               "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_devANBEXT_02052023_newClasses_updated_2000_2020.csv"},
+            {"gl",                 "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_FinJune11_11062023_newClasses_updated_CORRECTED.csv"},
+            {"gl_country_0",       "GLOBIOM_LC_CountryLevel_Ref2070_05042023.csv"},
+            {"gl_country",         "GLOBIOM_LC_CountryLevel_CTP_S2_CC_04072023_04072023.csv"},
 
-    constexpr string_view fileName_maic = "shifters_g4m_v2.csv";  // MAI climate shifters
-    constexpr string_view fileName_disturbance = "disturbances_g4m_m3ha_29062023.csv";  // disturbance damage
-    constexpr string_view fileName_disturbanceExtreme = "disturbances_g4m_m3ha_29062023.csv";  // disturbance damage
+            {"co2p",               "output_glo4myk_CO2price_myk_04072023.csv"},
+            {"nuts2",              "nuts2_xy_05.csv"},
 
-    constexpr string_view fileName_ageStruct = "ageStructData_EUCLIMIT2020_15092022.csv";  // As ageStructData_EUCLIMIT2020_03012021, but IR and DE are corrected according to the countries' comments in 2022
+            {"maic",               "shifters_g4m_v2.csv"},  // MAI climate shifters
+            {"disturbance",        "disturbances_g4m_m3ha_29062023.csv"},  // disturbance damage
+            {"disturbanceExtreme", "disturbances_g4m_m3ha_29062023.csv"},  // disturbance damage
+
+            // As ageStructData_EUCLIMIT2020_03012021, but IR and DE are corrected according to the countries' comments in 2022
+            {"ageStruct",          "ageStructData_EUCLIMIT2020_15092022.csv"},
+            // as _30032023 but unfccc managed forest area increased for a number of countries
+            {"dat",                "b2_euclimit6_bioclima_feu2020_nai2010_11052023.csv"},
+    };
 
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
 
@@ -96,8 +108,10 @@ namespace g4m::Constants {
     constexpr double meanOptimalRoadDensityMultifunctional = 20.2;//Optimal forest road density in multifunctional forests [Recommendations for multifunctional forest management strategies. ARANGE project Deliverable D5.2, 2015]
 
     constexpr double exchangeRate = 1; // EUCLIMIT2; Euro -> USD exchange rate average for 2008 (all prices in the model are in USD)
-    constexpr double forestRoadConstructionCostsEuroM = 15 * exchangeRate *
-                                                        deflator; // Average costs of forest road construction Euro/m; European Forest Institute, the average cost of forest road construction in Europe was �15,000 per km in 2005 https://www.researchgate.net/publication/280528960_Forest_Land_Ownership_Change_in_Europe_COST_Action_FP1201_FACESMAP_Country_Reports_Joint_Volume
+    // Average costs of forest road construction Euro/m;
+    // European Forest Institute, the average cost of forest road construction in Europe was 15,000€ per km in 2005
+    // https://www.researchgate.net/publication/280528960_Forest_Land_Ownership_Change_in_Europe_COST_Action_FP1201_FACESMAP_Country_Reports_Joint_Volume
+    constexpr double forestRoadConstructionCostsEuroM = 15 * exchangeRate * deflator;
 
     constexpr double tolerance = 0.05;  //0.05;//0.1; // tolerance of forest management adjustment to match domestic wood demand 11.05.2023
     constexpr double npvLoss = 0.25;    // 0.03 CHECK for SLOVENIA; share of NPV loss that we allow when adjusting RT 11.05.2023

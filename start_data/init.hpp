@@ -1,3 +1,6 @@
+#ifndef G4M_EUROPE_DG_INIT_HPP
+#define G4M_EUROPE_DG_INIT_HPP
+
 #include "start_data_functions.hpp"
 
 namespace g4m::StartData {
@@ -32,15 +35,14 @@ namespace g4m::StartData {
 
         future<void> globiom_datamaps_future = async(launch::async, [] {
             Log::Init("globiom_datamaps");
-            readGlobiom();      // created dicts
-            readDatamaps();     // adds bau scenario to dicts
-            convertUnitsDatamaps();
+            datamapScenarios.readGLOBIOM_and_datamaps();
+            datamapScenarios.convertUnitsDatamaps();
         });
 
         future<void> CO2_price_future = async(launch::async, [] {
             Log::Init("CO2_price");
-            CO2PriceScenarios = readCO2price();
-            correctAndConvertCO2Prices(CO2PriceScenarios);
+            datamapScenarios.readCO2price();
+            datamapScenarios.correctAndConvertCO2Prices();
         });
 
         plots_future.get();
@@ -62,8 +64,8 @@ namespace g4m::StartData {
 
         future<void> globiom_land_country_future = async(launch::async, [] {
             Log::Init("globiom_land_country");
-            readGlobiomLandCountryCalibrate_calcCountryLandArea();
-            readGlobiomLandCountry();
+            countryLandArea = datamapScenarios.readGlobiomLandCountryCalibrate_calcCountryLandArea();
+            datamapScenarios.readGlobiomLandCountry();
         });
 
         future<void> disturbances_future = async(launch::async, [] {
@@ -124,3 +126,5 @@ namespace g4m::StartData {
 //        printData();
     }
 }
+
+#endif

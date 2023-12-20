@@ -10,9 +10,7 @@
 #include <memory>
 #include <semaphore>
 
-#include "../init/settings.hpp"
 #include "../init/country_data.hpp"
-#include "../init/coef_struct.hpp"
 #include "../init/data_struct.hpp"
 #include "../init/data_grid.hpp"
 #include "../init/ffipols_country.hpp"
@@ -21,7 +19,7 @@
 #include "../misc/concrete/ipolm.hpp"
 #include "../misc/concrete/ffipol.hpp"
 
-#include "../helper/heterogeneous_lookup.hpp"
+#include "../helper/string_hash.hpp"
 
 #include "../constants.hpp"
 #include "../arrays/arrays.hpp"
@@ -32,6 +30,8 @@
 #include "../structs/dat.hpp"
 #include "../structs/harvest_residues.hpp"
 
+#include "../GLOBIOM_scenarios_data/datamaps/datamap_scenarios.hpp"
+
 using namespace std;
 using namespace g4m::helper;
 using namespace g4m::init;
@@ -39,16 +39,12 @@ using namespace g4m::structs;
 using namespace g4m::increment;
 using namespace g4m::Arrays;
 using namespace g4m::Constants;
+using namespace g4m::GLOBIOM_scenarios_data;
+
 namespace fs = filesystem;
 namespace rv = ranges::views;
 
 namespace g4m::StartData {
-    // runtime
-    const string s_bauScenario = string{bauScenario};  // delete after C++23 unordered_map [] overload
-
-    Settings settings;
-    CoefStruct coef;
-
     CountryData countriesNforCover;
     CountryData countriesNforTotC;
     CountryData countriesAfforHaYear;
@@ -95,18 +91,7 @@ namespace g4m::StartData {
 
     map <pair<uint32_t, uint32_t>, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
 
-    using datamapType = unordered_map<uint8_t, Ipol < double> >;
-    using heterDatamapScenariosType = unordered_map<string, datamapType, StringHash, equal_to<> >;
-
-    heterDatamapScenariosType globiomAfforMaxCountryScenarios;  // Country maximum allowed afforestation estimated from GLOBIOM natural land (kha)
-    heterDatamapScenariosType globiomLandCountryScenarios;      // Country GLOBIOM land (kha) reserved for croplands, pastures and short rotation plantations (also wetlands and infrastructure)
-
-    heterDatamapScenariosType landPriceScenarios;       // datamap for land price corrections for current price scenario (GLOBIOM)
-    heterDatamapScenariosType woodPriceScenarios;       // datamap for wood price corrections for current price scenario (GLOBIOM)
-    heterDatamapScenariosType woodDemandScenarios;      // datamap for wood demand (GLOBIOM)
-    heterDatamapScenariosType residuesDemandScenarios;  // datamap for residues demand (GLOBIOM)
-
-    heterDatamapScenariosType CO2PriceScenarios;
+    DatamapScenarios datamapScenarios;
 
     DataGrid <string> nuts2grid;
 

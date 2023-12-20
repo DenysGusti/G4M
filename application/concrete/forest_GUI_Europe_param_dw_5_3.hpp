@@ -23,6 +23,8 @@
 
 #include "../../init/species.hpp"
 
+#include "../../GLOBIOM_scenarios_data/datamaps/datamaps.hpp"
+
 using namespace std;
 
 using namespace numbers;
@@ -34,19 +36,19 @@ using namespace g4m::diagnostics;
 using namespace g4m::application::abstract;
 using namespace g4m::StartData;
 using namespace g4m::Dicts;
+using namespace g4m::GLOBIOM_scenarios_data;
 
 namespace g4m::application::concrete {
 
     class Forest_GUI_Europe_param_dw_5_3 : public Application {
     public:
-        explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args_) : Application{args_} {
+        explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args_)
+                : Application{args_}, dms{datamapScenarios, full_scenario, inputPriceC} {
+            // TODO initialize earlier
             Log::Init(appName);
             INFO("Scenario to read in & GL: {}", full_scenario);
-            mergeObligatoryDatamaps();
-            mergeOptionalDatamaps();
             mergeOptionalSimuIds();
             correctBelgium();
-            initCO2Price();
             initMaiClimateShifters();
             applyMAIClimateShifters();
             modifyDisturbances();
@@ -114,16 +116,7 @@ namespace g4m::application::concrete {
 
         vector<DataStruct> appPlots = commonPlots;
 
-        // TODO move logic into separate class
-        datamapType appLandPrice;
-        datamapType appWoodPrice;
-        datamapType appWoodDemand;
-        datamapType appResiduesDemand;
-
-        datamapType appCO2Price;
-
-        datamapType appGlobiomAfforMaxCountry;
-        datamapType appGlobiomLandCountry;
+        Datamaps dms;
 
         // wood from outside forests in Belgium to cover the inconsistency between FAOSTAT removals and Forest Europe increment and felling
         Ipol<double> woodSupplement;
@@ -188,44 +181,6 @@ namespace g4m::application::concrete {
         CountryData CountryRegWoodProd;
         CountryData countryRegWoodHarvestDfM3Year;
 
-        datamapType mergeDatamap(const heterDatamapScenariosType &datamapScenarios, const string_view message) {
-            // Swiss project 21.04.2022, Nicklas Forsell
-            datamapType datamapDest = datamapScenarios.at(full_scenario);
-            datamapType histDatamap = datamapScenarios.at(s_bauScenario);
-
-            for (auto &[id, ipol]: datamapDest)
-                ipol.data.merge(histDatamap.at(id).data);
-
-            TRACE("Merged {}:", message);
-            for (const auto &[id, ipol]: datamapDest)
-                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
-
-            TRACE("Obsolete {}:", message);
-            for (const auto &[id, ipol]: histDatamap)
-                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
-
-            return datamapDest;
-        }
-
-        datamapType
-        mergeObligatoryDatamap(const heterDatamapScenariosType &datamapScenarios, const string_view message) {
-            if (!datamapScenarios.contains(full_scenario)) {
-                FATAL("{} is not filled in, check scenarios!!!, full_scenario = {}", message, full_scenario);
-                throw runtime_error{"no scenario in datamapScenarios"};
-            }
-
-            return mergeDatamap(datamapScenarios, message);
-        }
-
-        datamapType mergeOptionalDatamap(const heterDatamapScenariosType &datamapScenarios, const string_view message) {
-            if (!datamapScenarios.contains(full_scenario)) {
-                WARN("{} is not filled in, check scenarios!!!, full_scenario = {}", message, full_scenario);
-                return {};
-            }
-
-            return mergeDatamap(datamapScenarios, message);
-        }
-
         simuIdType mergeOptionalSimuId(const heterSimuIdScenariosType &simuIdScenarios, const string_view message) {
             if (!simuIdScenarios.contains(full_scenario)) {
                 WARN("{} is not filled in, check scenarios!!!, full_scenario = {}", message, full_scenario);
@@ -233,7 +188,7 @@ namespace g4m::application::concrete {
             }
 
             simuIdType simuIdDest = simuIdScenarios.at(full_scenario);
-            simuIdType histSimuId = simuIdScenarios.at(s_bauScenario);
+            simuIdType histSimuId = simuIdScenarios.at(bauScenario);
 
             for (auto &[id, ipol]: simuIdDest)
                 ipol.data.merge(histSimuId.at(id).data);
@@ -249,45 +204,18 @@ namespace g4m::application::concrete {
             return simuIdDest;
         }
 
-        void mergeObligatoryDatamaps() {
-            appLandPrice = mergeObligatoryDatamap(landPriceScenarios, "Land Price");
-            appWoodPrice = mergeObligatoryDatamap(woodPriceScenarios, "Wood Price");
-            appWoodDemand = mergeObligatoryDatamap(woodDemandScenarios, "Wood Demand");
-            appResiduesDemand = mergeObligatoryDatamap(residuesDemandScenarios, "Residues Demand");
-        }
-
-        void mergeOptionalDatamaps() {
-            appGlobiomAfforMaxCountry = mergeOptionalDatamap(globiomAfforMaxCountryScenarios,
-                                                             "GLOBIOM Affor Max Country");
-            appGlobiomLandCountry = mergeOptionalDatamap(globiomLandCountryScenarios, "GLOBIOM Land Country");
-        }
-
         void mergeOptionalSimuIds() {
             appGlobiomAfforMax = mergeOptionalSimuId(globiomAfforMaxScenarios, "GLOBIOM Affor Max Country");
             appGlobiomLand = mergeOptionalSimuId(globiomLandScenarios, "GLOBIOM Land Country");
         }
 
         void correctBelgium() noexcept {
-            woodSupplement = appWoodDemand.at(20);
+            woodSupplement = dms.woodDemand.at(20);
             // 05.04.2023: we assume that 14% of round-wood comes from outside forest
             // the Forest Europe net increment and felling values are less than FAOSTAT round-wood
             const double forestWood = 0.86;
-            appWoodDemand[20] *= forestWood;  // Belgium
+            dms.woodDemand[20] *= forestWood;  // Belgium
             woodSupplement *= 1 - forestWood;
-        }
-
-        void initCO2Price() {
-            if (inputPriceC == 0) {
-                INFO("CO2PriceScenarios is not used, inputPriceC = 0");
-                return;
-            }
-
-            if (!CO2PriceScenarios.contains(full_scenario)) {
-                FATAL("CO2PriceScenarios is not filled in, check scenarios!!!, full_scenario = {}", full_scenario);
-                throw runtime_error{"no scenario in CO2PriceScenarios"};
-            }
-
-            appCO2Price = CO2PriceScenarios.at(full_scenario);
         }
 
         void initMaiClimateShifters() {
@@ -377,8 +305,8 @@ namespace g4m::application::concrete {
                                                                    value + plot.GL_correction +
                                                                    plot.GLOBIOM_reserved.data[year]);
 
-                    else if (!appGlobiomLandCountry[plot.country].data.empty() &&
-                             !appGlobiomAfforMaxCountry[plot.country].data.empty()) {
+                    else if (!dms.GLOBIOM_LandCountry[plot.country].data.empty() &&
+                             !dms.GLOBIOM_AfforMaxCountry[plot.country].data.empty()) {
 
                         if (protectedNatLnd && plot.grLnd_protect > 0) {
                             plot.afforMax.data[2000] = max(0., plot.afforMax.data.at(2000) + plot.grLnd_protect);
@@ -388,8 +316,8 @@ namespace g4m::application::concrete {
                         for (auto &[year, GL]: plot.GLOBIOM_reserved.data)
                             if (year > 2000 && GL > 0) {
                                 double &natLnd = plot.afforMax.data[year];  // no interpolation, I suppose data is already there
-                                double dGL = (appGlobiomLandCountry[plot.country].data.at(year) -
-                                              appGlobiomLandCountry[plot.country](year - modTimeStep)) /
+                                double dGL = (dms.GLOBIOM_LandCountry[plot.country].data.at(year) -
+                                              dms.GLOBIOM_LandCountry[plot.country](year - modTimeStep)) /
                                              countryLandArea[plot.country];
                                 dGL = clamp(dGL, -GL, natLnd);
                                 // reference variables
@@ -409,7 +337,7 @@ namespace g4m::application::concrete {
             if (inputPriceC > 0) {
                 double priceC = inputPriceC * deflator * 44. / 12.;  // * 44. / 12. if input price is $/tCO2
 
-                for (auto &[country, ipol]: appCO2Price)
+                for (auto &[country, ipol]: dms.CO2Price)
                     ipol.data[refYear] = priceC;
             }
 
@@ -418,7 +346,7 @@ namespace g4m::application::concrete {
                 countryCorruption[plot.country] = plot.corruption;
 
             for (const auto &[country, corruption]: countryCorruption | rv::enumerate)
-                appCO2Price[country] *= corruption;
+                dms.CO2Price[country] *= corruption;
         }
 
         // Adjust forest management in each grid cell to harvest the demanded amount of wood on a country scale every
@@ -499,7 +427,7 @@ namespace g4m::application::concrete {
                         (0.8 - tmpTimeStep) * CountryRegWoodProd.getVal(country, year - 1) ||
                         countryRegWoodHarvestDfM3Year.getVal(country, year - 1) >
                         (1.1 + tmpTimeStep) * CountryRegWoodProd.getVal(country, year - 1) ||
-                        appCO2Price.at(country)(year) <= 0)
+                        dms.CO2Price.at(country)(year) <= 0)
                         countriesNoFmCPol.insert(country);
 
                 DEBUG("countriesNoFmCPol:");
@@ -1354,11 +1282,12 @@ namespace g4m::application::concrete {
                 double c4 = (coef.priceTimberMaxR - coef.priceTimberMinR) / 99;
                 double c3 = coef.priceTimberMinR - c4;
                 priceWExt = (c3 + c4 * plot.sPopDens(year) * sFor) * plot.priceIndex(year) / coef.priceIndexE *
-                            appWoodPrice.at(plot.country)(year) / appWoodPrice.at(plot.country).data.at(2000) * wpMult;
+                            dms.woodPrice.at(plot.country)(year) / dms.woodPrice.at(plot.country).data.at(2000) *
+                            wpMult;
             }
 
             // extension to total biomass
-            double CBenefit = fdcFlag ? 1.2 * appCO2Price.at(plot.country)(year) *
+            double CBenefit = fdcFlag ? 1.2 * dms.CO2Price.at(plot.country)(year) *
                                         (biomassCur - biomassBauScenarios.at(suffix0)[
                                                 (year - refYear) / modTimeStep - 1][plot.asID]) : 0;
 
@@ -1455,7 +1384,7 @@ namespace g4m::application::concrete {
             for (const auto &plot: appPlots)
                 if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0)
                     if (appDat_all[plot.asID].OForestShareU > 0 && appMaiForest(plot.x, plot.y) > 0) {
-                        double countryWoodDemand = appWoodDemand.at(plot.country)(year);
+                        double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
 
                         double rotationForestTmp = appRotationForest(plot.x, plot.y);
                         int8_t managedForestTmp = appManagedForest(plot.x, plot.y);
@@ -1704,7 +1633,7 @@ namespace g4m::application::concrete {
             for (const auto &plot: appPlots)
                 if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0)
                     if (appDat_all[plot.asID].OForestShareU > 0) {
-                        double countryWoodDemand = appWoodDemand.at(plot.country)(year);
+                        double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
 
                         double rotationForestTmp = appRotationForest(plot.x, plot.y);
                         int8_t managedForestTmp = appManagedForest(plot.x, plot.y);
@@ -1832,7 +1761,7 @@ namespace g4m::application::concrete {
             for (const auto &plot: appPlots)
                 if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0)
                     if (appDat_all[plot.asID].OForestShareU > 0) {
-                        double countryWoodDemand = appWoodDemand.at(plot.country)(year);
+                        double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
 
                         double rotationForestTmp = appRotationForest(plot.x, plot.y);
 
@@ -1940,9 +1869,9 @@ namespace g4m::application::concrete {
             constexpr array<double, 32> salvageLoggingTotal = initSalvageLoggingTotal();  // CZ:  m3 total salvage, including the dead trees that cannot be felled/used
             array<double, 32> allHarvestedUsed = initAllHarvestedUsed();  // CZ:  m3 total harvested wood used by the industry
             // according to NIR2022 95% of wood removals was from salvage logging
-            allHarvestedUsed[0] = appWoodDemand.at(57)(2019) * 1e-6;
+            allHarvestedUsed[0] = dms.woodDemand.at(57)(2019) * 1e-6;
             // according to NIR2022 95% of wood removals was from salvage logging
-            allHarvestedUsed[1] = appWoodDemand.at(57)(2020) * 1e-6;
+            allHarvestedUsed[1] = dms.woodDemand.at(57)(2020) * 1e-6;
             array<double, 32> salvageHarvest{};
 
             const uint16_t yearSalvage = year - 2019;
@@ -1954,10 +1883,10 @@ namespace g4m::application::concrete {
             // For all countries, values are only for years in multiples of 10, others are interpolated.
             // Here the value must be written to 2051 before everything is changed for the 57th country.
             if (yearSalvage == 0)
-                appWoodDemand.at(57).data[2051] = appWoodDemand.at(57)(2051);
+                dms.woodDemand.at(57).data[2051] = dms.woodDemand.at(57)(2051);
 
             if (year > 2020) // now we have real data by 2020
-                appWoodDemand.at(57).data[year] = allHarvestedUsed[yearSalvage] * 1e6;
+                dms.woodDemand.at(57).data[year] = allHarvestedUsed[yearSalvage] * 1e6;
 
             if (yearSalvage >= 0 && yearSalvage < salvageLoggingTotal.size()) {
                 for (const auto &plot: appPlots)  // additionally filtered by countriesList (see filter plots)
@@ -2059,9 +1988,9 @@ namespace g4m::application::concrete {
             array<double, numberOfCountries> harvDiff{};
 
             for (size_t i = 0; i < numberOfCountries; ++i)
-                if (appWoodDemand.at(i)(year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i) &&
+                if (dms.woodDemand.at(i)(year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i) &&
                     !countriesNoFmCPol.contains(i))
-                    harvDiff[i] = abs(woodHarvest[i] / appWoodDemand.at(i)(year) - 1);
+                    harvDiff[i] = abs(woodHarvest[i] / dms.woodDemand.at(i)(year) - 1);
 
             return harvDiff;
         }
@@ -2074,13 +2003,13 @@ namespace g4m::application::concrete {
             array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest);
 
             for (size_t i = 0; i < numberOfCountries; ++i) {
-                if (appWoodDemand.at(i)(year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i)) {
+                if (dms.woodDemand.at(i)(year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i)) {
                     if (countriesNoFmCPol.contains(i)) {
                         TRACE("No NoFmCPol for country");
                         continue;
                     }
                     TRACE("i = {}\tyear = \tharvDiff = {}\twoodHarvest = {}\twoodHarvestPostControl = {}\twoodDemand = {}\tcountriesWoodHarvestM3Year = {}",
-                          i, year, harvDiff[i], woodHarvest[i], woodHarvestPostControl[i], appWoodDemand.at(i)(year),
+                          i, year, harvDiff[i], woodHarvest[i], woodHarvestPostControl[i], dms.woodDemand.at(i)(year),
                           countriesWoodHarvestM3Year.getVal(i, year));
                 }
             }
@@ -2138,7 +2067,7 @@ namespace g4m::application::concrete {
             for (const auto &plot: appPlots)
                 if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0)
                     if (plot.country == 57 && !infested.contains(plot.asID)) {
-                        double countryWoodDemand = appWoodDemand.at(plot.country)(year);
+                        double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
 
                         double rotationForestTmp = appRotationForest(plot.x, plot.y);
 
