@@ -10,7 +10,6 @@
 #include "point.hpp"
 
 #include "../log.hpp"
-#include "../diagnostics/heterogeneous_lookup.hpp"
 
 using namespace std;
 

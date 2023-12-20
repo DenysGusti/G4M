@@ -21,7 +21,7 @@
 #include "../misc/concrete/ipolm.hpp"
 #include "../misc/concrete/ffipol.hpp"
 
-#include "../diagnostics/heterogeneous_lookup.hpp"
+#include "../helper/heterogeneous_lookup.hpp"
 
 #include "../constants.hpp"
 #include "../arrays/arrays.hpp"
@@ -33,7 +33,7 @@
 #include "../structs/harvest_residues.hpp"
 
 using namespace std;
-
+using namespace g4m::helper;
 using namespace g4m::init;
 using namespace g4m::structs;
 using namespace g4m::increment;

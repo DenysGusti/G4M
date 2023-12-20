@@ -4,9 +4,10 @@
 #include <string>
 #include <unordered_map>
 
-#include "../diagnostics/enum_hasher.hpp"
+#include "../helper/enum_hasher.hpp"
 
 using namespace std;
+using namespace g4m::helper;
 
 namespace g4m::logging {
 
@@ -43,7 +44,7 @@ namespace g4m::logging {
         return !static_cast<LogLevelType>(op);
     }
 
-    const static unordered_map<LogLevel, string, EnumHasher> convert_level = {
+    const static unordered_map <LogLevel, string, EnumHasher> convert_level = {
             {LogLevel::Trace, "TRACE"},
             {LogLevel::Debug, "DEBUG"},
             {LogLevel::Info,  "INFO"},

@@ -6,11 +6,12 @@
 #include <array>
 #include <vector>
 
-#include "../diagnostics/heterogeneous_lookup.hpp"
+#include "../helper/heterogeneous_lookup.hpp"
 #include "../increment/increment_tab.hpp"
 
 using namespace std;
 using namespace g4m::increment;
+using namespace g4m::helper;
 
 namespace g4m::Dicts {
     [[nodiscard]] unordered_map<uint8_t, string> setIdCountryGLOBIOM() noexcept {

@@ -5,11 +5,12 @@
 #include <array>
 #include <unordered_map>
 
-#include "../diagnostics/enum_hasher.hpp"
+#include "../helper/enum_hasher.hpp"
 #include "../increment/increment_tab.hpp"
 
 using namespace std;
 using namespace g4m::increment;
+using namespace g4m::helper;
 
 namespace g4m::init {
     // a tree species code
