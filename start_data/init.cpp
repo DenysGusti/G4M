@@ -117,7 +117,7 @@ namespace g4m::StartData {
         NPV_bau_future.get();
 
         // start calculations
-        initGlobiomLandAndManagedForestGlobal();
+        initGlobiomLandAndManagedForest();
         initLoop();
         initZeroProdArea();
 

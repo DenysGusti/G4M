@@ -328,7 +328,7 @@ namespace g4m::StartData {
         INFO("Disturbances are scaled to the {} value!", scaleYear);
     }
 
-    void initGlobiomLandAndManagedForestGlobal() {
+    void initGlobiomLandAndManagedForest() {
         array<double, numberOfCountries> woodHarvest{};
         array<double, numberOfCountries> woodLost{};
 
@@ -349,8 +349,13 @@ namespace g4m::StartData {
 
             if (forestShare0 > maxAffor) {
                 optional<double> opt_dfor = plot.initForestArea(forestShare0 - maxAffor);
-                if (opt_dfor)
-                    simuIdDfor[plot.simuID] = *opt_dfor;  // subtraction later in initManagedForestLocal
+                if (opt_dfor) {
+                    // take years from globiomAfforMaxScenarios (initForestArea corrects in)
+                    for (const auto year: globiomAfforMaxScenarios.at(s_bauScenario).at(plot.simuID).data | rv::keys)
+                        if (year > 2000)
+                            // before subtraction was later in initManagedForestLocal (values are negative!!!)
+                            plot.GLOBIOM_reserved.data[year] = -*opt_dfor;
+                }
                 forestShare0 = maxAffor;
             }
 

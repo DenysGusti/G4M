@@ -93,9 +93,6 @@ namespace g4m::StartData {
     unordered_set <uint32_t> plotsSimuID;
     map <pair<uint32_t, uint32_t>, uint32_t> plotsXY_SimuID;  // <[x, y], simuID>
 
-    // postponed GLOBIOM_reserved dfor subtraction
-    unordered_map<uint32_t, double> simuIdDfor;
-
     map <pair<uint32_t, uint32_t>, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
 
     using datamapType = unordered_map<uint8_t, Ipol < double> >;

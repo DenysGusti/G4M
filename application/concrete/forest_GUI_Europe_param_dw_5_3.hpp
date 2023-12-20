@@ -51,7 +51,6 @@ namespace g4m::application::concrete {
             applyMAIClimateShifters();
             modifyDisturbances();
             initGlobiomLandLocal();
-            initManagedForestLocal();
             applyCorruptionModifyCO2Price();
             toAdjust.reserve(256);
             countriesNoFmCPol.reserve(256);
@@ -115,6 +114,7 @@ namespace g4m::application::concrete {
 
         vector<DataStruct> appPlots = commonPlots;
 
+        // TODO move logic into separate class
         datamapType appLandPrice;
         datamapType appWoodPrice;
         datamapType appWoodDemand;
@@ -368,7 +368,14 @@ namespace g4m::application::concrete {
                     // we leave the previous values if in current dataset this cell is absent
                     if (!appGlobiomLand[plot.simuID].data.empty())
                         for (const auto &[year, value]: appGlobiomLand[plot.simuID].data)
-                            plot.GLOBIOM_reserved.data[year] = max(0., value + plot.GL_correction);
+                            // dfor correction was ahead of time and value of GLOBIOM_reserved is probably negative
+                            // max(0, value + plot.GL_correction) =>
+                            // max(plot.GLOBIOM_reserved.data[year],
+                            // value + plot.GL_correction + plot.GLOBIOM_reserved.data[year])
+                            // plot.GLOBIOM_reserved.data[year] exists only if (opt_dfor)
+                            plot.GLOBIOM_reserved.data[year] = max(plot.GLOBIOM_reserved.data[year],
+                                                                   value + plot.GL_correction +
+                                                                   plot.GLOBIOM_reserved.data[year]);
 
                     else if (!appGlobiomLandCountry[plot.country].data.empty() &&
                              !appGlobiomAfforMaxCountry[plot.country].data.empty()) {
@@ -385,6 +392,7 @@ namespace g4m::application::concrete {
                                               appGlobiomLandCountry[plot.country](year - modTimeStep)) /
                                              countryLandArea[plot.country];
                                 dGL = clamp(dGL, -GL, natLnd);
+                                // reference variables
                                 GL = max(0., GL + dGL);
                                 natLnd = max(0., natLnd - dGL);
                             }
@@ -393,14 +401,6 @@ namespace g4m::application::concrete {
 
             if (protectedNatLnd && sumGrLnd_protect <= 0)
                 ERROR("GRLND_PROTECT is 0. Check spatial input data (plots)!!!");
-        }
-
-        void initManagedForestLocal() noexcept {
-            for (auto &plot: appPlots)
-                if (simuIdDfor.contains(plot.simuID))
-                    for (auto &[year, value]: plot.GLOBIOM_reserved.data)
-                        if (year > 2000)
-                            value -= simuIdDfor[plot.simuID];
         }
 
         // apply corruption and populate country CO2Price if inputPriceC > 0
