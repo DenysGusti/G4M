@@ -1,8 +1,6 @@
 #ifndef G4M_EUROPE_DG_DATAMAPS_HPP
 #define G4M_EUROPE_DG_DATAMAPS_HPP
 
-#include "unordered_map"
-
 #include "datamap_scenarios.hpp"
 
 using namespace std;

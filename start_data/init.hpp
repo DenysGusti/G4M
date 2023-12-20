@@ -52,14 +52,14 @@ namespace g4m::StartData {
             Log::Init("MAI");
             correctMAI(commonPlots);
             MAI_CountryUprotect = calculateAverageMAI(commonPlots);
-            maiClimateShiftersScenarios = readMAIClimate();
-            scaleMAIClimate2020(maiClimateShiftersScenarios);
+            simuIdScenarios.readMAIClimate(plotsXY_SimuID);
+            simuIdScenarios.scaleMAIClimate2020();
         });
 
         future<void> globiom_land_future = async(launch::async, [] {
             Log::Init("globiom_land");
-            readGlobiomLandCalibrate();
-            readGlobiomLand();
+            simuIdScenarios.readGlobiomLandCalibrate(plotsSimuID);
+            simuIdScenarios.readGlobiomLand(plotsSimuID);
         });
 
         future<void> globiom_land_country_future = async(launch::async, [] {
@@ -70,14 +70,14 @@ namespace g4m::StartData {
 
         future<void> disturbances_future = async(launch::async, [] {
             Log::Init("disturbances");
-            readDisturbances();
-            add2020Disturbances();
-            scaleDisturbances2020();
+            simuIdScenarios.readDisturbances(plotsXY_SimuID);
+            simuIdScenarios.add2020Disturbances();
+            simuIdScenarios.scaleDisturbances2020();
         });
 
         future<void> disturbances_extreme_future = async(launch::async, [] {
             Log::Init("disturbances_extreme");
-            readDisturbancesExtreme();
+            simuIdScenarios.readDisturbancesExtreme(plotsXY_SimuID);
         });
 
         future<void> biomass_bau_future = async(launch::async, [] {

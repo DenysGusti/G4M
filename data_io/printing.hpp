@@ -19,7 +19,7 @@ namespace g4m::DataIO::printing {
     }
 
     void printCountryLandArea() noexcept {
-        for (const auto& [i, area]: countryLandArea | rv::enumerate)
+        for (const auto &[i, area]: countryLandArea | rv::enumerate)
             TRACE("{} area = {}", idCountryGLOBIOM.at(i), area);
     }
 
@@ -28,39 +28,12 @@ namespace g4m::DataIO::printing {
             TRACE("x = {}, y = {}, NUTS2 = {}", cords.first, cords.second, NUTS2);
     }
 
-    void printSimuId(const simuIdType &simuIdDatamap, const string_view message) noexcept {
-        TRACE("{}", message);
-        for (const auto &[id, ipol]: simuIdDatamap)
-            TRACE("{}\n{}", id, ipol.str());
-    }
-
-    void printSimuIdScenarios(const heterSimuIdScenariosType &simuIdScenarios, const string_view message) noexcept {
-        TRACE("{}", message);
-        for (const auto &[scenario, simuIdDatamap]: simuIdScenarios) {
-            TRACE("{}", scenario);
-            for (const auto &[simu_id, ipol]: simuIdDatamap)
-                TRACE("{}\n{}", simu_id, ipol.str());
-        }
-    }
-
     void printData() noexcept {
         printPlots();
-
         datamapScenarios.printData();
-
         printCountryLandArea();
         printNuts2Id();
-
-        printSimuIdScenarios(globiomLandScenarios, "globiomLandScenarios");
-        printSimuIdScenarios(globiomAfforMaxScenarios, "globiomAfforMaxScenarios");
-        printSimuIdScenarios(maiClimateShiftersScenarios, "maiClimateShiftersScenarios");
-
-        printSimuId(commonDisturbWind, "commonDisturbWind");
-        printSimuId(commonDisturbFire, "commonDisturbFire");
-        printSimuId(commonDisturbBiotic, "commonDisturbBiotic");
-        printSimuId(commonDisturbWindExtreme, "commonDisturbWindExtreme");
-        printSimuId(commonDisturbFireExtreme, "commonDisturbFireExtreme");
-        printSimuId(commonDisturbBioticExtreme, "commonDisturbBioticExtreme");
+        simuIdScenarios.printData();
     }
 }
 

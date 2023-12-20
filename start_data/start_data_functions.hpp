@@ -267,49 +267,6 @@ namespace g4m::StartData {
         return fun_plotsXYSimuID;
     }
 
-    // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
-    void scaleMAIClimate2020(heterSimuIdScenariosType &simuIdScenarios) {
-        if (!scaleMAIClimate) {
-            INFO("scaleMAIClimate is turned off");
-            return;
-        }
-
-        INFO("Scaling MAI climate shifters to the 2020 value!");
-        for (auto &[scenario, MAI]: simuIdScenarios)
-            for (auto &[simu_id, ipol]: MAI) {
-                double reciprocal_value_2020 = 1 / ipol.data.at(2020);
-                ipol *= reciprocal_value_2020;
-            }
-    }
-
-    void add2020Disturbances() {
-        for (auto &[id, ipol]: commonDisturbWind)
-            ipol.data[2020] = ipol.data.at(2030) / 1.025;
-        for (auto &[id, ipol]: commonDisturbFire)
-            ipol.data[2020] = ipol.data.at(2030) / 1.05;
-        for (auto &[id, ipol]: commonDisturbBiotic)
-            ipol.data[2020] = ipol.data.at(2030) / 1.05;
-    }
-
-    void scaleDisturbance(simuIdType &disturbance, const uint16_t scaleYear) {
-        for (auto &[id, ipol]: disturbance)
-            ipol += -ipol.data.at(scaleYear);
-    }
-
-    void scaleDisturbances2020() {
-        if (!scaleDisturbance2020) {
-            INFO("scaleDisturbance2020 is turned off");
-            return;
-        }
-
-        const uint16_t scaleYear = 2020;
-        scaleDisturbance(commonDisturbWind, scaleYear);
-        scaleDisturbance(commonDisturbFire, scaleYear);
-        scaleDisturbance(commonDisturbBiotic, scaleYear);
-
-        INFO("Disturbances are scaled to the {} value!", scaleYear);
-    }
-
     void initGlobiomLandAndManagedForest() {
         array<double, numberOfCountries> woodHarvest{};
         array<double, numberOfCountries> woodLost{};
@@ -332,8 +289,9 @@ namespace g4m::StartData {
             if (forestShare0 > maxAffor) {
                 optional<double> opt_dfor = plot.initForestArea(forestShare0 - maxAffor);
                 if (opt_dfor) {
-                    // take years from globiomAfforMaxScenarios (initForestArea corrects in)
-                    for (const auto year: globiomAfforMaxScenarios.at(bauScenario).at(plot.simuID).data | rv::keys)
+                    // take years from GLOBIOM_AfforMaxScenarios (initForestArea corrects in)
+                    for (const auto year:
+                            simuIdScenarios.GLOBIOM_AfforMaxScenarios.at(bauScenario).at(plot.simuID).data | rv::keys)
                         if (year > 2000)
                             // before subtraction was later in initManagedForestLocal (values are negative!!!)
                             plot.GLOBIOM_reserved.data[year] = -*opt_dfor;

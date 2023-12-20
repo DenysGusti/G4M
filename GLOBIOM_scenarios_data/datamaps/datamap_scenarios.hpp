@@ -9,10 +9,12 @@
 #include "../../helper/check_file.hpp"
 #include "../../dicts/dicts.hpp"
 #include "../../misc/concrete/ipol.hpp"
+#include "../../constants.hpp"
 
 using namespace std;
 using namespace g4m::helper;
 using namespace g4m::Dicts;
+using namespace g4m::Constants;
 
 namespace rv = ranges::views;
 

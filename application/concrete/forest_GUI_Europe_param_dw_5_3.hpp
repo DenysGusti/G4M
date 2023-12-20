@@ -24,6 +24,7 @@
 #include "../../init/species.hpp"
 
 #include "../../GLOBIOM_scenarios_data/datamaps/datamaps.hpp"
+#include "../../GLOBIOM_scenarios_data/simu_ids/simu_ids.hpp"
 
 using namespace std;
 
@@ -43,15 +44,13 @@ namespace g4m::application::concrete {
     class Forest_GUI_Europe_param_dw_5_3 : public Application {
     public:
         explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args_)
-                : Application{args_}, dms{datamapScenarios, full_scenario, inputPriceC} {
+                : Application{args_}, dms{datamapScenarios, full_scenario, inputPriceC},
+                  sis{simuIdScenarios, full_scenario, c_scenario[1]} {
             // TODO initialize earlier
             Log::Init(appName);
             INFO("Scenario to read in & GL: {}", full_scenario);
-            mergeOptionalSimuIds();
             correctBelgium();
-            initMaiClimateShifters();
             applyMAIClimateShifters();
-            modifyDisturbances();
             initGlobiomLandLocal();
             applyCorruptionModifyCO2Price();
             toAdjust.reserve(256);
@@ -117,22 +116,10 @@ namespace g4m::application::concrete {
         vector<DataStruct> appPlots = commonPlots;
 
         Datamaps dms;
+        SimuIds sis;
 
         // wood from outside forests in Belgium to cover the inconsistency between FAOSTAT removals and Forest Europe increment and felling
         Ipol<double> woodSupplement;
-
-        simuIdType appDisturbWind = commonDisturbWind;
-        simuIdType appDisturbFire = commonDisturbFire;
-        simuIdType appDisturbBiotic = commonDisturbBiotic;
-
-        simuIdType appDisturbWindExtreme = commonDisturbWindExtreme;
-        simuIdType appDisturbFireExtreme = commonDisturbFireExtreme;
-        simuIdType appDisturbBioticExtreme = commonDisturbBioticExtreme;
-
-        simuIdType appMaiClimateShifters;
-
-        simuIdType appGlobiomAfforMax;
-        simuIdType appGlobiomLand;
 
         // Initializing forest cover array by gridcells
         DataGrid<double> thinningForestNew{resLatitude};
@@ -181,34 +168,6 @@ namespace g4m::application::concrete {
         CountryData CountryRegWoodProd;
         CountryData countryRegWoodHarvestDfM3Year;
 
-        simuIdType mergeOptionalSimuId(const heterSimuIdScenariosType &simuIdScenarios, const string_view message) {
-            if (!simuIdScenarios.contains(full_scenario)) {
-                WARN("{} is not filled in, check scenarios!!!, full_scenario = {}", message, full_scenario);
-                return {};
-            }
-
-            simuIdType simuIdDest = simuIdScenarios.at(full_scenario);
-            simuIdType histSimuId = simuIdScenarios.at(bauScenario);
-
-            for (auto &[id, ipol]: simuIdDest)
-                ipol.data.merge(histSimuId.at(id).data);
-
-            TRACE("Merged {}:", message);
-            for (const auto &[id, ipol]: simuIdDest)
-                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
-
-            TRACE("Obsolete {}:", message);
-            for (const auto &[id, ipol]: histSimuId)
-                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
-
-            return simuIdDest;
-        }
-
-        void mergeOptionalSimuIds() {
-            appGlobiomAfforMax = mergeOptionalSimuId(globiomAfforMaxScenarios, "GLOBIOM Affor Max Country");
-            appGlobiomLand = mergeOptionalSimuId(globiomLandScenarios, "GLOBIOM Land Country");
-        }
-
         void correctBelgium() noexcept {
             woodSupplement = dms.woodDemand.at(20);
             // 05.04.2023: we assume that 14% of round-wood comes from outside forest
@@ -216,15 +175,6 @@ namespace g4m::application::concrete {
             const double forestWood = 0.86;
             dms.woodDemand[20] *= forestWood;  // Belgium
             woodSupplement *= 1 - forestWood;
-        }
-
-        void initMaiClimateShifters() {
-            if (!maiClimateShiftersScenarios.contains(c_scenario[1])) {
-                WARN("maiClimateShifters doesn't contain c_scenario[1]: {}", c_scenario[1]);
-                return;
-            }
-
-            appMaiClimateShifters = maiClimateShiftersScenarios.at(c_scenario[1]);
         }
 
         // Alteration of mean annual increment with time in each grid cell with values read in a dedicated file,
@@ -248,35 +198,14 @@ namespace g4m::application::concrete {
                 plot.decWood.data[2020] = plot.decWood.data.at(2000);
                 plot.decSOC.data[2020] = plot.decSOC.data.at(2000);
 
-                if (appMaiClimateShifters.contains(plot.simuID))
-                    for (const auto [year, value]: appMaiClimateShifters.at(plot.simuID).data)
+                if (sis.maiClimateShifters.contains(plot.simuID))
+                    for (const auto [year, value]: sis.maiClimateShifters.at(plot.simuID).data)
                         if (year >= 2030) {
                             plot.MAIE.data[year] = maie * value;
                             plot.MAIN.data[year] = main * value;
                             plot.NPP.data[year] = npp * value;
                         }
             }
-        }
-
-        // Make projected forest damage sensitive to the climate change scenario
-        void modifyDisturbances() noexcept {
-            if (!disturbanceClimateSensitive) {
-                INFO("disturbanceClimateSensitive is turned off");
-                return;
-            }
-
-            if (c_scenario[1].contains("7p0")) {
-                for (auto &[id, ipol]: appDisturbFire)
-                    ipol *= 2;
-                for (auto &[id, ipol]: appDisturbBiotic)
-                    ipol *= 2;
-            } else if (c_scenario[1].contains("8p5")) {
-                for (auto &[id, ipol]: appDisturbFire)
-                    ipol *= 2.5;
-                for (auto &[id, ipol]: appDisturbBiotic)
-                    ipol *= 2.5;
-            } else
-                INFO("c_scenario[1] ({}) doesn't contain \"7p0\" or \"8p5\"", c_scenario[1]);
         }
 
         // Synchronize land use with the GLOBIOM model
@@ -288,14 +217,14 @@ namespace g4m::application::concrete {
                 if (plot.protect.data.at(2000) == 0) {
 
                     // we leave the previous values if in current dataset this cell is absent
-                    if (!appGlobiomAfforMax[plot.simuID].data.empty())
-                        for (const auto &[year, value]: appGlobiomAfforMax[plot.simuID].data)
+                    if (!sis.GLOBIOM_AfforMax[plot.simuID].data.empty())
+                        for (const auto &[year, value]: sis.GLOBIOM_AfforMax[plot.simuID].data)
                             if (year > 2000)
                                 plot.afforMax.data[year] = max(0., value + plot.natLnd_correction);
 
                     // we leave the previous values if in current dataset this cell is absent
-                    if (!appGlobiomLand[plot.simuID].data.empty())
-                        for (const auto &[year, value]: appGlobiomLand[plot.simuID].data)
+                    if (!sis.GLOBIOM_Land[plot.simuID].data.empty())
+                        for (const auto &[year, value]: sis.GLOBIOM_Land[plot.simuID].data)
                             // dfor correction was ahead of time and value of GLOBIOM_reserved is probably negative
                             // max(0, value + plot.GL_correction) =>
                             // max(plot.GLOBIOM_reserved.data[year],
@@ -536,13 +465,13 @@ namespace g4m::application::concrete {
                 double damagedBiotic = 0;
 
                 if (disturbanceTrend) {
-                    damagedWind = appDisturbWind[plot.simuID](year) * reciprocalFTimber;
-                    damagedFire = appDisturbFire[plot.simuID](year) * reciprocalFTimber;
-                    damagedBiotic = appDisturbBiotic[plot.simuID](year) * reciprocalFTimber;
+                    damagedWind = sis.disturbWind[plot.simuID](year) * reciprocalFTimber;
+                    damagedFire = sis.disturbFire[plot.simuID](year) * reciprocalFTimber;
+                    damagedBiotic = sis.disturbBiotic[plot.simuID](year) * reciprocalFTimber;
                 } else if (disturbanceExtreme && year == disturbanceExtremeYear) {
-                    damagedWind = appDisturbWindExtreme[plot.simuID](year) * reciprocalFTimber;
-                    damagedFire = appDisturbFireExtreme[plot.simuID](year) * reciprocalFTimber;
-                    damagedBiotic = appDisturbBioticExtreme[plot.simuID](year) * reciprocalFTimber;
+                    damagedWind = sis.disturbWindExtreme[plot.simuID](year) * reciprocalFTimber;
+                    damagedFire = sis.disturbFireExtreme[plot.simuID](year) * reciprocalFTimber;
+                    damagedBiotic = sis.disturbBioticExtreme[plot.simuID](year) * reciprocalFTimber;
                 }
 
                 double cleanedWoodUseCurrent10 = 0;

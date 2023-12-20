@@ -31,6 +31,7 @@
 #include "../structs/harvest_residues.hpp"
 
 #include "../GLOBIOM_scenarios_data/datamaps/datamap_scenarios.hpp"
+#include "../GLOBIOM_scenarios_data/simu_ids/simu_id_scenarios.hpp"
 
 using namespace std;
 using namespace g4m::helper;
@@ -92,6 +93,7 @@ namespace g4m::StartData {
     map <pair<uint32_t, uint32_t>, string> nuts2id; // x,y,nuts2 (pair has no build hash, O(log(n)) look-up)
 
     DatamapScenarios datamapScenarios;
+    SimuIdScenarios simuIdScenarios;
 
     DataGrid <string> nuts2grid;
 
@@ -119,22 +121,6 @@ namespace g4m::StartData {
     FFIpolM<double> ffdov;
     // Do final felling (depending on d and stocking volume per hectare)
     FFIpolM<double> ffdoe;
-
-    using simuIdType = unordered_map<uint32_t, Ipol < double> >;
-    using heterSimuIdScenariosType = unordered_map<string, simuIdType, StringHash, equal_to<> >;
-
-    heterSimuIdScenariosType globiomAfforMaxScenarios;         // Maximum allowed afforestation estimated from GLOBIOM natural land
-    heterSimuIdScenariosType globiomLandScenarios;      // Country GLOBIOM land (kha) reserved for croplands, pastures and short rotation plantations (also wetlands and infrastructure)
-
-    heterSimuIdScenariosType maiClimateShiftersScenarios;  // MAI climate shifters
-
-    simuIdType commonDisturbWind;     // wood damage due to windfalls, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType commonDisturbFire;     // wood damage due to biotic agents (mostly bark beetle), m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType commonDisturbBiotic;   // wood damage due to fire, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-
-    simuIdType commonDisturbWindExtreme;      // wood damage due to windfalls, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType commonDisturbBioticExtreme;    // wood damage due to biotic agents (mostly bark beetle), m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
-    simuIdType commonDisturbFireExtreme;      // wood damage due to fire, m3/(ha year); calculated by Andrey Lessa for the LULUCF2040 T2, 28.06.2023
 
     const size_t resLatitude = lround(180 / gridStep);
 
