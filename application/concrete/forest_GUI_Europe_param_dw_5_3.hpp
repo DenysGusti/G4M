@@ -346,9 +346,6 @@ namespace g4m::application::concrete {
             forest30GeneralFM();
 
             if (fmPol && inputPriceC != 0 && year > refYear) {
-                double fm_hurdle = 1;
-                double diffMaxDiff = 1;
-
                 // populate list of countries where it's impossible to match demanded wood production in current year
                 countriesNoFmCPol.clear();
                 for (double tmpTimeStep = modTimeStep / 100.; const auto country: countriesList)
@@ -366,20 +363,60 @@ namespace g4m::application::concrete {
                 findMaxWoodAndCNPV(year);
                 array<double, numberOfCountries> woodHarvest = calculateInitHarv();
                 printWoodHarvestPostControl(year, woodHarvest);
-                fmCPol(fm_hurdle, year, woodHarvest);
+                fmCPol(1, year, woodHarvest);
                 array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest);
-
-                TRACE("maxDiff = {}\tfm_hurdle = {}\tdiffMaxDiff = {}", "maxDiff", fm_hurdle, diffMaxDiff);
                 array<double, numberOfCountries> maxDiff0 = harvDiff;
 
                 // TODO continue logic
-                for (doneList.clear(); doneList.size() < countriesList.size();) {
-                    size_t maxDiffCountry = 0;
+                doneList.clear();
+                for (uint8_t maxDiffCountry = 0;
+                     doneList.size() < countriesList.size(); doneList.insert(maxDiffCountry)) {
                     while (doneList.contains(maxDiffCountry)) {
                         harvDiff[maxDiffCountry] = 0;
                         maxDiffCountry = distance(harvDiff.begin(), ranges::max_element(harvDiff));
                     }
+
+                    double maxDiff = harvDiff[maxDiffCountry];
+                    if (maxDiff <= 0.01)
+                        break;
+
+                    toAdjust = {maxDiffCountry};
+
+                    double fm_hurdle = 1;
+                    double diffMaxDiff = 1;
+                    TRACE("maxDiff = {}\tfm_hurdle = {}\tdiffMaxDiff = {}", maxDiff, fm_hurdle, diffMaxDiff);
+
+                    for (int i = 1; maxDiff > 0.01 && fm_hurdle > -1'000'000 && i <= 100; ++i) {
+                        if (diffMaxDiff <= 0.001) {
+                            if (fm_hurdle < 2 && fm_hurdle > 0) fm_hurdle += 0.2;
+                            else if (fm_hurdle < 10 && fm_hurdle >= 2) fm_hurdle += 1;
+                            else if (fm_hurdle < 100 && fm_hurdle >= 10) fm_hurdle += 10;
+                            else if (fm_hurdle < 1'000 && fm_hurdle >= 100) fm_hurdle += 100;
+                            else if (fm_hurdle < 100'000 && fm_hurdle >= 1'000) fm_hurdle += 50'000;
+                            else if (fm_hurdle < 1'000'000 && fm_hurdle >= 100'000) fm_hurdle += 500'000;
+                            else if (fm_hurdle < 10'000'000 && fm_hurdle >= 1'000'000) fm_hurdle += 5'000'000;
+                            else if (fm_hurdle < 100'000'000 && fm_hurdle >= 10'000'000) fm_hurdle += 50'000'000;
+                            else if (fm_hurdle < 1'000'000'000 && fm_hurdle >= 100'000'000) fm_hurdle += 500'000'000;
+                            else if (fm_hurdle >= 1'000'000'000) fm_hurdle = -1;    // Try for Ireland
+                            else if (fm_hurdle >= -1 && fm_hurdle < 0) fm_hurdle = -2;
+                            else if (fm_hurdle >= -2 && fm_hurdle < 0) fm_hurdle = -10;
+                            else if (fm_hurdle >= -100'000 && fm_hurdle < 0) fm_hurdle = -1'000'000;
+                        }
+
+                        woodHarvest = calculateInitHarv();
+                        fmCPol(fm_hurdle, year, woodHarvest);
+
+                        double maxDiffPrev = maxDiff0[maxDiffCountry];
+
+                        diffMaxDiff = maxDiffPrev - maxDiff;
+                        maxDiffPrev = maxDiff;
+
+                        TRACE("maxDiff = {}\tfm_hurdle_loop = {}\tdiffMaxDiff = {}", maxDiff, fm_hurdle, diffMaxDiff);
+                    }
                 }
+
+                INFO("Start adjust residues in FMCPol");
+
             }
         }
 
@@ -417,7 +454,7 @@ namespace g4m::application::concrete {
 
                         if (biomass > 0 && appMaiForest(plot.x, plot.y) > 0 && SD != 0) {
                             double harvestTmp = appHarvestGrid(plot.x, plot.y);
-                            double harvestO = cohortVec[plot.asID].cohortRes()[0];
+                            double harvestO = cohortVec[plot.asID].cohortRes().getTotalWoodRemoval();
                             double lostHarvestTmp = cleanedWoodUseCurrent * harvestO * forestShareConcerned *
                                                     appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
                             appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp - lostHarvestTmp);
@@ -443,7 +480,7 @@ namespace g4m::application::concrete {
                                     cleanedWoodUseNew *= cleanWoodUseShare30;
 
                                 harvestTmp = appHarvestGrid(plot.x, plot.y);
-                                harvestO = cohortVec[plot.asID].cohortRes()[0];
+                                harvestO = cohortVec[plot.asID].cohortRes().getTotalWoodRemoval();
                                 double harvestNewTmp = cleanedWoodUseNew * harvestO * forestShareConcerned *
                                                        appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
                                 appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp + harvestNewTmp);
@@ -749,22 +786,23 @@ namespace g4m::application::concrete {
 
             //---- Estimation of harvest residues (branches and leaves) per grid in tC ------------------------------------
             double harvRes_fcO = 0;
-            double harvRes_thO = 0;
             double harvRes_fcN = 0;
-            double harvRes_thN = 0;
-            double harvRes_scO = 0;  // residues extracted from cleaned (old) forest that is taken for wood production
-            double harvRes_scN = 0;  // residues extracted from cleaned (new) forest that is taken for wood production
-            double harvRes_scN_notTaken = 0;  // all wood extracted from (new) cleaned forest that is not taken for wood production
-            double harvRes_scO_notTaken = 0;  // all wood extracted from (old) cleaned forest that is not taken for wood production
             double harvRes_fcO30 = 0;
+//            double harvRes_thO = 0;
+
+//            double harvRes_thN = 0;
+//            double harvRes_scO = 0;  // residues extracted from cleaned (old) forest that is taken for wood production
+//            double harvRes_scN = 0;  // residues extracted from cleaned (new) forest that is taken for wood production
+//            double harvRes_scN_notTaken = 0;  // all wood extracted from (new) cleaned forest that is not taken for wood production
+//            double harvRes_scO_notTaken = 0;  // all wood extracted from (old) cleaned forest that is not taken for wood production
 
             bool em_harvRes_fcO = false;
-            bool em_harvRes_thO = false;
             bool em_harvRes_fcN = false;
-            bool em_harvRes_thN = false;
-            bool em_harvRes_scO = false;
-            bool em_harvRes_scN = false;
             bool em_harvRes_fcO30 = false;
+//            bool em_harvRes_thO = false;
+//            bool em_harvRes_thN = false;
+//            bool em_harvRes_scO = false;
+//            bool em_harvRes_scN = false;
 
             if (harvAreaO > 0 && realAreaO > 0 && harvestO > 0 && bmH > 0)  // tC/ha
                 harvRes_fcO = harvestO * (plot.BEF(bmH * realAreaO / harvAreaO) - 2) + bmH;
@@ -780,11 +818,12 @@ namespace g4m::application::concrete {
 
             double stump = 0;       // stumps of old forest // tC/ha
             double stump_new = 0;   // stumps of new forest// tC/ha
-            double stump_df = 0;
-            double stump10 = 0;     // stumps of old forest // tC/ha
-            double stump_df10 = 0;
             double stump30 = 0;     // stumps of old forest // tC/ha
-            double stump_df30 = 0;
+//            double stump_df = 0;
+//            double stump10 = 0;     // stumps of old forest // tC/ha
+//            double stump_df10 = 0;
+
+//            double stump_df30 = 0;
 
             // calculate amount of stumps + big roots for final felling, tC/ha
             if (stumpHarvCountrySpecies.contains({plot.country, plot.speciesType})) {
@@ -852,21 +891,21 @@ namespace g4m::application::concrete {
                                         const double extractedStump) // share of extracted stump
         {
             // Dead wood
-            double deadWood_fc_unmng = 0;       // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests not used for intensive wood production
+//            double deadWood_fc_unmng = 0;       // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests not used for intensive wood production
             double deadWood_fc_mng = 0;         // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests used for intensive wood production
+//
+//            double deadWood_mort = 0;           // deadwood (stem) due to mortality in old forest that is not classified as potentially merchantable
+//            double litter_mort = 0;             // litter (stem) due to mortality in old forest that is not classified as potentially merchantable
 
-            double deadWood_mort = 0;           // deadwood (stem) due to mortality in old forest that is not classified as potentially merchantable
-            double litter_mort = 0;             // litter (stem) due to mortality in old forest that is not classified as potentially merchantable
-
-            double deadWoodBranches_mort = 0;
-            double litterBranches_mort = 0;
-            double deadWoodStump_mort = 0;
-            double litterStump_mort = 0;
+//            double deadWoodBranches_mort = 0;
+//            double litterBranches_mort = 0;
+//            double deadWoodStump_mort = 0;
+//            double litterStump_mort = 0;
 
             // tC/ha in the cell
             double deadWoodBranches_fc = 0.3 * bmH * (plot.BEF(harvAreaO > 0 ? (bmH / harvAreaO * realAreaO) : 0) - 1);
             double litterBranches_fc = deadWoodBranches_fc / 0.3 * 0.7;
-            double litterBranches_th = 0;
+//            double litterBranches_th = 0;
 
             double deadWoodBranches_th = 0;
 
@@ -891,13 +930,11 @@ namespace g4m::application::concrete {
             // branches from harvested trees
             double tmp_share = 1 - extractedResidues * plot.residuesUseShare;
 
-            double deadWoodPoolIn = deadWoodBranches_fc * tmp_share +
-                                    deadWoodStump_fc * (1 - extractedStump * plot.residuesUseShare) +
-                                    deadWood_fc_mng +
-                                    deadwood_hRes_mng * tmp_share;
+            double deadWoodPoolIn =
+                    deadWoodBranches_fc * tmp_share + deadWoodStump_fc * (1 - extractedStump * plot.residuesUseShare) +
+                    deadWood_fc_mng + deadwood_hRes_mng * tmp_share;
 
-            double litterPoolIn = litterBranches_fc * tmp_share +
-                                  litter_hRes_mng * tmp_share;
+            double litterPoolIn = litterBranches_fc * tmp_share + litter_hRes_mng * tmp_share;
 
             return {deadWoodPoolIn, litterPoolIn};
         }
@@ -953,10 +990,10 @@ namespace g4m::application::concrete {
 
             for (const auto &plot: appPlots)
                 if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0) {
-                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                    double harvestO10 = appCohort10_all[plot.asID].cohortRes()[0];
-                    double harvestO30 = appCohort30_all[plot.asID].cohortRes()[0];
-                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                    double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                    double harvestO10 = appCohort10_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                    double harvestO30 = appCohort30_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                    double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                     double cleanedWoodUseCurrent =
                             cleanedWoodUse[plot.country] + appDat_all[plot.asID].harvestEfficiencyMultifunction;
@@ -1373,8 +1410,8 @@ namespace g4m::application::concrete {
                                     appNewCohort_all[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
                                 }
 
-                                double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                                double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                                double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                                double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                                 double forestShareApplied =
                                         appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1530,8 +1567,8 @@ namespace g4m::application::concrete {
                                     appNewCohort_all[plot.asID].setStockingDegree(-1);
                                 }
 
-                                double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                                double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                                double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                                double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                                 double forestShareApplied =
                                         appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1608,8 +1645,8 @@ namespace g4m::application::concrete {
                                     appNewCohort_all[plot.asID].setStockingDegree(-1);
                                 }
 
-                                double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                                double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                                double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                                double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                                 double forestShareApplied =
                                         appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1719,8 +1756,8 @@ namespace g4m::application::concrete {
                                     appCohort_all[plot.asID].setU(rotation);
                                     appNewCohort_all[plot.asID].setU(rotation);
 
-                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                                     double forestShareApplied =
                                             appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1762,8 +1799,8 @@ namespace g4m::application::concrete {
                                     appCohort_all[plot.asID].setU(rotation);
                                     appNewCohort_all[plot.asID].setU(rotation);
 
-                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                                     double forestShareApplied =
                                             appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
@@ -1842,19 +1879,20 @@ namespace g4m::application::concrete {
                             appCohort_all[plot.asID].setU(rotationSalvage);
                             appNewCohort_all[plot.asID].setU(rotationSalvage);
 
-                            const auto [harvestO, bmH, bmTh] =
-                                    appDat_all[plot.asID].OForestShare > 0 ? appCohort_all[plot.asID].cohortRes()
-                                                                           : array{0., 0., 0.};
-                            const auto [harvestN, bmHNew, bmThNew] =
-                                    appDat_all[plot.asID].AForestShare > 0 ? appNewCohort_all[plot.asID].cohortRes()
-                                                                           : array{0., 0., 0.};
+                            CohortRes resO;
+                            if (appDat_all[plot.asID].OForestShare > 0)
+                                resO = appCohort_all[plot.asID].cohortRes();
+
+                            CohortRes resN;
+                            if (appDat_all[plot.asID].AForestShare > 0)
+                                resN = appNewCohort_all[plot.asID].cohortRes();
 
                             double forestShareApplied =
                                     appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;
 
                             // Total current harvested wood in the cell, m3
-                            double newHarvestTmp = (harvestO * forestShareApplied +
-                                                    harvestN * appDat_all[plot.asID].AForestShare) *
+                            double newHarvestTmp = (resO.getTotalWoodRemoval() * forestShareApplied +
+                                                    resN.getTotalWoodRemoval() * appDat_all[plot.asID].AForestShare) *
                                                    appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
 
                             woodHarvest[plot.country] += newHarvestTmp - appHarvestGrid(plot.x, plot.y);
@@ -1862,8 +1900,9 @@ namespace g4m::application::concrete {
                             appHarvestGrid(plot.x, plot.y) = newHarvestTmp;
 
                             // total salvage felling in the cell m3
-                            double salvageFelled = ((bmH + bmTh) * forestShareApplied +
-                                                    (bmHNew + bmThNew) * appDat_all[plot.asID].AForestShare) *
+                            double salvageFelled = (resO.getTotalHarvestedBiomass() * forestShareApplied +
+                                                    resN.getTotalHarvestedBiomass() *
+                                                    appDat_all[plot.asID].AForestShare) *
                                                    appDat_all[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
                             salvageHarvest[yearSalvage] += salvageFelled;
 
@@ -1893,8 +1932,8 @@ namespace g4m::application::concrete {
 
             for (const auto &plot: appPlots)  // additionally filtered by countriesList (see filter plots)
                 if (toAdjust.contains(plot.country) && plot.protect.data.at(2000) == 0) {
-                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                    double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                    double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                     double forestShareApplied =
                             appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;
@@ -2024,8 +2063,8 @@ namespace g4m::application::concrete {
                                     appCohort_all[plot.asID].setU(rotation);
                                     appNewCohort_all[plot.asID].setU(rotation);
 
-                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                                     double forestShareApplied =
                                             appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;
@@ -2063,8 +2102,8 @@ namespace g4m::application::concrete {
                                     appCohort_all[plot.asID].setU(rotation);
                                     appNewCohort_all[plot.asID].setU(rotation);
 
-                                    double harvestO = appCohort_all[plot.asID].cohortRes()[0];
-                                    double harvestN = appNewCohort_all[plot.asID].cohortRes()[0];
+                                    double harvestO = appCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
+                                    double harvestN = appNewCohort_all[plot.asID].cohortRes().getTotalWoodRemoval();
 
                                     double forestShareApplied =
                                             appDat_all[plot.asID].OForestShare - appDat_all[plot.asID].deforestShare;

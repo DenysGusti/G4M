@@ -18,6 +18,7 @@
 #include "shelter_wood_timer.hpp"
 #include "increment_tab.hpp"
 #include "constants.hpp"
+#include "cohort_res.hpp"
 
 using namespace std;
 namespace rv = ranges::views;
@@ -39,24 +40,20 @@ namespace g4m::increment {
             double reciprocalRealArea = 1 / realArea;
             double areaRatio = res.second.area * reciprocalRealArea;  // harvArea / realArea
 
-            // MG: get harvestable sawn-wood for the set (old) forest tC/ha for final cut.
+            // MG: get harvestable sawn-wood for the forest tC/ha for final cut.
             double sawnW = res.second.sw * areaRatio;
-            // MG: get harvestable rest-wood for the set (old) forest tC/ha for final cut.
+            // MG: get harvestable rest-wood for the forest tC/ha for final cut.
             double restW = res.second.rw * areaRatio;
-            // MG: get harvestable sawn-wood for the set (old) forest tC/ha for thinning.
+            // MG: get harvestable sawn-wood for the forest tC/ha for thinning.
             double sawnThW = res.first.sw * reciprocalRealArea;
-            // MG: get harvestable rest-wood for the set (old) forest tC/ha for thinning.
+            // MG: get harvestable rest-wood for the  forest tC/ha for thinning.
             double restThW = res.first.rw * reciprocalRealArea;
-            // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
+            // MG: get total harvestable biomass including harvest losses for the forest tC/ha for final cut
             double bmH = res.second.bm * areaRatio;
-            // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for thinning
+            // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
             double bmTh = res.first.bm * reciprocalRealArea;
-            // MG: usable harvest residues for the set (old) forest tC/ha
-            double harvRes = (bmH + bmTh - (sawnW + restW + sawnThW + restThW)) * resUse;
             // harvestW, bmH, bmTh
-            return {(sawnW + restW + sawnThW + restThW + harvRes) / modTimeStep,
-                    bmH / modTimeStep,
-                    bmTh / modTimeStep};
+            return {(sawnW + restW + sawnThW + restThW) / modTimeStep, bmH / modTimeStep, bmTh / modTimeStep};
         }
 
         AgeStruct(
@@ -859,7 +856,7 @@ namespace g4m::increment {
             if (dat.empty())
                 return 0;
             ptrdiff_t i = distance(ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; }),
-                                dat.rend());
+                                   dat.rend());
             i = max(0ll, i - 1);
             return static_cast<double>(i) * timeStep;
         }
@@ -1176,11 +1173,11 @@ namespace g4m::increment {
         }
 
         // returns harvestW, bmH, bmTh, performs aging and doesn't modify the cohort
-        [[nodiscard]] array<double, 3> cohortRes() const {
+        [[nodiscard]] CohortRes cohortRes() const {
             auto cohortTmp = *this;
             auto res = cohortTmp.aging();
             double realArea = cohortTmp.getArea();
-            return cohortRes(realArea, res);
+            return {realArea, res};
         }
 
         // Create copy and set U inline for the sake of encapsulation
@@ -1266,7 +1263,7 @@ namespace g4m::increment {
                 case 5:
                 case 6:
                 case 7: {
-                   auto type = static_cast<ORT>(objOfProd - 3);
+                    auto type = static_cast<ORT>(objOfProd - 3);
                     double sd = midpoint(sdMin, sdMax);
                     if (sd > 0)
                         u = sd == 1 ? it->getTOptT(avgMai, type) : it->getTOptSdTab(avgMai, sd, type);

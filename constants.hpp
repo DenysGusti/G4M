@@ -69,7 +69,6 @@ namespace g4m::Constants {
     constexpr double sdMaxCoef = 1; // maximum stocking degree multiplier: sdMax = SD * sdMaxCoef
 
     constexpr double deflator = 0.8807;  // Deflator to convert 2000 USD prices to 1995 USD prices
-    constexpr double resUse = 0; // share of harvest residuals that can be used for bioenergy
 
     // policies before forPolicyYearBioclima
     constexpr bool commonForest10_policy = false;  // Policy on protecting 10% of EU forests (BIOCLIMA)
@@ -113,7 +112,7 @@ namespace g4m::Constants {
     // https://www.researchgate.net/publication/280528960_Forest_Land_Ownership_Change_in_Europe_COST_Action_FP1201_FACESMAP_Country_Reports_Joint_Volume
     constexpr double forestRoadConstructionCostsEuroM = 15 * exchangeRate * deflator;
 
-    constexpr double tolerance = 0.05;  //0.05;//0.1; // tolerance of forest management adjustment to match domestic wood demand 11.05.2023
+    constexpr double tolerance = 0.05;  // 0.1; // tolerance of forest management adjustment to match domestic wood demand 11.05.2023
     constexpr double npvLoss = 0.25;    // 0.03 CHECK for SLOVENIA; share of NPV loss that we allow when adjusting RT 11.05.2023
 
     constexpr bool disturbanceSwitch = true;    // Switch simulation of the disturbance event in CZ
