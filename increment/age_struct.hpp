@@ -41,13 +41,13 @@ namespace g4m::increment {
             double areaRatio = res.second.area * reciprocalRealArea;  // harvArea / realArea
 
             // MG: get harvestable sawn-wood for the forest tC/ha for final cut.
-            double sawnW = res.second.sw * areaRatio;
+            double sawnW = res.second.sawnWood * areaRatio;
             // MG: get harvestable rest-wood for the forest tC/ha for final cut.
-            double restW = res.second.rw * areaRatio;
+            double restW = res.second.restWood * areaRatio;
             // MG: get harvestable sawn-wood for the forest tC/ha for thinning.
-            double sawnThW = res.first.sw * reciprocalRealArea;
+            double sawnThW = res.first.sawnWood * reciprocalRealArea;
             // MG: get harvestable rest-wood for the  forest tC/ha for thinning.
-            double restThW = res.first.rw * reciprocalRealArea;
+            double restThW = res.first.restWood * reciprocalRealArea;
             // MG: get total harvestable biomass including harvest losses for the forest tC/ha for final cut
             double bmH = res.second.bm * areaRatio;
             // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
@@ -739,9 +739,9 @@ namespace g4m::increment {
                     ret.bm += totalWood;
                     double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                    ret.sw += sawnWood;
-                    ret.rw += harvestedWood - sawnWood;
-                    ret.co += totalWood * coe->ip(dbhBm);
+                    ret.sawnWood += sawnWood;
+                    ret.restWood += harvestedWood - sawnWood;
+                    ret.harvestCosts += totalWood * coe->ip(dbhBm);
                     dat[i].bm *= mul;
                 }
 
@@ -760,17 +760,17 @@ namespace g4m::increment {
                     ret.bm += totalWood;
                     double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                    ret.sw += sawnWood;
-                    ret.rw += harvestedWood - sawnWood;
-                    ret.co += totalWood * coe->ip(dbhBm);
+                    ret.sawnWood += sawnWood;
+                    ret.restWood += harvestedWood - sawnWood;
+                    ret.harvestCosts += totalWood * coe->ip(dbhBm);
 
                     dat0[i].bm *= mul;
                 }
 
             if (ret.area > 0) {  // Values per hectare
-                ret.sw /= ret.area;
-                ret.rw /= ret.area;
-                ret.co /= ret.area;
+                ret.sawnWood /= ret.area;
+                ret.restWood /= ret.area;
+                ret.harvestCosts /= ret.area;
                 ret.bm /= ret.area;
             }  // MG: per ha of logged land
             return ret;
@@ -803,10 +803,12 @@ namespace g4m::increment {
             if ((objOfProd == 1 || objOfProd == 2) && !selectiveLogging) { //Fulfill an amount of harvest
                 retThin = thinAndGrow();
                 if (objOfProd == 1)
-                    retHarvest = finalCut(minSw - retThin.sw, minRw - retThin.rw, minHarv - (retThin.sw + retThin.rw),
+                    retHarvest = finalCut(minSw - retThin.sawnWood, minRw - retThin.restWood,
+                                          minHarv - (retThin.sawnWood + retThin.restWood),
                                           true, false);
                 else
-                    retHarvest = finalCut(minSw - retThin.sw, minRw - retThin.rw, minHarv - (retThin.sw + retThin.rw),
+                    retHarvest = finalCut(minSw - retThin.sawnWood, minRw - retThin.restWood,
+                                          minHarv - (retThin.sawnWood + retThin.restWood),
                                           true, true);
             } else if (!speciesChange && !selectiveLogging && !shelterWood) { //We have a rotation time to fulfill
                 retHarvest = finalCut(area * timeStep / u, true); //do final cut
@@ -1146,10 +1148,11 @@ namespace g4m::increment {
 
                         ret.bm += totalWood *
                                   harvestShare;  // total amount of damaged stem-wood wood including the burnt biomass and potential harvest losses
-                        ret.sw += sawnWood * harvestShare;  // harvested sawn wood from the slash
-                        ret.rw += (harvestedWood - sawnWood) * harvestShare;  // harvested rest-wood from the slash
-                        ret.co += totalWood * coe->ip(dbhBm) *
-                                  harvestShare;  // harvesting costs - costs for normal harvest used, not well estimated yet
+                        ret.sawnWood += sawnWood * harvestShare;  // harvested sawn wood from the slash
+                        ret.restWood +=
+                                (harvestedWood - sawnWood) * harvestShare;  // harvested rest-wood from the slash
+                        ret.harvestCosts += totalWood * coe->ip(dbhBm) *
+                                            harvestShare;  // harvesting costs - costs for normal harvest used, not well estimated yet
                     }
                 }
 
@@ -1161,9 +1164,9 @@ namespace g4m::increment {
                 slashH = 0;
             }
             if (ret.area > 0) {  // Values per hectare
-                ret.sw /= ret.area;
-                ret.rw /= ret.area;
-                ret.co /= ret.area;
+                ret.sawnWood /= ret.area;
+                ret.restWood /= ret.area;
+                ret.harvestCosts /= ret.area;
                 ret.bm /= ret.area;
             }
             reforest(ret.area, false); // we reforest the damaged forest here
@@ -1185,6 +1188,35 @@ namespace g4m::increment {
             auto cohortTmp = *this;
             cohortTmp.setU(aU);
             return cohortTmp;
+        }
+
+        // returns salvage logging after disturbances: harvest, bmH, damagedFire, harvArea
+        [[nodiscard]] array<double, 4>
+        salvageLoggingAllAgents(const double damagedWindForced, const double damagedFireForced,
+                                const double damagedBioticForced, const double harvestableWind,
+                                const double harvestableFire, const double harvestableBiotic) {
+            if (area <= 0)
+                return {};
+
+            const double burntReduction = 0.85;  // reduction of biomass due to burning / expert assumption
+            double reciprocalRealArea = 1 / area;
+            V resWind, resFire, resBiotic;
+
+            if (damagedWindForced > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                resWind = disturbanceDamage(damagedWindForced, 30, 15, 0, harvestableWind);
+            if (damagedFireForced > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                resFire = disturbanceDamage(damagedFireForced, 30, 0, 0, harvestableFire);
+            if (damagedBioticForced > 0)  // disturbance damaged wood and wood harvested from the damaged trees
+                resBiotic = disturbanceDamage(damagedBioticForced, 0, 0, 15, harvestableBiotic);
+
+            double harvest = (resWind.getTotalSalvageWoodRemoval() + resFire.getTotalSalvageWoodRemoval() +
+                              resBiotic.getTotalSalvageWoodRemoval()) * reciprocalRealArea;
+            double bmH = (resWind.getHarvestedBmForest() + resFire.getHarvestedBmForest() * burntReduction +
+                          resBiotic.getHarvestedBmForest()) * reciprocalRealArea;
+            double damagedFire = resFire.getHarvestedBmForest() * reciprocalRealArea;
+            double harvArea = resWind.area + resFire.area + resBiotic.area;
+
+            return {harvest, bmH, damagedFire, harvArea};
         }
 
     private:
@@ -1417,8 +1449,8 @@ namespace g4m::increment {
             double hWoodArea = 0;   // clearcut area X harvested biomass
 
             for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < aArea ||
-                                                                (ret.sw < aMinSw || ret.rw < aMinRw ||
-                                                                 (ret.sw + ret.rw) < aMinHarv)); --i)
+                                                                (ret.sawnWood < aMinSw || ret.restWood < aMinRw ||
+                                                                 (ret.sawnWood + ret.restWood) < aMinHarv)); --i)
                 if (dat[i].area > 0 && dat[i].bm > 0) {
                     double age = static_cast<double>(i) * timeStep;
                     // The Stands get half increment of the next growing period
@@ -1454,32 +1486,32 @@ namespace g4m::increment {
                             ret.bm += totalWood;
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * coe->ip(dbhBm);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm);
                         } else {  // given amount of harvest
                             double harvestShare = 1;
                             double totalWood = dat[i].area * dbhBm[1];
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            if (ret.sw + sawnWood < minSw || ret.rw + harvestedWood - sawnWood < minRw ||
-                                ret.sw + ret.rw + harvestedWood < minHarv) {//Harvest all
+                            if (ret.sawnWood + sawnWood < minSw || ret.restWood + harvestedWood - sawnWood < minRw ||
+                                ret.sawnWood + ret.restWood + harvestedWood < minHarv) {//Harvest all
                                 ret.area += dat[i].area;
                                 area -= dat[i].area;
                                 dat[i].area = 0;
                             } else {  // Harvest part of age class
                                 harvestShare = 0;
-                                double tmp = minSw - ret.sw;
+                                double tmp = minSw - ret.sawnWood;
                                 if (tmp > 0 && sawnWood > 0) {
                                     tmp /= sawnWood;
                                     harvestShare = max(tmp, harvestShare);
                                 }
-                                tmp = minRw - ret.rw;
+                                tmp = minRw - ret.restWood;
                                 if (tmp > 0 && harvestedWood > sawnWood) {
                                     tmp /= harvestedWood - sawnWood;
                                     harvestShare = max(tmp, harvestShare);
                                 }
-                                tmp = minHarv - (ret.sw + ret.rw);
+                                tmp = minHarv - (ret.sawnWood + ret.restWood);
                                 if (tmp > 0 && harvestedWood > 0) {
                                     tmp /= harvestedWood;
                                     harvestShare = max(tmp, harvestShare);
@@ -1490,9 +1522,9 @@ namespace g4m::increment {
                                 dat[i].area *= 1 - harvestShare;
                             }
                             ret.bm += totalWood * harvestShare;
-                            ret.sw += sawnWood * harvestShare;
-                            ret.rw += (harvestedWood - sawnWood) * harvestShare;
-                            ret.co += totalWood * coe->ip(dbhBm) * harvestShare;
+                            ret.sawnWood += sawnWood * harvestShare;
+                            ret.restWood += (harvestedWood - sawnWood) * harvestShare;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm) * harvestShare;
                         }
                     }
                 }
@@ -1506,9 +1538,9 @@ namespace g4m::increment {
             }
 
             if (ret.area > 0) {  // Values per hectare
-                ret.sw /= ret.area;
-                ret.rw /= ret.area;
-                ret.co /= ret.area;
+                ret.sawnWood /= ret.area;
+                ret.restWood /= ret.area;
+                ret.harvestCosts /= ret.area;
                 ret.bm /= ret.area;
             }
             return ret;
@@ -1525,9 +1557,10 @@ namespace g4m::increment {
             array<double, 2> dbhBm{}; // Key to ask if harvest is economic
             double bmBefore = getBmSL(1) * getAreaSL(1);
             double bmRemoved = 0;
-            for (size_t i = ssize(dat) - 1; i >= endYear && (ret.area < aArea || ret.sw < aMinSw || ret.rw < aMinRw ||
-                                                             ret.sw + ret.rw < aMinHarv ||
-                                                             bmRemoved < bmRemovedShare * bmBefore); --i)
+            for (size_t i = ssize(dat) - 1;
+                 i >= endYear && (ret.area < aArea || ret.sawnWood < aMinSw || ret.restWood < aMinRw ||
+                                  ret.sawnWood + ret.restWood < aMinHarv ||
+                                  bmRemoved < bmRemovedShare * bmBefore); --i)
                 if (dat[i].area > 0) {
                     double age = static_cast<double>(i) * timeStep;
                     // The Stands get half increment of the next growing period
@@ -1551,31 +1584,31 @@ namespace g4m::increment {
                             ret.bm += totalWood;
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * coe->ip(dbhBm);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm);
                         } else if (minHarv >= 0 || minRw >= 0 || minSw >= 0) {  // given amount of harvest
                             double harvestShare = 1;
                             double totalWood = dat[i].area * dbhBm[1];
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            if (ret.sw + sawnWood < minSw || ret.rw + harvestedWood - sawnWood < minRw ||
-                                ret.sw + ret.rw + harvestedWood < minHarv) {  // Harvest all
+                            if (ret.sawnWood + sawnWood < minSw || ret.restWood + harvestedWood - sawnWood < minRw ||
+                                ret.sawnWood + ret.restWood + harvestedWood < minHarv) {  // Harvest all
                                 ret.area += dat[i].area;
                                 dat[i].area = 0;
                             } else {  // Harvest part of age class
                                 harvestShare = 0;
-                                double tmp = minSw - ret.sw;
+                                double tmp = minSw - ret.sawnWood;
                                 if (tmp > 0 && sawnWood > 0) {
                                     tmp /= sawnWood;
                                     harvestShare = max(tmp, harvestShare);
                                 }
-                                tmp = minRw - ret.rw;
+                                tmp = minRw - ret.restWood;
                                 if (tmp > 0 && harvestedWood > sawnWood) {
                                     tmp /= harvestedWood - sawnWood;
                                     harvestShare = max(tmp, harvestShare);
                                 }
-                                tmp = minHarv - (ret.sw + ret.rw);
+                                tmp = minHarv - (ret.sawnWood + ret.restWood);
                                 if (tmp > 0 && harvestedWood > 0) {
                                     tmp /= harvestedWood;
                                     harvestShare = max(tmp, harvestShare);
@@ -1585,9 +1618,9 @@ namespace g4m::increment {
                                 dat[i].area *= 1 - harvestShare;
                             }
                             ret.bm += totalWood * harvestShare;
-                            ret.sw += sawnWood * harvestShare;
-                            ret.rw += (harvestedWood - sawnWood) * harvestShare;
-                            ret.co += totalWood * coe->ip(dbhBm) * harvestShare;
+                            ret.sawnWood += sawnWood * harvestShare;
+                            ret.restWood += (harvestedWood - sawnWood) * harvestShare;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm) * harvestShare;
                         } else if (dat[i].d >
                                    dbhHarv) { // harvest all trees of diameter > doe if economically feasible (dbh > dbhHarv)
                             double harvestShare = 1;
@@ -1609,17 +1642,17 @@ namespace g4m::increment {
 
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * coe->ip(dbhBm);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm);
                             bmRemoved += totalWood;
                         }
                     }
                 }
             if (ret.area > 0) {  // Values per hectare
-                ret.sw /= ret.area;
-                ret.rw /= ret.area;
-                ret.co /= ret.area;
+                ret.sawnWood /= ret.area;
+                ret.restWood /= ret.area;
+                ret.harvestCosts /= ret.area;
                 ret.bm /= ret.area;
             }
             return ret;
@@ -1660,8 +1693,9 @@ namespace g4m::increment {
             double areaShelterCut_total = 0;
             size_t endYear = eco || sustainable ? static_cast<size_t>(minRot / timeStep) : 0;
             array<double, 2> dbhBm{}; // Key to ask if harvest is economic
-            for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < aArea * 0.5 || ret.sw < aMinSw ||
-                                                                ret.rw < aMinRw || ret.sw + ret.rw < aMinHarv); --i)
+            for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < aArea * 0.5 || ret.sawnWood < aMinSw ||
+                                                                ret.restWood < aMinRw ||
+                                                                ret.sawnWood + ret.restWood < aMinHarv); --i)
                 if (dat[i].area > 0 && dat[i].bm > 0) {
                     double age = static_cast<double>(i) * timeStep;
                     //The Stands get half increment of the next growing period
@@ -1691,7 +1725,7 @@ namespace g4m::increment {
                                 });
                                 if (rit != timerSW.rend())
                                     timerSW.erase(next(rit).base());  // why next ? vvv
-                                // https://stackoverflow.com/questions/16609041/c-stl-what-does-base-do
+                                // https://stackoverflow.harvestCostsm/questions/16609041/c-stl-what-does-base-do
                             }
 
                             double area_tmp = 0;
@@ -1712,32 +1746,32 @@ namespace g4m::increment {
                             ret.bm += totalWood;
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * coe->ip(dbhBm);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm);
                         } else {  // given amount of harvest
                             double harvestShare = 1;
                             double totalWood = dat[i].area * dbhBm[1];
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            if (ret.sw + sawnWood < minSw || ret.rw + harvestedWood - sawnWood < minRw ||
-                                ret.sw + ret.rw + harvestedWood < minHarv) {  // Harvest all
+                            if (ret.sawnWood + sawnWood < minSw || ret.restWood + harvestedWood - sawnWood < minRw ||
+                                ret.sawnWood + ret.restWood + harvestedWood < minHarv) {  // Harvest all
                                 ret.area += dat[i].area;
                                 area -= dat[i].area;
                                 dat[i].area = 0;
                             } else {  // Harvest part of age class
                                 harvestShare = 0;
-                                double tmp = minSw - ret.sw;
+                                double tmp = minSw - ret.sawnWood;
                                 if (tmp > 0 && sawnWood > 0) {
                                     tmp /= sawnWood;
                                     harvestShare = max(tmp, harvestShare);
                                 }
-                                tmp = minRw - ret.rw;
+                                tmp = minRw - ret.restWood;
                                 if (tmp > 0 && harvestedWood > sawnWood) {
                                     tmp /= harvestedWood - sawnWood;
                                     harvestShare = max(tmp, harvestShare);
                                 }
-                                tmp = minHarv - (ret.sw + ret.rw);
+                                tmp = minHarv - (ret.sawnWood + ret.restWood);
                                 if (tmp > 0 && harvestedWood > 0) {
                                     tmp /= harvestedWood;
                                     harvestShare = max(tmp, harvestShare);
@@ -1748,9 +1782,9 @@ namespace g4m::increment {
                                 dat[i].area *= 1 - harvestShare;
                             }
                             ret.bm += totalWood * harvestShare;
-                            ret.sw += sawnWood * harvestShare;
-                            ret.rw += (harvestedWood - sawnWood) * harvestShare;
-                            ret.co += totalWood * coe->ip(dbhBm) * harvestShare;
+                            ret.sawnWood += sawnWood * harvestShare;
+                            ret.restWood += (harvestedWood - sawnWood) * harvestShare;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm) * harvestShare;
                         }
                     }
                 }
@@ -1781,9 +1815,9 @@ namespace g4m::increment {
                             ret.bm += totalWood;
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * coe->ip(dbhBm);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm);
                             areaShelterCut_total += area2Cut;
                         }
                     }
@@ -1792,9 +1826,9 @@ namespace g4m::increment {
 
             ret.area += areaShelterCut_total;
             if (ret.area > 0) {  // Values per hectare
-                ret.sw /= ret.area;
-                ret.rw /= ret.area;
-                ret.co /= ret.area;
+                ret.sawnWood /= ret.area;
+                ret.restWood /= ret.area;
+                ret.harvestCosts /= ret.area;
                 ret.bm /= ret.area;
             }
             return ret;
@@ -1878,9 +1912,9 @@ namespace g4m::increment {
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
                         ret.bm += totalWood;
-                        ret.sw += sawnWood;
-                        ret.rw += harvestedWood - sawnWood;
-                        ret.co += totalWood * cov->ip(dbhBmSh);
+                        ret.sawnWood += sawnWood;
+                        ret.restWood += harvestedWood - sawnWood;
+                        ret.harvestCosts += totalWood * cov->ip(dbhBmSh);
                         double incBm = dat[i].area > 0 ? iGwl - totalWood / dat[i].area : iGwl;
                         dat[i].bm = max(0., dat[i].bm + incBm);
                         // MG: estimation of BM weighted average d and h of harvested (at thinning) trees
@@ -1995,9 +2029,9 @@ namespace g4m::increment {
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
                         ret.bm += totalWood;
-                        ret.sw += sawnWood;
-                        ret.rw += harvestedWood - sawnWood;
-                        ret.co += totalWood * cov->ip(dbhBmSh);
+                        ret.sawnWood += sawnWood;
+                        ret.restWood += harvestedWood - sawnWood;
+                        ret.harvestCosts += totalWood * cov->ip(dbhBmSh);
                         double incBm = dat[i].area > 0 ? iGwl - totalWood / dat[i].area : iGwl;
                         dat[i].bm = max(0., dat[i].bm + incBm);
                         //  MG: estimation of BM weighted average d and h of harvested (at thinning) trees
@@ -2100,9 +2134,9 @@ namespace g4m::increment {
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
                         ret.bm += totalWood;
-                        ret.sw += sawnWood;
-                        ret.rw += harvestedWood - sawnWood;
-                        ret.co += totalWood * cov->ip(dbhBmSh);
+                        ret.sawnWood += sawnWood;
+                        ret.restWood += harvestedWood - sawnWood;
+                        ret.harvestCosts += totalWood * cov->ip(dbhBmSh);
                         dat[i].bm += iGwl - totalWood / dat[i].area;
                         // we assume that the area taken by a tree is proportional to its biomass
                         gapArea += totalWood / dat[i].bm;
@@ -2158,9 +2192,9 @@ namespace g4m::increment {
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat0[i].area;
                         ret.bm += totalWood;
-                        ret.sw += sawnWood;
-                        ret.rw += harvestedWood - sawnWood;
-                        ret.co += totalWood * cov->ip(dbhBmSh);
+                        ret.sawnWood += sawnWood;
+                        ret.restWood += harvestedWood - sawnWood;
+                        ret.harvestCosts += totalWood * cov->ip(dbhBmSh);
 
                         double bm_test1 = 0;
                         double bm_test2 = 0;
@@ -2288,9 +2322,9 @@ namespace g4m::increment {
                             double sawnWood = harvestedWood * sws->ip(dat[i].d);
                             ret.area += dat[i].area;
                             ret.bm += totalWood;
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * cov->ip(dbhBmSh);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * cov->ip(dbhBmSh);
                             if (!constSd) {
                                 //The Stands get half increment at low stand density
                                 sdNat = it->getSdNat(age + 0.5 * timeStep, avgMai, dat[i].bm);
@@ -2313,9 +2347,9 @@ namespace g4m::increment {
                             double harvestedWood = totalWood * fc->getHlv().ip(dat[i].d);
                             double sawnWood = harvestedWood * sws->ip(dat[i].d);
                             ret.bm += totalWood;
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * cov->ip(dbhBmSh);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * cov->ip(dbhBmSh);
                         }
                         dat[i].bm = bmMax;
                     }
@@ -2333,9 +2367,9 @@ namespace g4m::increment {
                 }
 
             if (ret.area > 0) {  // Values per hectare
-                ret.sw /= ret.area;
-                ret.rw /= ret.area;
-                ret.co /= ret.area;
+                ret.sawnWood /= ret.area;
+                ret.restWood /= ret.area;
+                ret.harvestCosts /= ret.area;
                 ret.bm /= ret.area;
             }
             return ret;
@@ -2777,9 +2811,9 @@ namespace g4m::increment {
                     ret.bm += totalWood;
                     double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                    ret.sw += sawnWood;
-                    ret.rw += harvestedWood - sawnWood;
-                    ret.co += totalWood * coe->ip(dbhBm);
+                    ret.sawnWood += sawnWood;
+                    ret.restWood += harvestedWood - sawnWood;
+                    ret.harvestCosts += totalWood * coe->ip(dbhBm);
                     area -= dat[i].area * (1 - mul);
                     dat[i].area *= mul;
                 }
@@ -2798,16 +2832,16 @@ namespace g4m::increment {
                     ret.bm += totalWood;
                     double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                    ret.sw += sawnWood;
-                    ret.rw += harvestedWood - sawnWood;
-                    ret.co += totalWood * coe->ip(dbhBm);
+                    ret.sawnWood += sawnWood;
+                    ret.restWood += harvestedWood - sawnWood;
+                    ret.harvestCosts += totalWood * coe->ip(dbhBm);
                     dat0[i].area *= mul;
                 }
 
             if (ret.area > 0) {  // Values per hectare
-                ret.sw /= ret.area;
-                ret.rw /= ret.area;
-                ret.co /= ret.area;
+                ret.sawnWood /= ret.area;
+                ret.restWood /= ret.area;
+                ret.harvestCosts /= ret.area;
                 ret.bm /= ret.area;
             } // MG: now per ha of deforested land
             return ret;
@@ -2840,17 +2874,17 @@ namespace g4m::increment {
                             ret.bm += totalWood;
                             double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
-                            ret.sw += sawnWood;
-                            ret.rw += harvestedWood - sawnWood;
-                            ret.co += totalWood * coe->ip(dbhBm);
+                            ret.sawnWood += sawnWood;
+                            ret.restWood += harvestedWood - sawnWood;
+                            ret.harvestCosts += totalWood * coe->ip(dbhBm);
                             area -= dat[i].area * (1 - mul);
                             dat[i].area *= mul;
                         }
 
                     if (ret.area > 0) { // Values per hectare
-                        ret.sw /= ret.area;
-                        ret.rw /= ret.area;
-                        ret.co /= ret.area;
+                        ret.sawnWood /= ret.area;
+                        ret.restWood /= ret.area;
+                        ret.harvestCosts /= ret.area;
                         ret.bm /= ret.area;
                     } // MG: now per ha of deforested land
                     return ret;

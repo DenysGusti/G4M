@@ -519,43 +519,16 @@ namespace g4m::application::concrete {
                     cleanedWoodUseCurrent10 = cleanWoodUseShare10 * cleanedWoodUse[plot.country];
 
                 double cleanedWoodUseCurrent30 = 1;
-                if (appForest30_policy) {
+                if (appForest30_policy)
                     cleanedWoodUseCurrent30 = appMultifunction30 ? cleanWoodUseShare30 * cleanedWoodUse[plot.country]
                                                                  : 0;
-                } else if (appThinningForest30(plot.x, plot.y) < 0) {
+                else if (appThinningForest30(plot.x, plot.y) < 0)
                     cleanedWoodUseCurrent30 =
                             cleanedWoodUse[plot.country] + appDat_all[plot.asID].harvestEfficiencyMultifunction;
-                }
-
-                double harvestO = 0;
-                double harvestO30 = 0;
-                double harvestO10 = 0;
-                double harvestNew = 0;
-                double harvestP = 0;
-
-                double bmH = 0;
-                double bmH10 = 0;
-                double bmH30 = 0;
-                double bmHP = 0;
-                double bmH_new = 0;
-
-                double damagedFireU = 0;
-                double damagedFire10 = 0;
-                double damagedFire30 = 0;
-                double damagedFireNew = 0;
-                double damagedFireP = 0;
-
-                double harvAreaO = 0;
-                double harvAreaO10 = 0;
-                double harvAreaO30 = 0;
-                double harvAreaNew = 0;
-                double harvAreaP = 0;
 
                 double harvestableFire = 0;
                 double harvestableWind = 0;
                 double harvestableBiotic = 0;
-
-                const double burntReduction = 0.85;  // reduction of biomass due to burning / expert assumption
 
                 if (plot.protect.data.at(2000) == 0) {
                     harvestableFire = 0.25;  // after consulting CBM database, email by Viorel Blujdea 26.07.2023 // Uncertain
@@ -566,125 +539,55 @@ namespace g4m::application::concrete {
                 const double shareU = appDat_all[plot.asID].OForestShareU;
                 const double share10 = appDat_all[plot.asID].OForestShare10;
                 const double share30 = appDat_all[plot.asID].OForestShare30;
-                const double shareP = plot.strictProtected;
+                const double shareP = plot.strictProtected;  // The share of strictly protected forest. Usually, the area of strict protected forest does not change
                 const double shareNew = appDat_all[plot.asID].AForestShare;
 
-                const double realAreaO = appCohort_all[plot.asID].getArea();
-                const double realAreaO30 = appCohort30_all[plot.asID].getArea();
-                const double realAreaO10 = appCohort10_all[plot.asID].getArea();
-                const double realAreaNew = appNewCohort_all[plot.asID].getArea();
-                const double realAreaP = appCohort_primary_all[plot.asID].getArea();
+                const auto [harvestO, bmH, damagedFireU, harvAreaO] =
+                        shareU > 0 ? appCohort_all[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                      damagedFire,
+                                                                                      damagedBiotic,
+                                                                                      harvestableWind,
+                                                                                      harvestableFire,
+                                                                                      harvestableBiotic)
+                                   : array{0., 0., 0., 0.};
 
-                if (shareU > 0 && realAreaO > 0) {
-                    double reciprocalRealAreaO = 1 / realAreaO;
-                    V resWind, resFire, resBiotic;
+                const auto [harvestO30, bmH30, damagedFire30, harvArea30] =
+                        share30 > 0 ? appCohort30_all[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                         damagedFire,
+                                                                                         damagedBiotic,
+                                                                                         harvestableWind,
+                                                                                         harvestableFire,
+                                                                                         harvestableBiotic)
+                                    : array{0., 0., 0., 0.};
 
-                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resWind = appCohort_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0, harvestableWind);
-                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resFire = appCohort_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0, harvestableFire);
-                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resBiotic = appCohort_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
-                                                                               harvestableBiotic);
-
-                    harvestO = ((resWind.sw + resWind.rw) * resWind.area + (resFire.sw + resFire.rw) * resFire.area +
-                                (resBiotic.sw + resBiotic.rw) * resBiotic.area) * reciprocalRealAreaO;
-                    bmH = (resWind.bm * resWind.area + resFire.bm * resFire.area * burntReduction +
-                           resBiotic.bm * resBiotic.area) * reciprocalRealAreaO;
-                    damagedFireU = resFire.bm * resFire.area * reciprocalRealAreaO;
-                    harvAreaO = resWind.area + resFire.area + resBiotic.area;
-                }
-
-                if (share30 > 0 && realAreaO30 > 0) {
-                    double reciprocalRealAreaO30 = 1 / realAreaO30;
-                    V resWind30, resFire30, resBiotic30;
-
-                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resWind30 = appCohort30_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0,
-                                                                                 harvestableWind);
-                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resFire30 = appCohort30_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0,
-                                                                                 harvestableFire);
-                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resBiotic30 = appCohort30_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
-                                                                                   harvestableBiotic);
-
-                    harvestO30 = ((resWind30.sw + resWind30.rw) * resWind30.area +
-                                  (resWind30.sw + resFire30.rw) * resFire30.area +
-                                  (resBiotic30.sw + resBiotic30.rw) * resBiotic30.area) * reciprocalRealAreaO30;
-                    bmH30 = (resWind30.bm * resWind30.area + resFire30.bm * resFire30.area * burntReduction +
-                             resBiotic30.bm * resBiotic30.area) * reciprocalRealAreaO30;
-                    damagedFire30 = resFire30.bm * resFire30.area * reciprocalRealAreaO30;
-                    harvAreaO30 = resWind30.area + resFire30.area + resBiotic30.area;
-                }
-
-                if (share10 > 0 && realAreaO10 > 0) {
-                    double reciprocalRealAreaO10 = 1 / realAreaO10;
-                    V resWind10, resFire10, resBiotic10;
-
-                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resWind10 = appCohort10_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0,
-                                                                                 harvestableWind);
-                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resFire10 = appCohort10_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0,
-                                                                                 harvestableFire);
-                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resBiotic10 = appCohort10_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
-                                                                                   harvestableBiotic);
-
-                    harvestO10 = ((resWind10.sw + resWind10.rw) * resWind10.area +
-                                  (resFire10.sw + resFire10.rw) * resFire10.area +
-                                  (resBiotic10.sw + resBiotic10.rw) * resBiotic10.area) * reciprocalRealAreaO10;
-                    bmH10 = (resWind10.bm * resWind10.area + resFire10.bm * resFire10.area * burntReduction +
-                             resBiotic10.bm * resBiotic10.area) * reciprocalRealAreaO10;
-                    damagedFire10 = resFire10.bm * resFire10.area * reciprocalRealAreaO10;
-                    harvAreaO10 = resWind10.area + resFire10.area + resBiotic10.area;
-                }
+                const auto [harvestO10, bmH10, damagedFire10, harvArea10] =
+                        share10 > 0 ? appCohort10_all[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                         damagedFire,
+                                                                                         damagedBiotic,
+                                                                                         harvestableWind,
+                                                                                         harvestableFire,
+                                                                                         harvestableBiotic)
+                                    : array{0., 0., 0., 0.};
 
                 // ---- we don't account for the deadwood accumulation at the moment (to be improved) ---
-                if (shareNew > 0 && realAreaNew > 0) {
-                    double reciprocalRealAreaNew = 1 / realAreaNew;
-                    V resWindNew, resFireNew, resBioticNew;
-
-                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resWindNew = appNewCohort_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0,
-                                                                                   harvestableWind);
-                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resFireNew = appNewCohort_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0,
-                                                                                   harvestableFire);
-                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resBioticNew = appNewCohort_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15,
-                                                                                     harvestableBiotic);
-
-                    harvestNew = ((resWindNew.sw + resWindNew.rw) * resWindNew.area +
-                                  (resFireNew.sw + resFireNew.rw) * resFireNew.area +
-                                  (resBioticNew.sw + resBioticNew.rw) * resBioticNew.area) * reciprocalRealAreaNew;
-                    bmH_new = (resWindNew.bm * resWindNew.area + resFireNew.bm * resFireNew.area * burntReduction +
-                               resBioticNew.bm * resBioticNew.area) * reciprocalRealAreaNew;
-                    damagedFireNew = resFireNew.bm * resFireNew.area * reciprocalRealAreaNew;
-                    harvAreaNew = resWindNew.area + resFireNew.area + resBioticNew.area;
-                }
+                const auto [harvestNew, bmH_new, damagedFireNew, harvAreaNew] =
+                        shareNew > 0 ? appNewCohort_all[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                           damagedFire,
+                                                                                           damagedBiotic,
+                                                                                           harvestableWind,
+                                                                                           harvestableFire,
+                                                                                           harvestableBiotic)
+                                     : array{0., 0., 0., 0.};
 
                 // ---- we don't clean salvage in the primary forest and don't account for the deadwood accumulation at the moment (to be improved) ---
-                if (shareP > 0 && realAreaP > 0) {
-                    double reciprocalRealAreaP = 1 / realAreaP;
-                    V resWindP, resFireP, resBioticP;
-
-                    if (damagedWind > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resWindP = appCohort_primary_all[plot.asID].disturbanceDamage(damagedWind, 30, 15, 0, 0);
-                    if (damagedFire > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resFireP = appCohort_primary_all[plot.asID].disturbanceDamage(damagedFire, 30, 0, 0, 0);
-                    if (damagedBiotic > 0)  // disturbance damaged wood and wood harvested from the damaged trees
-                        resBioticP = appCohort_primary_all[plot.asID].disturbanceDamage(damagedBiotic, 0, 0, 15, 0);
-
-                    harvestP =
-                            ((resWindP.sw + resWindP.rw) * resWindP.area + (resFireP.sw + resFireP.rw) * resFireP.area +
-                             (resBioticP.sw + resBioticP.rw) * resBioticP.area) * reciprocalRealAreaP;
-                    bmHP = (resWindP.bm * resWindP.area + resFireP.bm * resFireP.area * burntReduction +
-                            resBioticP.bm * resBioticP.area) * reciprocalRealAreaP;
-                    damagedFireP = resFireP.bm * resFireP.area * reciprocalRealAreaP;
-                    harvAreaP = resWindP.area + resFireP.area + resBioticP.area;
-                }
+                const auto [harvestP, bmHP, damagedFireP, harvAreaP] =
+                        shareNew > 0 ? appCohort_primary_all[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                                damagedFire,
+                                                                                                damagedBiotic,
+                                                                                                harvestableWind,
+                                                                                                harvestableFire,
+                                                                                                harvestableBiotic)
+                                     : array{0., 0., 0., 0.};
 
                 salvageLogging(plot.x, plot.y) =
                         (harvestO * (shareU - appDat_all[plot.asID].deforestShare) + shareNew * harvestNew +
@@ -693,12 +596,12 @@ namespace g4m::application::concrete {
                         appDat_all[plot.asID].landAreaHa;
 
                 if (damagedFireU + damagedFire30 + damagedFire10 + damagedFireNew + damagedFireP <= 0)
-                    adjustResiduesDisturbed(plot, year, harvestO, bmH, harvestNew, bmH_new, harvestO30, bmH30,
-                                            harvAreaO, harvAreaNew, realAreaO, realAreaNew, harvAreaO30, realAreaO30);
+                    adjustResiduesDisturbed(plot, year, harvestO, harvestNew, harvestO30, bmH, bmH_new, bmH30,
+                                            harvAreaO, harvAreaNew, harvArea30);
 
                 const auto [deadWoodPoolIn, litterPoolIn] =
                         shareU > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort_all[plot.asID],
-                                                                     harvestO, shareU, realAreaO, harvAreaO, bmH,
+                                                                     harvestO, shareU, harvAreaO, bmH,
                                                                      appDat_all[plot.asID].extractedResidues,
                                                                      appDat_all[plot.asID].extractedStump)
                                    : pair{0., 0.};
@@ -707,7 +610,7 @@ namespace g4m::application::concrete {
                         shareNew > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appNewCohort_all[plot.asID],
                                                                        harvestNew,
                                                                        appDat_all[plot.asID].AForestSharePrev,
-                                                                       realAreaNew, harvAreaNew, bmH_new,
+                                                                       harvAreaNew, bmH_new,
                                                                        appDat_all[plot.asID].extractedResidues,
                                                                        appDat_all[plot.asID].extractedStump)
                                      : pair{0., 0.};
@@ -715,22 +618,21 @@ namespace g4m::application::concrete {
                 const auto [deadWoodPoolIn10, litterPoolIn10] =
                         share10 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort10_all[plot.asID],
                                                                       harvestO10 * (1 - cleanedWoodUseCurrent10),
-                                                                      share10, realAreaO10, harvAreaO10, bmH10,
+                                                                      share10, harvArea10, bmH10,
                                                                       appDat_all[plot.asID].extractedResidues10,
                                                                       appDat_all[plot.asID].extractedStump10)
                                     : pair{0., 0.};
 
                 const auto [deadWoodPoolIn30, litterPoolIn30] =
-                        share30 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort30_all[plot.asID], harvestO30,
-                                                                      share30, realAreaO30,
-                                                                      harvAreaO30, bmH30,
+                        share30 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort30_all[plot.asID],
+                                                                      harvestO30, share30, harvArea30, bmH30,
                                                                       appDat_all[plot.asID].extractedResidues30,
                                                                       appDat_all[plot.asID].extractedStump30)
                                     : pair{0., 0.};
 
                 const auto [deadWoodPoolInP, litterPoolInP] =
                         shareP > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohort_primary_all[plot.asID], 0, shareP,
-                                                                     realAreaP, harvAreaP, bmHP, 0, 0)
+                                                                     harvAreaP, bmHP, 0, 0)
                                    : pair{0., 0.};
 
                 appDat_all[plot.asID].burntDeadwoodU = min(damagedFireU, 0.9 * appDat_all[plot.asID].deadwood);
@@ -768,16 +670,18 @@ namespace g4m::application::concrete {
          */
         void adjustResiduesDisturbed(const DataStruct &plot, const uint16_t year,
                                      const double harvestO,
-                                     const double bmH,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
                                      const double harvestNew,
-                                     const double bmHNew,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
                                      const double harvestO30,
+                                     const double bmH,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
+                                     const double bmHNew,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
                                      const double bmH30,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
-                                     const double harvAreaO, const double harvAreaN,
-                                     const double realAreaO, const double realAreaN,
-                                     const double harvAreaO30, const double realAreaO30) {
+                                     const double harvAreaO, const double harvAreaN, const double harvAreaO30) {
             if (year <= residueHarvYear || plot.protect.data.at(2000) == 1 || plot.residuesUseShare <= 0)
                 return;
+
+            double realAreaO = appCohort_all[plot.asID].getArea();
+            double realAreaN = appNewCohort_all[plot.asID].getArea();
+            double realArea30 = appCohort30_all[plot.asID].getArea();
 
             const double OForestShareU = appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
             const double OForestShare30 = appDat_all[plot.asID].OForestShare30;
@@ -796,25 +700,14 @@ namespace g4m::application::concrete {
 //            double harvRes_scN_notTaken = 0;  // all wood extracted from (new) cleaned forest that is not taken for wood production
 //            double harvRes_scO_notTaken = 0;  // all wood extracted from (old) cleaned forest that is not taken for wood production
 
-            bool em_harvRes_fcO = false;
-            bool em_harvRes_fcN = false;
-            bool em_harvRes_fcO30 = false;
-//            bool em_harvRes_thO = false;
-//            bool em_harvRes_thN = false;
-//            bool em_harvRes_scO = false;
-//            bool em_harvRes_scN = false;
-
             if (harvAreaO > 0 && realAreaO > 0 && harvestO > 0 && bmH > 0)  // tC/ha
                 harvRes_fcO = harvestO * (plot.BEF(bmH * realAreaO / harvAreaO) - 2) + bmH;
-            em_harvRes_fcO = harvRes_fcO > 0;
 
             if (harvAreaN > 0 && realAreaN > 0 && harvestNew > 0 && bmHNew > 0)  // tC/ha
                 harvRes_fcN = harvestNew * (plot.BEF(bmHNew * realAreaN / harvAreaN) - 2) + bmHNew;
-            em_harvRes_fcN = harvRes_fcN > 0;
 
-            if (harvAreaO30 > 0 && realAreaO30 > 0 && harvestO30 > 0 && bmH30 > 0 && residueUse30 > 0)  // tC/ha
-                harvRes_fcO30 = harvestO30 * (plot.BEF(bmH30 * realAreaO30 / harvAreaO30) - 2) + bmH30;
-            em_harvRes_fcO30 = harvRes_fcO30 > 0;
+            if (harvAreaO30 > 0 && realArea30 > 0 && harvestO30 > 0 && bmH30 > 0 && residueUse30 > 0)  // tC/ha
+                harvRes_fcO30 = harvestO30 * (plot.BEF(bmH30 * realArea30 / harvAreaO30) - 2) + bmH30;
 
             double stump = 0;       // stumps of old forest // tC/ha
             double stump_new = 0;   // stumps of new forest// tC/ha
@@ -849,10 +742,10 @@ namespace g4m::application::concrete {
                     double hDBHOld30 = appCohort30_all[plot.asID].getDBHFinalCut();
                     double hHOld30 = appCohort30_all[plot.asID].getHFinalCut();
 
-                    if (harvAreaO30 > 0 && realAreaO30 > 0 && plot.fTimber.data.at(2000) > 0 && hDBHOld30 > 0 &&
+                    if (harvAreaO30 > 0 && realArea30 > 0 && plot.fTimber.data.at(2000) > 0 && hDBHOld30 > 0 &&
                         hHOld30 > 0) {
-                        double harvestGSOld30 = bmH30 / harvAreaO30 * realAreaO30;
-                        stump30 = plot.DBHHToStump(hDBHOld30, hHOld30, harvestGSOld30) * harvAreaO30 / realAreaO30;
+                        double harvestGSOld30 = bmH30 / harvAreaO30 * realArea30;
+                        stump30 = plot.DBHHToStump(hDBHOld30, hHOld30, harvestGSOld30) * harvAreaO30 / realArea30;
                     }
                 }
             }
@@ -884,8 +777,7 @@ namespace g4m::application::concrete {
         deadWoodPoolDisturbanceCalcFunc(const DataStruct &plot, const AgeStruct &cohort,
                                         const double harvestedWood, // wood harvested in the production forest, m3/ha
                                         const double forestShare, // considered forest share in the cell
-                                        const double realAreaO, // relative forest area in the forest simulator
-                                        const double harvAreaO, // pure harvested area
+                                        const double harvArea, // pure harvested area
                                         const double bmH, // total harvested stem biomass at final felling in the production forest and multifunction forest
                                         const double extractedResidues, // share of extracted logging residues
                                         const double extractedStump) // share of extracted stump
@@ -902,12 +794,21 @@ namespace g4m::application::concrete {
 //            double deadWoodStump_mort = 0;
 //            double litterStump_mort = 0;
 
+            double areaRatio = harvArea > 0 ? cohort.getArea() / harvArea : 0;
+
+            double fcDBH = cohort.getDBHFinalCut();
+            double fcH = cohort.getHFinalCut();
+            double fcGS = bmH * areaRatio;
+
+            double deadWoodStump_fc = areaRatio > 0 ? plot.DBHHToStump(fcDBH, fcH, fcGS) / areaRatio : 0;
+//            double deadWoodStump_th = 0;
+
             // tC/ha in the cell
-            double deadWoodBranches_fc = 0.3 * bmH * (plot.BEF(harvAreaO > 0 ? (bmH / harvAreaO * realAreaO) : 0) - 1);
+            double deadWoodBranches_fc = 0.3 * bmH * (plot.BEF(fcGS) - 1);
             double litterBranches_fc = deadWoodBranches_fc / 0.3 * 0.7;
 //            double litterBranches_th = 0;
 
-            double deadWoodBranches_th = 0;
+//            double deadWoodBranches_th = 0;
 
             const double harvLossShare = 0.25;
 
@@ -917,24 +818,16 @@ namespace g4m::application::concrete {
             // litter from harvest losses in intensively managed old forest
             double litter_hRes_mng = harvLossShare * harvL;
 
-            double fcDBH = cohort.getDBHFinalCut();
-            double fcH = cohort.getHFinalCut();
-            double fcGS = bmH / harvAreaO * realAreaO;
-
-            double deadWoodStump_fc = realAreaO > 0 ? plot.DBHHToStump(fcDBH, fcH, fcGS) * harvAreaO / realAreaO : 0;
-            double deadWoodStump_th = 0;
-
-            double thDBHold = 0;
-            double thHold = 0;
+//            double thDBHold = 0;
+//            double thHold = 0;
 
             // branches from harvested trees
             double tmp_share = 1 - extractedResidues * plot.residuesUseShare;
 
-            double deadWoodPoolIn =
-                    deadWoodBranches_fc * tmp_share + deadWoodStump_fc * (1 - extractedStump * plot.residuesUseShare) +
-                    deadWood_fc_mng + deadwood_hRes_mng * tmp_share;
+            double deadWoodPoolIn = (deadWoodBranches_fc + deadwood_hRes_mng) * tmp_share +
+                                    deadWoodStump_fc * (1 - extractedStump * plot.residuesUseShare) + deadWood_fc_mng;
 
-            double litterPoolIn = litterBranches_fc * tmp_share + litter_hRes_mng * tmp_share;
+            double litterPoolIn = (litterBranches_fc + litter_hRes_mng) * tmp_share;
 
             return {deadWoodPoolIn, litterPoolIn};
         }

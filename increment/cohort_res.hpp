@@ -20,8 +20,6 @@ namespace g4m::increment {
         double bmH = 0;
         // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
         double bmTh = 0;
-        // MG: harvest residues for the forest tC/ha
-        double harvLosses = 0;
 
         CohortRes() = default;
 
@@ -33,10 +31,10 @@ namespace g4m::increment {
             double areaRatio = res.second.area * reciprocalRealArea;  // harvArea / realArea
             double reciprocalModTimeStep = 1. / modTimeStep;
 
-            sawnWood = res.second.sw * areaRatio;
-            restWood = res.second.rw * areaRatio;
-            sawnThWood = res.first.sw * reciprocalRealArea;
-            restThWood = res.first.rw * reciprocalRealArea;
+            sawnWood = res.second.sawnWood * areaRatio;
+            restWood = res.second.restWood * areaRatio;
+            sawnThWood = res.first.sawnWood * reciprocalRealArea;
+            restThWood = res.first.restWood * reciprocalRealArea;
             bmH = res.second.bm * areaRatio;
             // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
             bmTh = res.first.bm * reciprocalRealArea;
