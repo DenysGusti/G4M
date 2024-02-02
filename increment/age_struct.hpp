@@ -1094,9 +1094,9 @@ namespace g4m::increment {
             array<double, 3> dbhHBm{};  // array including current year Dbh, H and Bm
             array<double, 2> dbhBm{};   // dbhBm
 
-            double fcDBHTmp = 0; // DBH of harvested trees, average weighted by clearcut area and harvested biomass
-            double fcHTmp = 0; // height of harvested trees, average weighted by clearcut area and harvested biomass
-            double hWoodArea = 0; // clearcut area X harvested biomass
+            double fcDBHTmp = 0; // DBH of harvested trees, average weighted by clear-cut area and harvested biomass
+            double fcHTmp = 0; // height of harvested trees, average weighted by clear-cut area and harvested biomass
+            double hWoodArea = 0; // clear-cut area X harvested biomass
 
             for (ptrdiff_t i = ssize(dat) - 1; i > endYear && ret.bm < targetDamaged; --i)  // ssize() to avoid overflow
                 if (dat[i].area > 0 && dat[i].bm > 0) {
@@ -1119,7 +1119,7 @@ namespace g4m::increment {
                         double totalWood = dat[i].area * dbhHBm[2];
                         double harvestedWood = totalWood * harvestableShare * fc->getHle().ip(dbhHBm[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhHBm[0]);
-                        double hArea = 0;  // clearcut area in current age class
+                        double hArea = 0;  // clear-cut area in current age class
 
                         if (ret.bm + totalWood < targetDamaged) {  // Take all age class
                             ret.area += dat[i].area;
@@ -1180,7 +1180,7 @@ namespace g4m::increment {
             auto cohortTmp = *this;
             auto res = cohortTmp.aging();
             double realArea = cohortTmp.getArea();
-            return {realArea, res};
+            return {realArea, res, cohortTmp.getDBHFinalCut(), cohortTmp.getHFinalCut()};
         }
 
         // Create copy and set U inline for the sake of encapsulation
@@ -1255,8 +1255,8 @@ namespace g4m::increment {
         double flexSd = 0;
         double hH = 0;                  // MG: average height of trees in age classes that are thinned
         double hDbh = 0;                // MG: average diameter of trees in age classes that are thinned
-        double fcH = 0;                 // MG: average height of trees in age classes that are clearcut
-        double fcDBH = 0;               // MG: average DBH of trees in age classes that are clearcut
+        double fcH = 0;                 // MG: average height of trees in age classes that are clear-cut
+        double fcDBH = 0;               // MG: average DBH of trees in age classes that are clear-cut
         double slashH = 0;              // MG: average height of trees in age classes that are slash-logged
         double slashDBH = 0;            // MG: average DBH of trees in age classes that are slash-logged
         double netInc = 0;              // MG:  net annual increment averaged over all age classes, tC/(ha year)
@@ -1444,9 +1444,9 @@ namespace g4m::increment {
             size_t endYear = eco || sustainable ? static_cast<size_t>(minRot / timeStep) : 0;
             array<double, 2> dbhBm{}; // Key to ask if harvest is economic
 
-            double fcDBHTmp = 0;    // DBH of harvested trees, average weighted by clearcut area and harvested biomass
-            double fcHTmp = 0;      // height of harvested trees, average weighted by clearcut area and harvested biomass
-            double hWoodArea = 0;   // clearcut area X harvested biomass
+            double fcDBHTmp = 0;    // DBH of harvested trees, average weighted by clear-cut area and harvested biomass
+            double fcHTmp = 0;      // height of harvested trees, average weighted by clear-cut area and harvested biomass
+            double hWoodArea = 0;   // clear-cut area X harvested biomass
 
             for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < aArea ||
                                                                 (ret.sawnWood < aMinSw || ret.restWood < aMinRw ||

@@ -375,11 +375,10 @@ namespace g4m::init {
         fTimber changed to fTimber.data.at(2000)
         */
         [[nodiscard]] double DBHHToStump(const double dbh, const double h, double felledTreesStem) const {
-            double str = 0;
-
             if (dbh <= 0 || h <= 0 || felledTreesStem <= 0 || fTimber.data.at(2000) <= 0)
-                return str;
+                return 0;
 
+            double str = 0;
             switch (speciesType) {
                 case Species::Fir: {
                     // stump + coarse roots tC per tree
@@ -387,9 +386,9 @@ namespace g4m::init {
                     // volume of stem of one tree
                     double V = pow(dbh, 1.942) * pow(h, 0.9836) * 4.52e-5;
                     // weight of one tree stem
-                    double treeStem = fTimber.data.at(2000) > 0 ? V / fTimber.data.at(2000) : 0;
+                    double treeStem = V / fTimber.data.at(2000);
                     // number of felled trees per cell if felledTreesStem is per cell
-                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
                     str = strOneTree * treesNumber;
                 }
@@ -401,7 +400,7 @@ namespace g4m::init {
                     // weight of one tree stem
                     double treeStem = pow(dbh, 1.5953) * pow(h, 0.9336) * 0.0558 * 5e-4;
                     // number of felled trees per cell if felledTreesStem is per cell
-                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
                     str = strOneTree * treesNumber;
                 }
@@ -414,7 +413,7 @@ namespace g4m::init {
                     // weight of one tree stem
                     double treeStem = exp(-2.6768 + 7.5939 * dbh / (dbh + 13) + 0.0151 * h) * pow(h, 0.8799) * 5e-4;
                     // number of felled trees per cell if felledTreesStem is per cell
-                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
                     str = strOneTree * treesNumber;
                 }
@@ -431,7 +430,7 @@ namespace g4m::init {
                     // weight of one tree stem
                     double treeStem = exp(-3.5686 + 8.2827 * dbh / (dbh + 7) + 0.0393 * h) * pow(h, 0.5772) * 5e-4;
                     // number of felled trees per cell if felledTreesStem is per cell
-                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
                     str = strOneTree * treesNumber;
                 }
@@ -443,7 +442,7 @@ namespace g4m::init {
                     // weight of one tree stem
                     double treeStem = exp(-2.2052 + 7.4361 * dbh / (dbh + 14) + 0.0186 * h) * pow(h, 0.7595) * 5e-4;
                     // number of felled trees per cell if felledTreesStem is per cell
-                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
                     str = strOneTree * treesNumber;
                 }
@@ -455,7 +454,7 @@ namespace g4m::init {
                     // weight of one tree stem
                     double treeStem = pow(dbh, 2.157) * pow(10, -1.088 + 0.039 * h) * 5e-4;
                     // number of felled trees per cell if felledTreesStem is per cell
-                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
                     str = strOneTree * treesNumber;
                 }
@@ -468,9 +467,9 @@ namespace g4m::init {
                     double V = -0.0011638 * h - 0.03088 +
                                dbh * (dbh * (-4.8614e-5 - 3.8178e-6 * dbh + 4.0597e-5 * h) + 0.004676261);
                     // weight of one tree stem
-                    double treeStem = fTimber.data.at(2000) > 0 ? V / fTimber.data.at(2000) : 0;
+                    double treeStem = V / fTimber.data.at(2000);
                     // number of felled trees per cell if felledTreesStem is per cell
-                    double treesNumber = treeStem > 0 ? felledTreesStem / treeStem : 0;
+                    double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
                     str = strOneTree * treesNumber;
                 }

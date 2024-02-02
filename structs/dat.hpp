@@ -4,6 +4,7 @@
 #include <array>
 
 #include "../init/species.hpp"
+#include "../init/data_struct.hpp"
 
 using namespace std;
 
@@ -38,8 +39,8 @@ namespace g4m::structs {
         double gainedCarbonPrev = 0;
         double emissionsTotPrev = 0;
         double emissionsAfforPrev = 0;
-        double prevPlantPhytHaBmGr = 0;
-        double prevPlantPhytHaBmGrBef = 0;
+        double prevPlantPhytHaBmGr = 0;     // new forest stem wood, tC/(cell area)
+        double prevPlantPhytHaBmGrBef = 0;  // new forest above-ground biomass, tC/(cell area)
         double prevPlantPhytHaBmGrBef20b = 0;
         double prevPlantPhytHaBmGrBef20o = 0;
         array<double, 211> prevPlantPhytHaBmGrBef20b_age{};
@@ -124,9 +125,9 @@ namespace g4m::structs {
         double harvRes_thN = 0;
         double harvRes_scO = 0;
         double harvRes_scN = 0;
-        double harvestGSold = 0;            // harvested growing stock (volume of harvested stem, including harvest losses per harvested area), m3/ha (old forest)
-        double hDBHold = 0;                 // diameter of trees in the oldest age class (average weighted by growing stock) (old forest)
-        double hHold = 0;                   // height of trees in the oldest age class (average weighted by growing stock)
+        double harvestGSOld = 0;            // harvested growing stock (volume of harvested stem, including harvest losses per harvested area), m3/ha (old forest)
+        double hDBHOld = 0;                 // diameter of trees in the oldest age class (average weighted by growing stock) (old forest)
+        double hHOld = 0;                   // height of trees in the oldest age class (average weighted by growing stock)
         double harvestGSNew = 0;            // harvested growing stock (volume of harvested stem, including harvest losses), m3/ha (new forest)
         double hDBHNew = 0;                 // diameter of trees in the oldest age class (average weighted by growing stock) (new forest)
         double hHNew = 0;                   // height of trees in the oldest age class (average weighted by growing stock)
@@ -264,6 +265,47 @@ namespace g4m::structs {
         double burntLitter10 = 0;           // Burnt  litter due to fire damage, tC/ha year
         double burntLitterNew = 0;          // Burnt  litter due to fire damage, tC/ha year
         double burntLitterP = 0;            // Burnt  litter due to fire damage, tC/ha year
+
+        Dat() = default;
+
+        Dat(const DataStruct &plot, const double rotation_, const double abBiomass0, const double cohort10Bm,
+            const double cohort30Bm, const double cohortPrimaryBm, const double thinning) {
+            rotation = rotation_;
+            landAreaHa = plot.landArea * 100;
+            forestShare = plot.getForestShare();
+            forestShare0 = forestShare;
+            OForestShare = forestShare;
+            OForestShareU = plot.forest;
+            OForestShare10 = plot.oldGrowthForest_ten;
+            OForestShare30 = plot.oldGrowthForest_thirty;
+            prevOForShare = forestShare;  // MG: Old forest share in the previous reporting year
+            prevOForShare = OForestShare;     // forest share of all old forest one modelling step back in each cell
+            prevOForShareU = OForestShareU;   // forest share of "usual" old forest one modelling step back in each cell
+            prevOForShare10 = OForestShare10; // forest share of 10% policy forest one modelling step back in each cell
+            prevOForShare30 = OForestShare30; // forest share of 30% policy forest one modelling step back in each cell
+            prevOForShareRP = forestShare;  // MG: Old forest share in the previous reporting year
+            OBiomassPrev = abBiomass0;
+            OBiomass0 = abBiomass0;                   // Modelled biomass at time 0, tC/ha
+            OBiomassPrev10 = cohort10Bm;   // Biomass of 10% policy forest on a previous step, tC/ha
+            OBiomassPrev30 = cohort30Bm;   // Biomass of 30% policy forest on a previous step, tC/ha
+            OBiomassPrevP = cohortPrimaryBm;      // Biomass of primary forest on a previous step, tC/ha
+            oForestBm = abBiomass0;
+            oForestBm10 = OBiomassPrev10;
+            oForestBm30 = OBiomassPrev30;
+            oForestBmP = OBiomassPrevP;
+            rotBiomass = rotation;
+            SD = thinning;
+            species = plot.speciesType;
+            deforPrev = plot.forLoss;
+            road = plot.road.data.at(2000);
+            slashBurn = plot.slashBurn.data.at(2000);
+            deadwood = plot.forest > 0 ? plot.deadWood : 0;
+            deadwood10 = plot.oldGrowthForest_ten > 0 ? plot.deadWood : 0;
+            deadwood30 = plot.oldGrowthForest_thirty > 0 ? plot.deadWood : 0;
+            deadwoodP = plot.strictProtected > 0 ? plot.deadWood : 0;
+            forest10 = plot.oldGrowthForest_ten;
+            forest30 = plot.oldGrowthForest_thirty;
+        }
     };
 }
 

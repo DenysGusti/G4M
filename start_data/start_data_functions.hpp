@@ -691,54 +691,10 @@ namespace g4m::StartData {
             AgeStruct &newCohort = commonNewCohort_all.back();
             newCohort.createNormalForest(rotation, 0, thinning_tmp);
 
-            commonDat_all.emplace_back();
-            Dat &singleCell = commonDat_all.back();
-            singleCell.rotation = commonRotationForest(plot.x, plot.y);
-            singleCell.landAreaHa = plot.landArea * 100;
-            singleCell.forestShare = plot.getForestShare();
-            singleCell.forestShare0 = singleCell.forestShare;
-            singleCell.OForestShare = singleCell.forestShare;
-            singleCell.OForestShareU = plot.forest;
-            singleCell.OForestShare10 = plot.oldGrowthForest_ten;
-            singleCell.OForestShare30 = plot.oldGrowthForest_thirty;
-            singleCell.prevOForShare = forestShare;  // MG: Old forest share in the previous reporting year
-            singleCell.prevOForShare = singleCell.OForestShare;     // forest share of all old forest one modelling step back in each cell
-            singleCell.prevOForShareU = singleCell.OForestShareU;   // forest share of "usual" old forest one modelling step back in each cell
-            singleCell.prevOForShare10 = singleCell.OForestShare10; // forest share of 10% policy forest one modelling step back in each cell
-            singleCell.prevOForShare30 = singleCell.OForestShare30; // forest share of 30% policy forest one modelling step back in each cell
-            singleCell.prevOForShareRP = forestShare;  // MG: Old forest share in the previous reporting year
-            singleCell.OBiomassPrev = abBiomass0;
-            singleCell.OBiomass0 = abBiomass0;                   // Modelled biomass at time 0, tC/ha
-            singleCell.OBiomassPrev10 = cohort10.getBm();   // Biomass of 10% policy forest on a previous step, tC/ha
-            singleCell.OBiomassPrev30 = cohort30.getBm();   // Biomass of 30% policy forest on a previous step, tC/ha
-            singleCell.OBiomassPrevP = cohort_primary.getBm();      // Biomass of primary forest on a previous step, tC/ha
-            singleCell.oForestBm = abBiomass0;
-            singleCell.oForestBm10 = singleCell.OBiomassPrev10;
-            singleCell.oForestBm30 = singleCell.OBiomassPrev30;
-            singleCell.oForestBmP = singleCell.OBiomassPrevP;
-            singleCell.rotBiomass = rotation;
-            singleCell.SD = thinning_tmp;
-            singleCell.species = plot.speciesType;
-            singleCell.deforPrev = plot.forLoss;
-            singleCell.road = plot.road.data.at(2000);
-            singleCell.slashBurn = plot.slashBurn.data.at(2000);
-            singleCell.deadwood = plot.forest > 0 ? plot.deadWood : 0;
-            singleCell.deadwood10 = plot.oldGrowthForest_ten > 0 ? plot.deadWood : 0;
-            singleCell.deadwood30 = plot.oldGrowthForest_thirty > 0 ? plot.deadWood : 0;
-            singleCell.deadwoodP = plot.strictProtected > 0 ? plot.deadWood : 0;
-            singleCell.forest10 = plot.oldGrowthForest_ten;
-            singleCell.forest30 = plot.oldGrowthForest_thirty;
+            commonDat_all.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohort10.getBm(),
+                                       cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
 
-            harvestResiduesCountry[plot.country].emplace_back();
-            HarvestResidues &residuesCellTmp = harvestResiduesCountry[plot.country].back();
-            residuesCellTmp.simuId = plot.simuID;
-            residuesCellTmp.asID = plot.asID;
-            residuesCellTmp.country = plot.country;
-            residuesCellTmp.fTimber = plot.fTimber.data.at(2000);
-            residuesCellTmp.costsSuit1 = plot.residuesUseCosts;
-            residuesCellTmp.costsSuit2 = plot.residuesUseCosts + 10;
-            residuesCellTmp.costsSuit3 = plot.residuesUseCosts;
-            residuesCellTmp.costsSuit4_notTaken = plot.residuesUseCosts * 10;
+            harvestResiduesCountry[plot.country].emplace_back(plot);
         }
     }
 

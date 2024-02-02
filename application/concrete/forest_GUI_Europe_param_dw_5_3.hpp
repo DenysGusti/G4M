@@ -121,7 +121,7 @@ namespace g4m::application::concrete {
         // wood from outside forests in Belgium to cover the inconsistency between FAOSTAT removals and Forest Europe increment and felling
         Ipol<double> woodSupplement;
 
-        // Initializing forest cover array by gridcells
+        // Initializing forest cover array by grid-cells
         DataGrid<double> thinningForestNew{resLatitude};
         DataGrid<double> rotationForestNew{resLatitude};
         DataGrid<double> maxNPVGrid{resLatitude};
@@ -416,7 +416,7 @@ namespace g4m::application::concrete {
                 }
 
                 INFO("Start adjust residues in FMCPol");
-
+                adjustResidues(year);
             }
         }
 
@@ -490,7 +490,7 @@ namespace g4m::application::concrete {
                 }
         }
 
-        // Calculate harvest of wood damaged by disturbances.
+        // Calculate the harvest of wood damaged by disturbances.
         // The damaged amount is informed for each disturbance agent, grid cell and year by a special file.
         // Apply the harvest taking into account forest stand vulnerability criteria like tree species, Dbh, height, age
         void disturbanceDamageHarvest(const uint16_t year) {
@@ -663,19 +663,19 @@ namespace g4m::application::concrete {
 
         /*
         Modified 12 May 2020 according to suggestion by Fulvio Di Fulvio:
-        First collect branches and harvest losses at the clearcut areas, then,
-        if necessary, collect stumps at the clearcut areas,
+        First collect branches and harvest losses at the clear-cut areas, then,
+        if necessary, collect stumps at the clear-cut areas,
         then, if necessary, collect branches and harvest losses at the low-intensity harvest areas
         then, if necessary, collect dead trees in the low-intensity management forests
          */
         void adjustResiduesDisturbed(const DataStruct &plot, const uint16_t year,
                                      const double harvestO,
                                      const double harvestNew,
-                                     const double harvestO30,
+                                     const double harvest30,
                                      const double bmH,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
                                      const double bmHNew,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
                                      const double bmH30,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
-                                     const double harvAreaO, const double harvAreaN, const double harvAreaO30) {
+                                     const double harvAreaO, const double harvAreaN, const double harvArea30) {
             if (year <= residueHarvYear || plot.protect.data.at(2000) == 1 || plot.residuesUseShare <= 0)
                 return;
 
@@ -686,12 +686,12 @@ namespace g4m::application::concrete {
             const double OForestShareU = appDat_all[plot.asID].OForestShareU - appDat_all[plot.asID].deforestShare;
             const double OForestShare30 = appDat_all[plot.asID].OForestShare30;
             const double AForestShare = appDat_all[plot.asID].AForestShare;
-            double residueUse30 = appForest30_policy ? 0 : 1;
+            const double residueUse30 = !appForest30_policy;
 
             //---- Estimation of harvest residues (branches and leaves) per grid in tC ------------------------------------
             double harvRes_fcO = 0;
             double harvRes_fcN = 0;
-            double harvRes_fcO30 = 0;
+            double harvRes_fc30 = 0;
 //            double harvRes_thO = 0;
 
 //            double harvRes_thN = 0;
@@ -706,8 +706,8 @@ namespace g4m::application::concrete {
             if (harvAreaN > 0 && realAreaN > 0 && harvestNew > 0 && bmHNew > 0)  // tC/ha
                 harvRes_fcN = harvestNew * (plot.BEF(bmHNew * realAreaN / harvAreaN) - 2) + bmHNew;
 
-            if (harvAreaO30 > 0 && realArea30 > 0 && harvestO30 > 0 && bmH30 > 0 && residueUse30 > 0)  // tC/ha
-                harvRes_fcO30 = harvestO30 * (plot.BEF(bmH30 * realArea30 / harvAreaO30) - 2) + bmH30;
+            if (harvArea30 > 0 && realArea30 > 0 && harvest30 > 0 && bmH30 > 0 && residueUse30 > 0)  // tC/ha
+                harvRes_fc30 = harvest30 * (plot.BEF(bmH30 * realArea30 / harvArea30) - 2) + bmH30;
 
             double stump = 0;       // stumps of old forest // tC/ha
             double stump_new = 0;   // stumps of new forest// tC/ha
@@ -720,32 +720,31 @@ namespace g4m::application::concrete {
 
             // calculate amount of stumps + big roots for final felling, tC/ha
             if (stumpHarvCountrySpecies.contains({plot.country, plot.speciesType})) {
-
                 if (appThinningForest(plot.x, plot.y) > 0) {
-                    double hDBHOld = appCohort_all[plot.asID].getDBHFinalCut();
-                    double hHOld = appCohort_all[plot.asID].getHFinalCut();
-                    double hDBHNew = appNewCohort_all[plot.asID].getDBHFinalCut();
-                    double hHNew = appNewCohort_all[plot.asID].getHFinalCut();
+                    double hDBHOld = appCohort_all[plot.asID].getDBHSlashCut();
+                    double hHOld = appCohort_all[plot.asID].getHSlashCut();
+                    double hDBHNew = appNewCohort_all[plot.asID].getDBHSlashCut();
+                    double hHNew = appNewCohort_all[plot.asID].getHSlashCut();
 
-                    if (harvAreaO > 0 && realAreaO > 0 && plot.fTimber.data.at(2000) > 0 && hDBHOld > 0 && hHOld > 0) {
+                    if (harvAreaO > 0 && realAreaO > 0) {
                         double harvestGSOld = bmH / harvAreaO * realAreaO;
                         stump = plot.DBHHToStump(hDBHOld, hHOld, harvestGSOld) * harvAreaO / realAreaO;
                     }
 
-                    if (harvAreaN > 0 && realAreaN > 0 && plot.fTimber.data.at(2000) > 0 && hDBHNew > 0 && hHNew > 0) {
+                    if (harvAreaN > 0 && realAreaN > 0) {
                         double harvestGSNew = bmHNew / harvAreaN * realAreaN;
                         stump_new = plot.DBHHToStump(hDBHNew, hHNew, harvestGSNew) * harvAreaN / realAreaN;
                     }
                 }
 
-                if (appThinningForest30(plot.x, plot.y) > 0 && residueUse30 > 0) {
-                    double hDBHOld30 = appCohort30_all[plot.asID].getDBHFinalCut();
-                    double hHOld30 = appCohort30_all[plot.asID].getHFinalCut();
+                if (appThinningForest30(plot.x, plot.y) > 0 && !appForest30_policy) {
+                    double hDBHOld30 = appCohort30_all[plot.asID].getDBHSlashCut();
+                    double hHOld30 = appCohort30_all[plot.asID].getHSlashCut();
 
-                    if (harvAreaO30 > 0 && realArea30 > 0 && plot.fTimber.data.at(2000) > 0 && hDBHOld30 > 0 &&
+                    if (harvArea30 > 0 && realArea30 > 0 && plot.fTimber.data.at(2000) > 0 && hDBHOld30 > 0 &&
                         hHOld30 > 0) {
-                        double harvestGSOld30 = bmH30 / harvAreaO30 * realArea30;
-                        stump30 = plot.DBHHToStump(hDBHOld30, hHOld30, harvestGSOld30) * harvAreaO30 / realArea30;
+                        double harvestGSOld30 = bmH30 / harvArea30 * realArea30;
+                        stump30 = plot.DBHHToStump(hDBHOld30, hHOld30, harvestGSOld30) * harvArea30 / realArea30;
                     }
                 }
             }
@@ -753,7 +752,7 @@ namespace g4m::application::concrete {
             double residuesSuit1_perHa = plot.residuesUseShare * (harvRes_fcO + harvRes_fcN);   // tC/ha
             double residuesSuit2_perHa = plot.residuesUseShare * (stump + stump_new);           // tC/ha
 
-            double residuesSuit1_perHa30 = plot.residuesUseShare * harvRes_fcO30;               // tC/ha
+            double residuesSuit1_perHa30 = plot.residuesUseShare * harvRes_fc30;               // tC/ha
             double residuesSuit2_perHa30 = plot.residuesUseShare * stump30 * residueUse30;      // tC/ha
 
             double residuesSuit1 = plot.residuesUseShare * (harvRes_fcO * OForestShareU + harvRes_fcN * AForestShare) *
@@ -796,8 +795,8 @@ namespace g4m::application::concrete {
 
             double areaRatio = harvArea > 0 ? cohort.getArea() / harvArea : 0;
 
-            double fcDBH = cohort.getDBHFinalCut();
-            double fcH = cohort.getHFinalCut();
+            double fcDBH = cohort.getDBHSlashCut();
+            double fcH = cohort.getHSlashCut();
             double fcGS = bmH * areaRatio;
 
             double deadWoodStump_fc = areaRatio > 0 ? plot.DBHHToStump(fcDBH, fcH, fcGS) / areaRatio : 0;
@@ -2020,6 +2019,205 @@ namespace g4m::application::concrete {
                             DEBUG("asID_RT2 = {}\tcountry = {}\tyear = {}\trotation = {}", plot.asID,
                                   idCountryGLOBIOM.at(plot.country), year, appCohort_all[plot.asID].getU());
                     }
+        }
+
+        // Modified 12 May 2020 according to suggestion by Fulvio Di Fulvio:
+        // First collect branches and harvest losses at the clear-cut areas, then,
+        // if necessary, collect stumps at the clear-cut areas,
+        // then, if necessary, collect branches and harvest losses at the low-intensity harvest areas
+        // then, if necessary, collect dead trees in the low-intensity management forests
+        void adjustResidues(const uint16_t year) {
+            if (year <= residueHarvYear)
+                return;
+
+            const double residueUse30 = !appForest30_policy;
+
+            for (const auto &plot: appPlots)
+                if (plot.protect.data.at(2000) == 0 && plot.residuesUseShare > 0) {
+                    double cleanedWoodUseCurrent10 =
+                            cleanedWoodUse[plot.country] + appDat_all[plot.asID].harvestEfficiencyMultifunction;
+                    double cleanedWoodUseCurrent30 = cleanedWoodUseCurrent10;
+                    if (appForest10_policy)
+                        cleanedWoodUseCurrent10 *= cleanWoodUseShare10;
+                    if (appForest30_policy)
+                        cleanedWoodUseCurrent30 *= cleanWoodUseShare30;
+
+                    auto cohortResAll = appDat_all[plot.asID].OForestShareU > 0 ? appCohort_all[plot.asID].cohortRes()
+                                                                                : CohortRes{};
+                    auto cohortResNew = appDat_all[plot.asID].AForestShare > 0 ? appNewCohort_all[plot.asID].cohortRes()
+                                                                               : CohortRes{};
+                    auto cohortRes30 = appDat_all[plot.asID].OForestShare30 > 0 ? appCohort30_all[plot.asID].cohortRes()
+                                                                                : CohortRes{};
+
+                    // harvRes_fcO = ((sawnW + restW) * (BEF(int(iter->SPECIESTYPE[byear]) - 1, (bmH / harvAreaO * realAreaO), iter->FTIMBER[byear]) - 1) + (bmH - (sawnW + restW)));
+                    double harvRes_fcO = cohortResAll.if_fc() ? cohortResAll.getFinalCutWood() *
+                                                                (plot.BEF(cohortResAll.getResHarvestedBiomass()) - 2) +
+                                                                cohortResAll.bmH : 0;
+                    double harvRes_thO = cohortResAll.if_th() ? cohortResAll.getThinnedWood() *
+                                                                (plot.BEF(appDat_all[plot.asID].OBiomassPrev) - 2) +
+                                                                cohortResAll.bmTh : 0;
+                    double harvRes_fcN = cohortResNew.if_fc() ? cohortResNew.getFinalCutWood() *
+                                                                (plot.BEF(cohortResNew.getResHarvestedBiomass()) - 2) +
+                                                                cohortResNew.bmH : 0;
+                    // harvRes_thN = ((sawnThWnew + restThWnew) * (((PlantPhytHaBmGrBef - PlantPhytHaBmGr) / PlantPhytHaBmGr) - 1) + (bmThnew - (sawnThWnew + restThWnew)));
+                    // For the forest planted after 2000 we calculate above-ground biomass, PlantPhytHaBmGrBef,
+                    // for each age cohort in calc
+                    double harvRes_thN = cohortResNew.if_th() ? cohortResNew.getThinnedWood() *
+                                                                (appDat_all[plot.asID].prevPlantPhytHaBmGrBef /
+                                                                 appDat_all[plot.asID].prevPlantPhytHaBmGr - 3) +
+                                                                cohortResNew.bmTh : 0;
+                    double harvRes_fc30 = cohortRes30.if_fc() ? cohortRes30.getFinalCutWood() *
+                                                                (plot.BEF(cohortRes30.getResHarvestedBiomass()) - 2) +
+                                                                cohortRes30.bmH : 0;
+                    double harvRes_th30 = cohortRes30.if_th() ? cohortRes30.getThinnedWood() *
+                                                                (plot.BEF(appDat_all[plot.asID].OBiomassPrev) - 2) +
+                                                                cohortRes30.bmTh : 0;
+
+                    double harvRes_scO = 0, harvRes_scO_notTaken = 0;
+                    double harvRes_scN = 0, harvRes_scN_notTaken = 0;
+                    double harvRes_sc30 = 0, harvRes_sc30_notTaken = 0;
+
+                    if (appThinningForest(plot.x, plot.y) < 0) {
+                        tie(harvRes_scO, harvRes_scO_notTaken)
+                                = cohortResAll.harvResiduesSanitaryFellings(plot, cleanedWoodUse[plot.country],
+                                                                            plot.BEF(
+                                                                                    appDat_all[plot.asID].OBiomassPrev));
+                        tie(harvRes_scN, harvRes_scN_notTaken)
+                                = cohortResNew.harvResiduesSanitaryFellings(plot, cleanedWoodUse[plot.country],
+                                                                            appDat_all[plot.asID].prevPlantPhytHaBmGrBef /
+                                                                            appDat_all[plot.asID].prevPlantPhytHaBmGr -
+                                                                            1);
+                    }
+                    if (appThinningForest30(plot.x, plot.y) < 0 && residueUse30 > 0)
+                        tie(harvRes_sc30, harvRes_sc30_notTaken)
+                                = cohortResAll.harvResiduesSanitaryFellings(plot, cleanedWoodUse[plot.country],
+                                                                            plot.BEF(
+                                                                                    appDat_all[plot.asID].OBiomassPrev30));
+
+                    double stump = 0;       // stumps of old forest, tC/ha
+                    double stump_new = 0;   // stumps of new forest, tC/ha
+                    double stump30 = 0;     // stumps of old forest, tC/ha
+
+                    if (stumpHarvCountrySpecies.contains({plot.country, plot.speciesType})) {
+                        if (appThinningForest(plot.x, plot.y) > 0) {
+                            // calculate amount of stumps + big roots for final felling, tC/ha
+                            if (cohortResAll.positiveAreas())
+                                stump = plot.DBHHToStump(appDat_all[plot.asID].hDBHOld, appDat_all[plot.asID].hHOld,
+                                                         appDat_all[plot.asID].harvestGSOld /
+                                                         plot.fTimber.data.at(2000));
+                            if (cohortResNew.positiveAreas())
+                                stump_new = plot.DBHHToStump(appDat_all[plot.asID].hDBHNew, appDat_all[plot.asID].hHNew,
+                                                             appDat_all[plot.asID].harvestGSNew /
+                                                             plot.fTimber.data.at(2000));
+                        }
+                        if (appThinningForest30(plot.x, plot.y) > 0 && residueUse30 > 0) {
+                            double hDBHold30 = appCohort30_all[plot.asID].getDBHFinalCut();
+                            double hHold30 = appCohort30_all[plot.asID].getDBHFinalCut();
+                            // calculate amount of stumps + big roots for final felling, tC/ha
+                            if (cohortRes30.positiveAreas())
+                                stump30 = plot.DBHHToStump(cohortRes30.DBH, cohortRes30.H,
+                                                           cohortRes30.getResHarvestedBiomass() /
+                                                           plot.fTimber.data.at(2000));
+                        }
+                    }
+                    /*
+					WORKING ON
+					if (dat_all[asID].defBiomass>0) {
+                     float Dbh_avg = cohortTmp.getDBHthinned();
+                     float h_avg = cohortTmp.getHthinned();
+                     if (harvAreaO>0 && realAreaO>0 && iter->FTIMBER[2000]>0 && Dbh_avg>0 && h_avg>0)
+                     stump_df = DbhhToStump((int)iter->SPECIESTYPE[2000]-1,
+                     Dbh_avg,h_avg,dat_all[asID].defBiomass,iter->FTIMBER[2000])*dat_all[asID].deforestShare/realAreaO;
+                    }
+					*/
+                    // Locate the struct with asID==asID within the country. Binary search O(log n)
+                    auto it_hr = lower_bound(harvestResiduesCountry.at(plot.country).begin(),
+                                             harvestResiduesCountry.at(plot.country).end(), plot.asID,
+                                             [](const HarvestResidues &hr, const size_t asID) {
+                                                 return hr.asID < asID;
+                                             });
+                    if (it_hr == harvestResiduesCountry.at(plot.country).end() || it_hr->asID != plot.asID) {
+                        FATAL("country = {}, asID = {} not found in harvestResiduesCountry", plot.country, plot.asID);
+                        throw runtime_error{"Missing asID harvestResidues"};
+                    }
+
+                    auto &hr = *it_hr;
+                    hr.protect = false;
+                    hr.species = plot.speciesType;
+
+                    hr.residuesSuit1_perHa = harvRes_fcO + harvRes_thO + harvRes_fcN + harvRes_thN;
+                    hr.residuesSuit2_perHa = stump + stump_new;
+                    hr.residuesSuit3_perHa = harvRes_scO + harvRes_scN;
+                    hr.residuesSuit4_notTaken_perHa = harvRes_scO_notTaken + harvRes_scN_notTaken;
+
+                    hr.residuesSuit1_perHa *= plot.residuesUseShare;
+                    hr.residuesSuit2_perHa *= plot.residuesUseShare;
+                    hr.residuesSuit3_perHa *= plot.residuesUseShare;
+                    hr.residuesSuit4_notTaken_perHa *= plot.residuesUseShare;
+
+                    hr.residuesSuit1_perHa30 = harvRes_fc30 + harvRes_th30;
+                    hr.residuesSuit2_perHa30 = stump30 * residueUse30;
+                    hr.residuesSuit3_perHa30 = harvRes_sc30 * residueUse30;
+                    hr.residuesSuit4_notTaken_perHa30 = harvRes_sc30_notTaken;
+
+                    hr.residuesSuit1_perHa30 *= plot.residuesUseShare;
+                    hr.residuesSuit2_perHa30 *= plot.residuesUseShare;
+                    hr.residuesSuit3_perHa30 *= plot.residuesUseShare;
+                    hr.residuesSuit4_notTaken_perHa30 *= plot.residuesUseShare;
+
+                    hr.residuesSuit1 = (harvRes_fcO + harvRes_thO) * appDat_all[plot.asID].OForestShareU +
+                                       (harvRes_fcN + harvRes_thN) * appDat_all[plot.asID].AForestShare;
+                    hr.residuesSuit2 = stump * appDat_all[plot.asID].OForestShareU +
+                                       stump_new * appDat_all[plot.asID].AForestShare;
+                    hr.residuesSuit3 = harvRes_scO * appDat_all[plot.asID].OForestShareU +
+                                       harvRes_scN * appDat_all[plot.asID].AForestShare;
+                    hr.residuesSuit4_notTaken = harvRes_scO_notTaken * appDat_all[plot.asID].OForestShareU +
+                                                harvRes_scN_notTaken * appDat_all[plot.asID].AForestShare;
+
+                    double useShareArea = plot.residuesUseShare * appDat_all[plot.asID].landAreaHa;
+                    hr.residuesSuit1 *= useShareArea;
+                    hr.residuesSuit2 *= useShareArea;
+                    hr.residuesSuit3 *= useShareArea;
+                    hr.residuesSuit4_notTaken *= useShareArea;
+
+                    double shareArea30 = appDat_all[plot.asID].OForestShare30 * appDat_all[plot.asID].landAreaHa;
+                    hr.residuesSuit1_30 = hr.residuesSuit1_perHa30 * shareArea30;
+                    hr.residuesSuit2_30 = hr.residuesSuit2_perHa30 * shareArea30;
+                    hr.residuesSuit3_30 = hr.residuesSuit3_perHa30 * shareArea30;
+                    hr.residuesSuit4_notTaken30 = hr.residuesSuit4_notTaken_perHa30 * shareArea30;
+
+                    // branches and harvest losses of intensive clear-cut areas
+                    hr.costsSuit1 =
+                            hr.residuesSuit1_perHa > 0 || hr.residuesSuit1_30 > 0 ? plot.residuesUseCosts : 1000;
+                    // stumps of intensive clear-cut areas
+                    hr.costsSuit2 = hr.residuesSuit2_perHa > 0 || hr.residuesSuit2_30 > 0 ? hr.costsSuit1 + 10 : 0;
+                    // branches and harvest losses of non-intensive selective logging areas
+                    hr.costsSuit3 = hr.residuesSuit3_perHa > 0 || hr.residuesSuit3_30 > 0 ? plot.residuesUseCosts : 0;
+                    // dead trees of non-intensively managed areas
+                    hr.costsSuit4_notTaken = hr.residuesSuit4_notTaken_perHa > 0 || hr.residuesSuit4_notTaken30 > 0
+                                             ? plot.residuesUseCosts : 0;
+
+                    hr.initTotalCost();
+
+                    hr.usedForest = appThinningForest(plot.x, plot.y) > 0;
+                    hr.usedForest30 = appThinningForest30(plot.x, plot.y) > 0;
+
+                    hr.em_harvRes_fcO = harvRes_fcO > 0;
+                    hr.em_harvRes_thO = harvRes_thO > 0;
+                    hr.em_harvRes_fcN = harvRes_fcN > 0;
+                    hr.em_harvRes_thN = harvRes_thN > 0;
+                    hr.em_harvRes_scO = harvRes_scO > 0;
+                    hr.em_harvRes_scN = harvRes_scN > 0;
+
+                    hr.em_harvRes_fc30 = harvRes_fc30 > 0;
+                    hr.em_harvRes_th30 = harvRes_th30 > 0;
+                    hr.em_harvRes_sc30 = harvRes_sc30 > 0;
+                    // TODO why?
+                    hr.useSuit1 = 0;
+                    hr.useSuit2 = 0;
+                    hr.useSuit3 = 0;
+                    hr.useSuit4 = 0;
+                }
         }
     };
 }
