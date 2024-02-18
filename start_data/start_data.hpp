@@ -102,8 +102,6 @@ namespace g4m::StartData {
     Ipol<double> hle;       // 1-Ernteverluste Endnutzung
     IpolM<double> cov;      // costs Vornutzung
     IpolM<double> coe;      // costs Endnutzung
-    IpolM<double> dov;      // do Vornutzung
-    IpolM<double> doe;      // do Endnutzung
     Ipol<double> sdMaxH;    // sdMaxH
     Ipol<double> sdMinH;    // sdMinH
 
@@ -117,10 +115,9 @@ namespace g4m::StartData {
     FFIpolM<double> ffcov;
     // Harvesting costs depending on d and vol
     FFIpolM<double> ffcoe;
-    // Do thinning (depending on d and removed volume per hectare) in relation to standing timber (Vorratsfestmeter)
-    FFIpolM<double> ffdov;
-    // Do final felling (depending on d and stocking volume per hectare)
-    FFIpolM<double> ffdoe;
+    // do thinning (Vornutzung) (depending on d and removed volume per hectare) and final fellings (Endnutzung)
+    // (depending on d and stocking volume per hectare) in relation to standing timber (Vorratsfestmeter)
+    Decisions decisions;
 
     const size_t resLatitude = lround(180 / gridStep);
 
@@ -139,13 +136,13 @@ namespace g4m::StartData {
     DataGrid <int8_t> commonRotationType{resLatitude};
     DataGrid <int8_t> commonUnmanaged{resLatitude};
 
-    vector<AgeStruct> commonCohort_all;
-    vector<AgeStruct> commonNewCohort_all;
-    vector<AgeStruct> commonCohort10_all;
-    vector<AgeStruct> commonCohort30_all;
-    vector<AgeStruct> commonCohort_primary_all;
+    vector<AgeStruct> commonCohortsU;
+    vector<AgeStruct> commonCohortsN;
+    vector<AgeStruct> commonCohorts10;
+    vector<AgeStruct> commonCohorts30;
+    vector<AgeStruct> commonCohortsP;
 
-    vector<Dat> commonDat_all;
+    vector<Dat> commonDats;
 
     unordered_map<uint8_t, FFIpolsCountry> countriesFFIpols;
     // data related to harvesting the residues (residues amount, associated costs and soil loss emissions)

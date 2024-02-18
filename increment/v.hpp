@@ -9,7 +9,7 @@ namespace g4m::increment {
         double restWood = 0;        // Rest-wood [tC/Ha]
         double harvestCosts = 0;    // Costs [Costs/Ha]
         double bm = 0;              // Total cut biomass including harvesting losses [tC/Ha]
-        // For final harvest the values are per hectare for thinning they are total
+        // For final harvest the values are per hectare, for thinning they are total
 
         // (sawnWood + restWood) * area
         [[nodiscard]] double getTotalSalvageWoodRemoval() const noexcept {

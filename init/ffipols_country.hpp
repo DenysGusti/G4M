@@ -11,7 +11,6 @@ using namespace g4m::misc::concrete;
 using namespace g4m::Arrays;
 
 namespace g4m::init {
-
     // 1-harvesting losses (depending on d) in relation to standing timber (Vorratsfestmeter) for a country
     class FFIpolsCountry {
     public:
@@ -43,12 +42,12 @@ namespace g4m::init {
         }
 
         // 1-harvesting losses thinning (Vornutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
-        [[nodiscard]] const FFIpol<double> &getHlv() const noexcept {
+        [[nodiscard]] const IIpol<double> &getHlv() const noexcept {
             return ffhlv;
         }
 
         // 1-harvesting losses final felling (Endnutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
-        [[nodiscard]] const FFIpol<double> &getHle() const noexcept {
+        [[nodiscard]] const IIpol<double> &getHle() const noexcept {
             return ffhle;
         }
 

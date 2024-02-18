@@ -13,15 +13,18 @@ using namespace g4m::increment;
 using namespace g4m::helper;
 
 namespace g4m::init {
-    // a tree species code
-    // 1 - fir
-    // 2 - spruce
-    // 3 - pine
-    // 4 - Pinus halepensis
-    // 5 - birch / alder / Alnus incana
-    // 6 - beech
-    // 7 - oak
-    // 8 - larch
+    /*
+    a tree species code
+    0 - no tree species (default)
+    1 - fir
+    2 - spruce
+    3 - pine
+    4 - Pinus halepensis
+    5 - birch / alder / Alnus incana
+    6 - beech
+    7 - oak
+    8 - larch
+    */
     enum class Species : uint8_t {
         NoTree,
         Fir,

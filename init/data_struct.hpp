@@ -32,6 +32,7 @@ namespace g4m::init {
 
         bool managedFlag = false;
         bool managed_UNFCCC = false;  // Flag: true: the cell is counted as managed land for the UNFCCC reporting
+        bool protect = false;
 
         double landArea = 0;
         double forest = 0;
@@ -57,7 +58,6 @@ namespace g4m::init {
         double grLnd_protect = 0;  // Natural vegetation and heathland protected under Nature2000 or to be protected! EU27 only!
         double corruption = 0;
 
-        Ipol<double> protect;
         Ipol<double> NPP;
         Ipol<double> popDens;
         Ipol<double> sPopDens; // MG: added because it's used in forest_calculations
@@ -126,6 +126,8 @@ namespace g4m::init {
                         managedFlag = static_cast<uint8_t>(cell);
                     else if (name == "MANAGED_UNFCCC")
                         managed_UNFCCC = static_cast<bool>(cell);
+                    else if (name == "PROTECT")
+                        protect = static_cast<bool>(cell);
                     else if (name == "MNGMTYPE")
                         mngmType = static_cast<int8_t>(cell);
                     else if (name == "POTVEG")
@@ -186,8 +188,6 @@ namespace g4m::init {
                         priceIndex.data[2000] = cell;
                     else if (name == "FTIMBER")
                         fTimber.data[2000] = cell;
-                    else if (name == "PROTECT")
-                        protect.data[2000] = cell;
                     else if (name == "MAIE")
                         MAIE.data[2000] = cell;
                     else if (name == "MAIN")
@@ -218,9 +218,9 @@ namespace g4m::init {
 
         [[nodiscard]] string str() const noexcept {
             string format_integral = format(
-                    "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\nspeciesType = {}\nmngmType = {}\npotVeg = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n",
+                    "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\nspeciesType = {}\nmngmType = {}\npotVeg = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\nprotect = {}\n",
                     x, y, simuID, country, int{IIASA_region}, int{polesReg}, int{countryRegMix},
-                    speciesName.at(speciesType), int{mngmType}, int{potVeg}, managedFlag, managed_UNFCCC);
+                    speciesName.at(speciesType), int{mngmType}, int{potVeg}, managedFlag, managed_UNFCCC, protect);
             string format_floating_point = format(
                     "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\nCBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\nresiduesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\noldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\nGL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\ncorruption = {}\n",
                     landArea, forest, forLoss, agrSuit, sAgrSuit, CAboveHa, CBelowHa, CDeadHa, CLitterHa, SOCHa,
@@ -228,11 +228,11 @@ namespace g4m::init {
                     oldGrowthForest_thirty, strictProtected, forestAll, forest_correction, GL_correction,
                     natLnd_correction, grLnd_protect, corruption);
             string format_ipol = format(
-                    "protect:\n{}\nNPP:\n{}\npopDens:\n{}\nsPopDens\n{}\npriceIndex:\n{}\nR:\n{}\nGDP:\n{}\nbuiltUp:\n{}\ncrop:\n{}\nfracLongProd:\n{}\nslashBurn:\n{}\ndecHerb:\n{}\ndecWood:\n{}\ndecSOC:\n{}\nfTimber:\n{}\nMAIE:\n{}\nMAIN:\n{}\nroad:\n{}\nGLOBIOM_reserved:\n{}\nafforMax:\n{}\nharvestCosts:\n{}\n",
-                    protect.str(), NPP.str(), popDens.str(), sPopDens.str(), priceIndex.str(), R.str(), GDP.str(),
-                    builtUp.str(), crop.str(), fracLongProd.str(), slashBurn.str(), decHerb.str(), decWood.str(),
-                    decSOC.str(), fTimber.str(), MAIE.str(), MAIN.str(), road.str(), GLOBIOM_reserved.str(),
-                    afforMax.str(), harvestCosts.str());
+                    "NPP:\n{}\npopDens:\n{}\nsPopDens\n{}\npriceIndex:\n{}\nR:\n{}\nGDP:\n{}\nbuiltUp:\n{}\ncrop:\n{}\nfracLongProd:\n{}\nslashBurn:\n{}\ndecHerb:\n{}\ndecWood:\n{}\ndecSOC:\n{}\nfTimber:\n{}\nMAIE:\n{}\nMAIN:\n{}\nroad:\n{}\nGLOBIOM_reserved:\n{}\nafforMax:\n{}\nharvestCosts:\n{}\n",
+                    NPP.str(), popDens.str(), sPopDens.str(), priceIndex.str(), R.str(), GDP.str(), builtUp.str(),
+                    crop.str(), fracLongProd.str(), slashBurn.str(), decHerb.str(), decWood.str(), decSOC.str(),
+                    fTimber.str(), MAIE.str(), MAIN.str(), road.str(), GLOBIOM_reserved.str(), afforMax.str(),
+                    harvestCosts.str());
             return format_integral + format_floating_point + format_ipol;
         }
 

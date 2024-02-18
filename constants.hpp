@@ -71,16 +71,16 @@ namespace g4m::Constants {
     constexpr double deflator = 0.8807;  // Deflator to convert 2000 USD prices to 1995 USD prices
 
     // policies before forPolicyYearBioclima
-    constexpr bool commonForest10_policy = false;  // Policy on protecting 10% of EU forests (BIOCLIMA)
-    constexpr bool commonForest30_policy = false;  // Policy on limiting the use of 30% (10% of strict protection and 20% of limited use) of EU forests (BIOCLIMA)
+    constexpr bool commonForest10Policy = false;  // Policy on protecting 10% of EU forests (BIOCLIMA)
+    constexpr bool commonForest30Policy = false;  // Policy on limiting the use of 30% (10% of strict protection and 20% of limited use) of EU forests (BIOCLIMA)
     constexpr bool commonMultifunction10 = false;  // Apply multifunctional forest management to the 10% forest
     constexpr bool commonMultifunction30 = false;  // Apply multifunctional forest management to the 30% forest
 
     constexpr uint16_t forPolicyYearBioClima = 2025;  // Nature restoration policies start this year / BIOCLIMA1 and EUCLIMIT6
 
     // policies after forPolicyYearBioClima
-    constexpr bool commonForest10_policyKey = true; // true == set-aside
-    constexpr bool commonForest30_policyKey = false;
+    constexpr bool commonForest10PolicyKey = true; // true == set-aside
+    constexpr bool commonForest30PolicyKey = false;
     constexpr bool commonMultifunction10Key = false;
     constexpr bool commonMultifunction30Key = false;
 

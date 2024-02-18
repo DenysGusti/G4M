@@ -41,7 +41,7 @@ namespace g4m::DataIO::reading {
 
             if (!line.empty() && line[0] != '#') {
                 line_cells = line | rv::split(',') |
-                             rv::transform([&](const auto &cell) {  // subrange
+                             rv::transform([&](const auto &cell) {  // sub-range
                                  if (cell.empty()) {
                                      ERROR("!!! CSV line {} empty cell, substituted by 0", line_num + 1);
                                      return 0.;

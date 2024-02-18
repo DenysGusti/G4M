@@ -84,7 +84,7 @@ namespace g4m::increment {
             return harvestArea > 0 && realArea > 0;
         }
 
-        // harvestArea > 0 && getClearCutWood() > 0 && bmH > 0
+        // harvestArea > 0 && getFinalCutWood() > 0 && bmH > 0
         // tC/ha
         [[nodiscard]] bool if_fc() const noexcept {
             return positiveAreas() && getFinalCutWood() > 0 && bmH > 0;
@@ -102,7 +102,7 @@ namespace g4m::increment {
         }
 
         // bmH * (realArea / harvestArea)
-        [[nodiscard]] double getResHarvestedBiomass() const noexcept {
+        [[nodiscard]] double getHarvestGS() const noexcept {
             return bmH * realArea / harvestArea;
         }
 
@@ -122,7 +122,7 @@ namespace g4m::increment {
                 return {0, 0};
 
             // we take residues only from the places where do we take the logs
-            double lost_fc = getFinalCutWood() * plot.BEF(getResHarvestedBiomass());
+            double lost_fc = getFinalCutWood() * plot.BEF(getHarvestGS());
             double lost_fc_d = bmH - 2 * getFinalCutWood();
 
             double lost_th = getThinnedWood() * biomassExpansionThinning;

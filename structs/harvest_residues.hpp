@@ -1,8 +1,10 @@
 #ifndef G4M_EUROPE_DG_HARVEST_RESIDUES_HPP
 #define G4M_EUROPE_DG_HARVEST_RESIDUES_HPP
 
+#include "residues_forest.hpp"
 #include "../init/data_struct.hpp"
 #include "../init/species.hpp"
+#include "../arrays/arrays.hpp"
 
 namespace g4m::structs {
 
@@ -12,14 +14,7 @@ namespace g4m::structs {
         uint8_t country = 0;                        // ID of G4M country
         Species species = Species::NoTree;
         double fTimber = 0;                         // tC -> m3 conversion
-        double residuesSuit1_perHa = 0;             // amount of sustainably harvestable residues (branches and harvest losses) in the cell with clearcut, tC/ha
-        double residuesSuit2_perHa = 0;             // amount of sustainably harvestable stumps, tC/ha
-        double residuesSuit3_perHa = 0;             // amount of sustainably harvestable residues (branches and harvest losses) in the cell without clearcut, tC/ha
-        double residuesSuit4_notTaken_perHa = 0;    // all above-ground wood extracted from cleaned forest that is not taken for wood production, tC/ha
-        double residuesSuit1 = 0;                   // amount of sustainably harvestable residues (branches and harvest losses) in the cell with clearcut, tC/cell
-        double residuesSuit2 = 0;                   // amount of sustainably harvestable stumps, stumps, tC/cell
-        double residuesSuit3 = 0;                   // amount of sustainably harvestable residues (branches and harvest losses) in the cell without clearcut, tC/cell
-        double residuesSuit4_notTaken = 0;          // all above-ground wood extracted from cleaned forest that is not taken for wood production, tC/cell
+        ResiduesForest U, O10, O30;
         double costsSuit1 = 0;                      // costs of harvesting the residuesSuit1 emissions including the transportation costs
         double costsSuit2 = 0;                      // costs of harvesting the residuesSuit2 emissions including the transportation costs
         double costsSuit3 = 0;
@@ -33,35 +28,8 @@ namespace g4m::structs {
         double useSuit2 = 0;                        // switch to use the Suit2 residues
         double useSuit3 = 0;                        // switch to use the Suit2 residues
         double useSuit4 = 0;                        // switch to use the Suit2 residues
-        int timeUseSust1 = 0;                       // time from beginning of extraction of the residues from the cell
-        int timeUseSust2 = 0;                       // time from beginning of extraction of the residues from the cell
         int emissionsTimeFrame = 0;                 // period of residue extraction for estimation of emissions
-        bool usedForest = false;                    // indicator = false; true if the forest is used for wood production (thinning > 0) otherwise false
-        bool protect = false;                            // protected cell
-
-        double residuesSuit1_perHa10 = 0;           // amount of sustainably harvestable residues (branches and harvest losses) in the cell with clear-cut, tC/ha
-        double residuesSuit2_perHa10 = 0;           // amount of sustainably harvestable stumps, tC/ha
-        double residuesSuit3_perHa10 = 0;           // amount of sustainably harvestable residues (branches and harvest losses) in the cell without clear-cut, tC/ha
-        double residuesSuit4_notTaken_perHa10 = 0;  // all above-ground wood extracted from cleaned forest that is not taken for wood production, tC/ha
-        double residuesSuit1_10 = 0;                // amount of sustainably harvestable residues (branches and harvest losses) in the cell with clear-cut, tC/cell
-        double residuesSuit2_10 = 0;                // amount of sustainably harvestable stumps, stumps, tC/cell
-        double residuesSuit3_10 = 0;                // amount of sustainably harvestable residues (branches and harvest losses) in the cell without clear-cut, tC/cell
-        double residuesSuit4_notTaken10 = 0;        // all above-ground wood extracted from cleaned forest that is not taken for wood production, tC/cell
-        int timeUseSust1_10 = 0;                    // time from beginning of extraction of the residues from the cell
-        int timeUseSust2_10 = 0;                    // time from beginning of extraction of the residues from the cell
-        bool usedForest10 = false;                  // indicator = false; true if the forest is used for wood production (thinning > 0) otherwise false
-
-        double residuesSuit1_perHa30 = 0;           // amount of sustainably harvestable residues (branches and harvest losses) in the cell with clear-cut, tC/ha
-        double residuesSuit2_perHa30 = 0;           // amount of sustainably harvestable stumps, tC/ha
-        double residuesSuit3_perHa30 = 0;           // amount of sustainably harvestable residues (branches and harvest losses) in the cell without clear-cut, tC/ha
-        double residuesSuit4_notTaken_perHa30 = 0;  // all above-ground wood extracted from cleaned forest that is not taken for wood production, tC/ha
-        double residuesSuit1_30 = 0;                // amount of sustainably harvestable residues (branches and harvest losses) in the cell with clear-cut, tC/cell
-        double residuesSuit2_30 = 0;                // amount of sustainably harvestable stumps, stumps, tC/cell
-        double residuesSuit3_30 = 0;                // amount of sustainably harvestable residues (branches and harvest losses) in the cell without clear-cut, tC/cell
-        double residuesSuit4_notTaken30 = 0;        // all above-ground wood extracted from cleaned forest that is not taken for wood production, tC/cell
-        int timeUseSust1_30 = 0;                    // time from beginning of extraction of the residues from the cell
-        int timeUseSust2_30 = 0;                    // time from beginning of extraction of the residues from the cell
-        bool usedForest30 = false;                  // indicator = false; true if the forest is used for wood production (thinning > 0) otherwise false
+        bool protect = false;                       // protected cell
 
         bool em_harvRes_fcO = false;
         bool em_harvRes_thO = false;
@@ -88,34 +56,66 @@ namespace g4m::structs {
             costsSuit2 = plot.residuesUseCosts + 10;
             costsSuit3 = plot.residuesUseCosts;
             costsSuit4_notTaken = plot.residuesUseCosts * 10;
+
+            if (country < 0 || country >= numberOfCountries) {
+                FATAL("HarvestResidues: provide correct country code!!!\ncountry = {}", country);
+                throw runtime_error{"HarvestResidues: provide correct country code!!!"};
+            }
         }
 
         void initTotalCost() noexcept {
             costsTotal = 0;
-            if (residuesSuit1_perHa > 0 || residuesSuit2_perHa > 0 || residuesSuit3_perHa > 0 ||
-                residuesSuit4_notTaken_perHa > 0
+            if (U.residuesSuit1_perHa > 0 || U.residuesSuit2_perHa > 0 || U.residuesSuit3_perHa > 0 ||
+                U.residuesSuit4_notTaken_perHa > 0
                 //|| residuesSuit1_perHa10 > 0 || residuesSuit2_perHa10 > 0 || residuesSuit3_perHa10 > 0 ||
                 // residuesSuit4_notTaken_perHa10 > 0
-                || residuesSuit1_perHa30 > 0 || residuesSuit2_perHa30 > 0 || residuesSuit3_perHa30 > 0 ||
-                residuesSuit4_notTaken_perHa30 > 0) {
+                || O30.residuesSuit1_perHa > 0 || O30.residuesSuit2_perHa > 0 || O30.residuesSuit3_perHa > 0 ||
+                O30.residuesSuit4_notTaken_perHa > 0) {
 
                 double numerator =
                         // costsSuit1 * (residuesSuit1 + residuesSuit1_10 + residuesSuit1_30)
                         // + costsSuit2 * (residuesSuit2 + residuesSuit2_10 + residuesSuit2_30)
                         // + costsSuit3 * (residuesSuit3 + residuesSuit3_10 + residuesSuit3_30)
-                        costsSuit1 * (residuesSuit1 + residuesSuit1_30)
-                        + costsSuit2 * (residuesSuit2 + residuesSuit2_30)
-                        + costsSuit3 * (residuesSuit3 + residuesSuit3_30)
+                        costsSuit1 * (U.residuesSuit1 + O30.residuesSuit1)
+                        + costsSuit2 * (U.residuesSuit2 + O30.residuesSuit2)
+                        + costsSuit3 * (U.residuesSuit3 + O30.residuesSuit3)
                         //+ costsSuit4_notTaken * (residuesSuit4_notTaken + residuesSuit4_notTaken10 + residuesSuit4_notTaken30)
-                        + costsSuit4_notTaken * (residuesSuit4_notTaken + residuesSuit4_notTaken30);
+                        + costsSuit4_notTaken * (U.residuesSuit4_notTaken + O30.residuesSuit4_notTaken);
 
                 double denominator =
-                        residuesSuit1 + residuesSuit2 + residuesSuit3 + residuesSuit4_notTaken
+                        U.residuesSuit1 + U.residuesSuit2 + U.residuesSuit3 + U.residuesSuit4_notTaken
                         // + residuesSuit1_10 + residuesSuit2_10 + residuesSuit3_10 + residuesSuit4_notTaken10
-                        + residuesSuit1_30 + residuesSuit2_30 + residuesSuit3_30 + residuesSuit4_notTaken30;
+                        + O30.residuesSuit1 + O30.residuesSuit2 + O30.residuesSuit3 + O30.residuesSuit4_notTaken;
 
                 costsTotal = numerator / denominator;
             }
+        }
+
+        [[nodiscard]] double
+        lerpERUS(const array<array<double, 4>, numberOfCountries> &emissionsResUseSust, uint16_t year) const noexcept {
+            /*
+            if (country < 0 || country >= numberOfCountries) {
+                FATAL("emissionsResUseSust: provide correct country code!!!\ncountry = {}, year = {}", country,
+                      year);
+                throw runtime_error{"emissionsResUseSust: provide correct country code!!!"};
+            }
+            */
+            year = max(uint16_t{0}, year);
+            constexpr array<uint16_t, 4> midYears = {2, 12, 35, 65};
+
+            double em_factor = 0;
+            if (year <= midYears[1])
+                em_factor = lerp(emissionsResUseSust[country][0], emissionsResUseSust[country][1],
+                                 (year - midYears[0]) / (midYears[1] - midYears[0]));
+            else if (year > midYears[1] && year <= midYears[2])
+                em_factor = lerp(emissionsResUseSust[country][1], emissionsResUseSust[country][2],
+                                 (year - midYears[1]) / (midYears[2] - midYears[1]));
+            else
+                em_factor = lerp(emissionsResUseSust[country][2], emissionsResUseSust[country][3],
+                                 (year - midYears[2]) / (midYears[3] - midYears[2]));
+
+            em_factor = max(0., em_factor);
+            return em_factor;
         }
     };
 

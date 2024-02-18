@@ -19,6 +19,7 @@
 #include "increment_tab.hpp"
 #include "constants.hpp"
 #include "cohort_res.hpp"
+#include "decisions.hpp"
 
 using namespace std;
 namespace rv = ranges::views;
@@ -60,18 +61,15 @@ namespace g4m::increment {
                 // Increment table which will be used, the time step width (simulation period length) of *it will also be used in ageStruct
                 IncrementTab *aIt,
                 // Sawn-wood share of harvested wood depending on dbh
-                FFIpol<double> *aSws,
+                IIpol<double> *aSws,
                 FFIpolsCountry *aFc,
                 // Thinning costs depending on d and removed volume per hectare in relation to standing timber (Vorratsfestmeter)
-                FFIpolM<double> *aCov,
+                IIpolM<double> *aCov,
                 // Harvesting costs depending on d and vol
-                FFIpolM<double> *aCoe,
-                // Do thinning (depending on d and removed volume per hectare) in relation to standing timber (Vorratsfestmeter)
-                FFIpolM<double> *aDov,
-                // was ffipolm<bool>
-                // Do final felling (depending on d and stocking volume per hectare)
-                FFIpolM<double> *aDoe,
-                // was ffipolm<bool>
+                IIpolM<double> *aCoe,
+                // do thinning (depending on d and removed volume per hectare) and final felling
+                // (depending on d and stocking volume per hectare) in relation to standing timber (Vorratsfestmeter)
+                Decisions *decisions_,
                 // mean annual increment in tC stem-wood per hectare and year at increment optimal rotation time
                 double aMai,
                 // objective of production:
@@ -129,8 +127,7 @@ namespace g4m::increment {
             fc{aFc},
             cov{aCov},
             coe{aCoe},
-            dov{aDov},
-            doe{aDoe},
+            decisions{decisions_},
             mai{aMai},
             uRef{aU},
             objOfProd{aObjOfProd},
@@ -1220,14 +1217,12 @@ namespace g4m::increment {
         }
 
     private:
-        // pointer variables
         IncrementTab *it = nullptr;
-        FFIpol<double> *sws = nullptr;
+        IIpol<double> *sws = nullptr;
         FFIpolsCountry *fc = nullptr;
-        FFIpolM<double> *cov = nullptr;
-        FFIpolM<double> *coe = nullptr;
-        FFIpolM<double> *dov = nullptr; // was ffipolm<bool>
-        FFIpolM<double> *doe = nullptr; // was ffipolm<bool>
+        IIpolM<double> *cov = nullptr;
+        IIpolM<double> *coe = nullptr;
+        Decisions *decisions = nullptr;
 
         double mai = 0;
         double avgMai = 0;
@@ -1460,7 +1455,7 @@ namespace g4m::increment {
                     dat[i].bm = max(0., dat[i].bm);  // MG: we don't allow negative biomass in any age group
                     dbhBm[0] = max(0., dat[i].d + id);
                     dbhBm[1] = max(0., dat[i].bm + dbm);
-                    if (static_cast<bool>(doe->ip(dbhBm)) || !eco) {  // do harvest if it is economic
+                    if (decisions->DOE(dbhBm[0], dbhBm[1]) || !eco) {  // do harvest if it is economic
                         if (aArea >= 0) { //Given area to harvest
                             double totalWood = 0;
                             double hArea = 0;  // clearcut area in current age class
@@ -1569,7 +1564,7 @@ namespace g4m::increment {
                     double id = it->getIncDbhSdNat(age, avgMai, sdNat) * 0.5;
                     dbhBm[0] = max(0., dat[i].d + id);
                     dbhBm[1] = max(0., dat[i].bm + dbm);
-                    if (static_cast<bool>(doe->ip(dbhBm)) || !eco) {  // do harvest if it is economic
+                    if (decisions->DOE(dbhBm[0], dbhBm[1]) || !eco) {  // do harvest if it is economic
                         if (aArea >= 0) {  // Given area to harvest
                             double totalWood = 0;
                             if (ret.area + dat[i].area < aArea) {  // Harvest all of this age class
@@ -1705,7 +1700,7 @@ namespace g4m::increment {
                     dat[i].bm = max(0., dat[i].bm); // MG: we don't allow negative biomass in any age group
                     dbhBm[0] = max(0., dat[i].d + id);
                     dbhBm[1] = max(0., dat[i].bm + dbm);
-                    if (static_cast<bool>(doe->ip(dbhBm)) || !eco) {  // do harvest if it is economic
+                    if (decisions->DOE(dbhBm[0], dbhBm[1]) || !eco) {  // do harvest if it is economic
                         if (aArea >= 0) {  // Given area to harvest
                             timeTo2Cut = clamp(timeTo2Cut, 0, static_cast<int>(maxAge - i));
                             double totalWood = 0;
@@ -1807,7 +1802,7 @@ namespace g4m::increment {
                         dat[age_idx].bm = max(0., dat[age_idx].bm);
                         dbhBm[0] = max(0., dat[age_idx].d + id);
                         dbhBm[1] = max(0., dat[age_idx].bm + dbm);
-                        if (static_cast<bool>(doe->ip(dbhBm)) || !eco) {  // do harvest if it is economic
+                        if (decisions->DOE(dbhBm[0], dbhBm[1]) || !eco) {  // do harvest if it is economic
                             area2Cut = min(area2Cut, dat[age_idx].area);
                             double totalWood = area2Cut * dbhBm[1];
                             area -= area2Cut;
@@ -1906,8 +1901,8 @@ namespace g4m::increment {
                     dbhBmSh[1] = dat[i].bm + iGwl * 0.5;
                     dbhBmSh[2] = totalWood / dbhBmSh[1];
                     double age = static_cast<double>(i) * timeStep;
-
-                    if (static_cast<bool>(dov->ip(dbhBmSh)) && totalWood > 0) {  // Do Thinning if it is economic
+                    // do thinning if it is economic
+                    if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2]) && totalWood > 0) {
                         double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
@@ -2024,7 +2019,7 @@ namespace g4m::increment {
                     dbhBmSh[1] = dat[i].bm + iGwl * 0.5;
                     dbhBmSh[2] = totalWood / dbhBmSh[1];
                     double age = static_cast<double>(i) * timeStep;
-                    if (static_cast<bool>(dov->ip(dbhBmSh))) { //Do Thinning if it is economic
+                    if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2])) { // do thinning if it is economic
                         double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
@@ -2129,7 +2124,7 @@ namespace g4m::increment {
                     dbhBmSh[1] = dat[i].bm + iGwl * 0.5;
                     dbhBmSh[2] = totalWood / dbhBmSh[1];
                     double age = static_cast<double>(i) * timeStep;
-                    if (static_cast<bool>(dov->ip(dbhBmSh))) {  // Do Thinning if it is economic
+                    if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2])) {  // do thinning if it is economic
                         double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
@@ -2187,7 +2182,7 @@ namespace g4m::increment {
                     double age = static_cast<double>(i) * timeStep;
                     double tmp_arg_1 = (1 - slShare) * avgMai;
                     double tmp_arg_2 = (1 - slShare) * mai;
-                    if (static_cast<bool>(dov->ip(dbhBmSh))) {  // Do Thinning if it is economic
+                    if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2])) {  // do thinning if it is economic
                         double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat0[i].area;
@@ -2306,7 +2301,8 @@ namespace g4m::increment {
                         dbhBmSh[0] = dat[i].d + id * 0.5;
                         dbhBmSh[1] = dat[i].bm + gwl * 0.5;
                         dbhBmSh[2] = 1 - reduce;
-                        if (reduce > 0 && static_cast<bool>(dov->ip(dbhBmSh))) {  // Do Thinning if it is economic
+                        // do thinning if it is economic
+                        if (reduce > 0 && decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2])) {
                             thinningWasDone = true;
                             if (constSd) {
                                 dat[i].bm += gwl;

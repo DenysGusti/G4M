@@ -110,7 +110,7 @@ namespace g4m::StartData {
     void correctNUTS2Data(const span<const DataStruct> plots) noexcept {
         for (const auto &plot: plots)
             // Test only some regions and some countries
-            // plot.protect.data.at(2000) == 0)
+            // !plot.protect)
         {
             // locate the struct with asID == asID within the country
             string_view countryISO = countryOrderISO2[countryCodeOrder[plot.country - 1]];
@@ -189,15 +189,22 @@ namespace g4m::StartData {
         cov.data[{40, 30, 0.2}] = 2;
 
         // We allow thinning from Dbh 3 cm to allow more energy wood (discussion with Fulvio 14 May 2020)
-        dov.data[{0, 0, 0}] = 0;
-        dov.data[{3, 5, 0.001}] = 0;  // Testing!
-        dov.data[{10, 20, 0.01}] = 1;  // Testing!
+        decisions = Decisions{
+                .diameterDovMin = 3,
+                .stemBiomassDovMin = 5,
+                .thinShareDovMin = 0.001,
+                .diameterDoeMin = 15,
+                .stemBiomassDoeMin = 10
+        };
+//        dov.data[{0, 0, 0}] = 0;
+//        dov.data[{3, 5, 0.001}] = 0;  // Testing!
+//        dov.data[{10, 20, 0.01}] = 1;  // Testing!
 
         coe.data[{0, 2}] = 3;
         coe.data[{40, 30}] = 1;
 
-        doe.data[{15, 10}] = 0;
-        doe.data[{16, 11}] = 1;
+//        doe.data[{15, 10}] = 0;
+//        doe.data[{16, 11}] = 1;
 
         ffsws.overwrite(sws);
         ffhlv.overwrite(hlv);
@@ -207,14 +214,12 @@ namespace g4m::StartData {
 
         ffcov = FFIpolM<double>{cov};
         ffcoe = FFIpolM<double>{coe};
-        ffdov = FFIpolM<double>{dov};
-        ffdoe = FFIpolM<double>{doe};
     }
 
     void correctMAI(const span<DataStruct> plots) {
         for (auto &plot: plots)
             // Test only some regions and some countries
-            if (plot.protect.data.at(2000) == 0) {  // if there is no lerp, why not simple map then?
+            if (!plot.protect) {  // if there is no lerp, why not simple map then?
                 // forest with specified age structure
                 plot.MAIE.data[2000] *= maiCoefficients[plot.country];
                 plot.MAIN.data[2000] *= maiCoefficients[plot.country];
@@ -226,7 +231,7 @@ namespace g4m::StartData {
         array<double, numberOfCountries> fun_MAI_CountryUProtect{};
         array<double, numberOfCountries> forestAreaCountry{};
         for (const auto &plot: plots)
-            if (plot.protect.data.at(2000) == 0) {
+            if (!plot.protect) {
                 double forestArea0 = plot.landArea * 100 * clamp(plot.forest, 0., 1.);
                 if (forestArea0 > 0) {
                     // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
@@ -314,7 +319,7 @@ namespace g4m::StartData {
 
             double rotUnmanaged = 0, rotMAI = 0, rotMaxBm = 0, rotMaxBmTh = 0, rotHarvFin = 0, rotHarvAve = 0;
 
-            if (plot.protect.data.at(2000) == 1)
+            if (plot.protect)
                 plot.managedFlag = false;
 
             commonMaiForest(plot.x, plot.y) = MAI;
@@ -345,7 +350,7 @@ namespace g4m::StartData {
                           datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country), rotMAI, harvMAI};
 
             double rotation = 0;
-            if (plot.protect.data.at(2000) < 1) {
+            if (!plot.protect) {
                 rotation = max(biomassRotTh + 1, rotMAI);
 
                 double pDefIncome =
@@ -424,12 +429,12 @@ namespace g4m::StartData {
     // Initialise forest objects with observed parameters in each grid cell
     void initLoop() {
         INFO("Start initialising cohorts");
-        commonCohort_all.reserve(commonPlots.size());
-        commonCohort30_all.reserve(commonPlots.size());
-        commonCohort10_all.reserve(commonPlots.size());
-        commonCohort_primary_all.reserve(commonPlots.size());
-        commonNewCohort_all.reserve(commonPlots.size());
-        commonDat_all.reserve(commonPlots.size());
+        commonCohortsU.reserve(commonPlots.size());
+        commonCohorts30.reserve(commonPlots.size());
+        commonCohorts10.reserve(commonPlots.size());
+        commonCohortsP.reserve(commonPlots.size());
+        commonCohortsN.reserve(commonPlots.size());
+        commonDats.reserve(commonPlots.size());
         harvestResiduesCountry.reserve(256);
 
         const unordered_map<uint8_t, vector<double> > ageStructData = readAgeStructData();
@@ -487,24 +492,22 @@ namespace g4m::StartData {
 
             // Stocking degree depending on tree height is not implemented
             // saving results to initial vectors
-            commonCohort_all.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
-                                          &ffcov,
-                                          &ffcoe,
-                                          &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, thinning_tmp * sdMaxCoef,
-                                          thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0, 1);
-            commonCohort30_all.push_back(commonCohort_all.back());
-            commonCohort10_all.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
-                                            &ffcov,
-                                            &ffcoe,
-                                            &ffdov, &ffdoe, mai_tmp, 0, 1, 0, 0, 0, 0, -sdMaxCoef, -sdMinCoef, 30,
-                                            minRotVal,
-                                            1, 0, 1);
-            commonCohort_primary_all.push_back(commonCohort10_all.back());
+            commonCohortsU.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
+                                        &ffcov, &ffcoe, &decisions, mai_tmp, 0, 1, 0, 0, 0, 0, thinning_tmp * sdMaxCoef,
+                                        thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0, 1);
+            commonCohorts30.push_back(commonCohortsU.back());
+            commonCohorts10.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
+                                         &ffcov,
+                                         &ffcoe,
+                                         &decisions, mai_tmp, 0, 1, 0, 0, 0, 0, -sdMaxCoef, -sdMinCoef, 30,
+                                         minRotVal,
+                                         1, 0, 1);
+            commonCohortsP.push_back(commonCohorts10.back());
 
-            AgeStruct &cohort = commonCohort_all.back();
-            AgeStruct &cohort30 = commonCohort30_all.back();
-            AgeStruct &cohort10 = commonCohort10_all.back();
-            AgeStruct &cohort_primary = commonCohort_primary_all.back();
+            AgeStruct &cohort = commonCohortsU.back();
+            AgeStruct &cohort30 = commonCohorts30.back();
+            AgeStruct &cohort10 = commonCohorts10.back();
+            AgeStruct &cohort_primary = commonCohortsP.back();
 
             size_t oldestAgeGroup = 0;
             double oldestAge = 0;
@@ -683,16 +686,15 @@ namespace g4m::StartData {
                 cohort_primary.createNormalForest(1, 0, -1);
 
             // rotation changes
-            commonNewCohort_all.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
-                                             &ffcov,
-                                             &ffcoe, &ffdov, &ffdoe, mai_tmp, 0, rotation, 0, 0, 0, 0,
-                                             thinning_tmp * sdMaxCoef, thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0,
-                                             1);
-            AgeStruct &newCohort = commonNewCohort_all.back();
+            commonCohortsN.emplace_back(&species[plot.speciesType], &ffsws, &countriesFFIpols.at(plot.country),
+                                        &ffcov, &ffcoe, &decisions, mai_tmp, 0, rotation, 0, 0, 0, 0,
+                                        thinning_tmp * sdMaxCoef, thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0,
+                                        1);
+            AgeStruct &newCohort = commonCohortsN.back();
             newCohort.createNormalForest(rotation, 0, thinning_tmp);
 
-            commonDat_all.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohort10.getBm(),
-                                       cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
+            commonDats.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohort10.getBm(),
+                                    cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
 
             harvestResiduesCountry[plot.country].emplace_back(plot);
         }
@@ -714,7 +716,7 @@ namespace g4m::StartData {
 
         INFO("Putting data for current cell into container...");
         for (const auto &plot: commonPlots)
-            if (plot.protect.data.at(2000) == 0) {
+            if (!plot.protect) {
                 double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
 
                 double biomassRot = 1;  // MG: rotation time fitted to get certain biomass under certain MAI (w/o thinning)
@@ -722,7 +724,7 @@ namespace g4m::StartData {
                 double rotMAI = 1;
                 double rotMaxBm = 1;
 
-                double Bm = commonCohort_all[plot.asID].getBm();
+                double Bm = commonCohortsU[plot.asID].getBm();
 
                 if (plot.CAboveHa > 0 && MAI > 0) {
                     // rotation time to get current biomass (without thinning)
@@ -752,9 +754,9 @@ namespace g4m::StartData {
                     commonThinningForest30(plot.x, plot.y) = thinning;
                     commonRotationType(plot.x, plot.y) = 10;
 
-                    commonCohort_all[plot.asID].setStockingDegree(thinning);
-                    commonNewCohort_all[plot.asID].setStockingDegree(thinning);
-                    commonCohort30_all[plot.asID].setStockingDegree(thinning);
+                    commonCohortsU[plot.asID].setStockingDegree(thinning);
+                    commonCohortsN[plot.asID].setStockingDegree(thinning);
+                    commonCohorts30[plot.asID].setStockingDegree(thinning);
 
                     // defIncome = 0 => decision.agrVal() + defIncome = decision.agrVal()
                     rotation = max(biomassRot, rotMAI) + 1;
@@ -778,14 +780,14 @@ namespace g4m::StartData {
                     }
 
                     commonRotationForest(plot.x, plot.y) = rotation;
-                    commonCohort_all[plot.asID].setU(rotation);
-                    commonNewCohort_all[plot.asID].setU(rotation);
-                    commonCohort30_all[plot.asID].setU(rotation);
+                    commonCohortsU[plot.asID].setU(rotation);
+                    commonCohortsN[plot.asID].setU(rotation);
+                    commonCohorts30[plot.asID].setU(rotation);
                 }
             }
 
         for (const auto &plot: commonPlots)
-            if (plot.protect.data.at(2000) == 0 && thinningForestInit(plot.x, plot.y) > 0) {
+            if (!plot.protect && thinningForestInit(plot.x, plot.y) > 0) {
                 double MAI = commonMaiForest(plot.x, plot.y);  // MG: mean annual increment in tC/ha/2000
 
                 double rotMAI = 0;
@@ -794,7 +796,7 @@ namespace g4m::StartData {
                 double biomassRotTh2 = 0;  // MG: rotation time fitted to get certain biomass under certain MAI (with thinning = 2)
 
                 double stockingDegree = thinningForestInit(plot.x, plot.y);
-                double Bm = commonCohort_all[plot.asID].getBm();
+                double Bm = commonCohortsU[plot.asID].getBm();
                 double rotation = 0;
 
                 if (plot.CAboveHa > 0 && MAI > 0) {
@@ -829,17 +831,17 @@ namespace g4m::StartData {
                     woodPotHarvest[plot.country - 1] += harvMAI * forestArea0;
 
                     commonRotationForest(plot.x, plot.y) = rotation;
-                    commonCohort_all[plot.asID].setU(rotation);
+                    commonCohortsU[plot.asID].setU(rotation);
 
                     commonThinningForest(plot.x, plot.y) = stockingDegree;
-                    commonCohort_all[plot.asID].setStockingDegree(stockingDegree);
+                    commonCohortsU[plot.asID].setStockingDegree(stockingDegree);
 
-                    commonNewCohort_all[plot.asID].setU(rotation);
-                    commonNewCohort_all[plot.asID].setStockingDegree(stockingDegree);
+                    commonCohortsN[plot.asID].setU(rotation);
+                    commonCohortsN[plot.asID].setStockingDegree(stockingDegree);
 
-                    commonCohort30_all[plot.asID].setU(rotation);
+                    commonCohorts30[plot.asID].setU(rotation);
                     commonThinningForest30(plot.x, plot.y) = stockingDegree;
-                    commonCohort30_all[plot.asID].setStockingDegree(stockingDegree);
+                    commonCohorts30[plot.asID].setStockingDegree(stockingDegree);
                 }
             }
     }

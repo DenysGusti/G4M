@@ -25,12 +25,18 @@ namespace g4m::Arrays {
     constexpr array<string_view, numberOfCountries> countryOrderName = initCountryOrderName();
 
     constexpr array<double, numberOfCountries> countryLosses = initCountryLosses();
-    constexpr array<double, numberOfCountries> cleanedWoodUse = initCleanedWoodUse();  // share of cleaned wood put to the market (thinned in forests that are not used for wood production in current year).
+    // share of cleaned wood put to the market (thinned in forests that are not used for wood production in current year)
+    constexpr array<double, numberOfCountries> cleanedWoodUse = initCleanedWoodUse();
     constexpr array<double, numberOfCountries> countryLossesD = initCountryLossesD();
-    constexpr array<double, numberOfCountries> defor_sl_em_unfccc_tCha = initDefor_sl_em_unfccc_tCha(); // deforestation soil emissions, tC/ha year, derived from countries; UNFCCC CRF tables 2020 submission; 1990-2018 average; DE, NO, SW had negative emissions, changed to 0.01
-    constexpr array<double, numberOfCountries> defor_sl_em_unfccc_MtCO2 = initDefor_sl_em_unfccc_MtCO2(); // deforestation soil emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
-    constexpr array<double, numberOfCountries> defor_bm_em_unfccc_MtCO2 = initDefor_bm_em_unfccc_MtCO2(); // deforestation biomass emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
-    constexpr array<double, numberOfCountries> defor_dom_em_unfccc_MtCO2 = initDefor_dom_em_unfccc_MtCO2(); // deforestation DOM emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
+    // deforestation soil emissions, tC/ha year, derived from countries; UNFCCC CRF tables 2020 submission; 1990-2018 average;
+    // DE, NO, SW had negative emissions, changed to 0.01
+    constexpr array<double, numberOfCountries> defor_sl_em_unfccc_tCha = initDefor_sl_em_unfccc_tCha();
+    // deforestation soil emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
+    constexpr array<double, numberOfCountries> defor_sl_em_unfccc_MtCO2 = initDefor_sl_em_unfccc_MtCO2();
+    // deforestation biomass emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
+    constexpr array<double, numberOfCountries> defor_bm_em_unfccc_MtCO2 = initDefor_bm_em_unfccc_MtCO2();
+    // deforestation DOM emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2020 submission; 2005-2018 average;
+    constexpr array<double, numberOfCountries> defor_dom_em_unfccc_MtCO2 = initDefor_dom_em_unfccc_MtCO2();
     constexpr array<double, numberOfCountries> harvestedWoodUse = initHarvestedWoodUse();
     constexpr array<double, numberOfCountries> maiCoefficients = initMaiCoefficients();
 
@@ -56,17 +62,45 @@ namespace g4m::Arrays {
     constexpr array<double, numberOfCountries> coef_df_mod2015 = initCoef_df_mod2015();
     constexpr array<double, numberOfCountries> coef_df_mod2020 = initCoef_df_mod2020();
 
-    constexpr array<uint8_t, 30> eu28OrderCode = initEu28OrderCode();  // country G4M code for EU28 countries + Norway + Switzerland for the FM sink data from the UNFCC
-    constexpr array<uint8_t, 42> annex1OrderCode = initAnnex1OrderCode(); // country G4M code for the Annex-1 countries the FM sink data from the UNFCC
+    // CZ: m3 salvage fellings that can be used for processing, only (infested) spruce
+    constexpr array<double, 32> salvageLoggingUsed = initSalvageLoggingUsed();
+    // CZ:  m3 total salvage, including the dead trees that cannot be felled/used
+    constexpr array<double, 32> salvageLoggingTotal = initSalvageLoggingTotal();
+
+    // country G4M code for EU28 countries + Norway + Switzerland for the FM sink data from the UNFCC
+    constexpr array<uint8_t, 30> eu28OrderCode = initEu28OrderCode();
+    // country G4M code for the Annex-1 countries the FM sink data from the UNFCC
+    constexpr array<uint8_t, 42> annex1OrderCode = initAnnex1OrderCode();
     constexpr array<uint16_t, 13> yearLP = initYearLP();
     constexpr array<uint16_t, 34> yearNwp = initYearNwp();
 
     constexpr array<array<double, 21>, 29> woodProdEUStats = initWoodProdEUStat();
     constexpr array<array<double, 32>, 30> fmEmission_unfccc_CRF = init_fmEmission_unfccc_CRF();
 
+    /*
+    Development of the average litter and soil carbon loss on forest land resulting from sustainable removals of
+    forest harvest residues (i.e. branches and tops; no stump extraction) since 2016 in selected EU countries
+    (based on data from Repo et al.,2014  � 0.42).
+    The soil loss emissions [tCO2/ha year] are for 4 periods since starting the residue extraction:
+    0: <= 5 years; 1: > 5 && <= 15; 2: > 20 && <= 50; 3: > 50 years
+    Emissions for Croatia (97) are taken from Slovenia (203); emissions for Norway (162) are taken from Sweden (204)
+    */
+    constexpr array<array<double, 4>, numberOfCountries> emissionsResUseSust1 = initEmissionsResUseSust1();
+
+    /*
+    Development of the average litter and soil carbon loss on forest land resulting from sustainable removals of
+     forest harvest residues (i.e. branches and tops and stump extraction) since 2016 in selected EU countries
+     (based on data from Repo et al.,2014).
+    The soil loss emissions [tCO2/ha year] are for 4 periods since starting the residue extraction:
+     0: < 5 years; 1: > 5&& <= 15; 2: > 20 && <= 50; 3: > 50 years
+    Emissions for Croatia (97) are taken from Slovenia (203); emissions for Norway (162) are taken from Sweden (204)
+    */
+    constexpr array<array<double, 4>, numberOfCountries> emissionsResUseSust2 = initEmissionsResUseSust2();
+
     // changing during runtime
     constinit array<double, numberOfCountries> FM_sink_stat = initFM_sink_stat();
-    constinit array<double, numberOfCountries> countryLandArea = initCountryLandArea();  // country terrestrial land area, kha, read in from the GLOBIOM country LC file
+    // country terrestrial land area, kha, read in from the GLOBIOM country LC file
+    constinit array<double, numberOfCountries> countryLandArea = initCountryLandArea();
     constinit array<double, numberOfCountries> MAI_CountryUprotect{};
 
     constinit array<double, numberOfCountries> minRotNPV{};     // country average NPV if max MAI rotation is applied to all forests

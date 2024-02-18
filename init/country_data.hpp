@@ -28,7 +28,7 @@ namespace g4m::init {
                 el.data.clear();
         }
 
-        // MG 13.072018: added to allow flexible reuse of the containers
+        // MG 13.07.2018: added to allow flexible reuse of the containers
         void clearYears(const uint16_t beginYear, const uint16_t endYear, const uint16_t yearStep) {
             for (int i = beginYear; i <= endYear; i += yearStep) {
                 for (auto &el: values)
@@ -103,7 +103,7 @@ namespace g4m::init {
         // print array to file
         void
         printToFile(const string_view fileName, const uint16_t firstYear, const uint16_t lastYear, const uint16_t step,
-                    const string_view statType = "VAL") const {
+                    const bool statTypeValues = true) const {
             ofstream f{filesystem::path{fileName}};
 
             if (!f.is_open()) {
@@ -120,7 +120,7 @@ namespace g4m::init {
                 if (countriesToPrint.empty() || countriesToPrint.contains(i)) {
                     f << i;
                     for (int j = firstYear; j <= lastYear; j += step)
-                        f << '\t' << (statType == "VAL" ? values[i](j) : getAvg(i, j));
+                        f << '\t' << (statTypeValues ? values[i](j) : getAvg(i, j));
                     f << '\n';
                 }
 
