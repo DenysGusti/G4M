@@ -1,7 +1,7 @@
 #ifndef G4M_EUROPE_DG_COHORT_RES_HPP
 #define G4M_EUROPE_DG_COHORT_RES_HPP
 
-#include "../constants.hpp"
+#include "../settings/constants.hpp"
 #include "v.hpp"
 #include "../init/data_struct.hpp"
 

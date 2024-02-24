@@ -15,6 +15,19 @@ namespace g4m::increment {
             d = 0;
             h = 0;
         }
+
+        [[nodiscard]] bool isNaN() const noexcept {
+            return isnan(area) || isnan(bm) || isnan(d) || isnan(h);
+        }
+
+        [[nodiscard]] string str() const noexcept {
+            return format("area = {}, bm = {}, d = {}, h = {}", area, bm, d, h);
+        }
+
+        friend ostream &operator<<(ostream &os, const Cohort &obj) {
+            os << obj.str();
+            return os;
+        }
     };
 }
 

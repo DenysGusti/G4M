@@ -3,8 +3,11 @@
 
 #include <unordered_set>
 #include <set>
+#include "../../init/species.hpp"
 
 using namespace std;
+
+using namespace g4m::init;
 
 namespace g4m::Dicts {
     // Setting years for output
@@ -182,7 +185,6 @@ namespace g4m::Dicts {
 
         fun_countriesList.insert(17);               // Austria
 
-
         //    fun_countriesList.insert(18);
         //    fun_countriesList.insert(19);
         fun_countriesList.insert(20);               // Belgium
@@ -291,7 +293,7 @@ namespace g4m::Dicts {
         //    fun_countriesList.insert(137);
         //    fun_countriesList.insert(139);
         //    fun_countriesList.insert(140);
-        fun_countriesList.insert(141);              // Malta
+        //    fun_countriesList.insert(141);              // Malta
         //    fun_countriesList.insert(142);
         //    fun_countriesList.insert(144);
         //    fun_countriesList.insert(145);
@@ -372,7 +374,7 @@ namespace g4m::Dicts {
     }
 
     // A list of countries and species where stumps can be harvested as compiled by Fulvio
-    [[nodiscard]] set<pair<uint8_t, Species> > setCountrySpecies() noexcept {
+    [[nodiscard]] set <pair<uint8_t, Species>> setCountrySpecies() noexcept {
         set<pair<uint8_t, Species> > fun_stumpHarvCountrySpecies;
 
         fun_stumpHarvCountrySpecies.emplace(58, Species::Spruce);
@@ -395,6 +397,42 @@ namespace g4m::Dicts {
         fun_stumpHarvCountrySpecies.emplace(204, Species::Pine);
 
         return fun_stumpHarvCountrySpecies;
+    }
+
+    [[nodiscard]] unordered_map<string, string, StringHash, equal_to<> > initFileNames() {
+        unordered_map<string, string, StringHash, equal_to<> > fun_fileNames = {
+                {"lp0",                "output_glo4myk_LandRent_myk_01042023.csv"},
+                {"wp0",                "output_glo4myk_SupplyWood_myk_price_01042023.csv"},
+                // 18 Jan 2021 NL corrected according to NFAP / a share of wood reported to FAOSTAT comes from non-forest sources (communication with NL experts in Dec 2020)
+                {"wd0",                "output_glo4myk_SupplyWood_CntDet_01042023.csv"},
+                {"rd0",                "output_glo4myk_Residues_myk_01042023.csv"}, // in m^3
+
+                {"lp",                 "output_glo4myk_LandRent_myk_04072023.csv"},
+                {"wp",                 "output_glo4myk_SupplyWood_myk_price_04072023.csv"},
+                {"wd",                 "output_glo4myk_SupplyWood_CntDet_04072023.csv"},
+                {"rd",                 "output_glo4myk_Residues_myk_04072023.csv"}, // in th t
+
+                // could be empty
+
+                // GLOBIOM land cell scale
+                {"gl_0",               "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_devANBEXT_02052023_newClasses_updated_2000_2020.csv"},
+                {"gl",                 "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_FinJune11_11062023_newClasses_updated_CORRECTED.csv"},
+                {"gl_country_0",       "GLOBIOM_LC_CountryLevel_Ref2070_05042023.csv"},
+                {"gl_country",         "GLOBIOM_LC_CountryLevel_CTP_S2_CC_04072023_04072023.csv"},
+
+                {"co2p",               "output_glo4myk_CO2price_myk_04072023.csv"},
+                {"nuts2",              "nuts2_xy_05.csv"},
+
+                {"maic",               "shifters_g4m_v2.csv"},  // MAI climate shifters
+                {"disturbance",        "disturbances_g4m_m3ha_29062023.csv"},  // disturbance damage
+                {"disturbanceExtreme", "disturbances_g4m_m3ha_29062023.csv"},  // disturbance damage
+
+                // As ageStructData_EUCLIMIT2020_03012021, but IR and DE are corrected according to the countries' comments in 2022
+                {"ageStruct",          "ageStructData_EUCLIMIT2020_15092022.csv"},
+                // as _30032023 but unfccc managed forest area increased for a number of countries
+                {"dat",                "b2_euclimit6_bioclima_feu2020_nai2010_11052023.csv"},
+        };
+        return fun_fileNames;
     }
 }
 

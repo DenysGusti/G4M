@@ -29,7 +29,8 @@ namespace g4m::GLOBIOM_scenarios_data {
 
             TRACE("Obsolete {}:", message);
             for (const auto &[id, ipol]: histSimuId)
-                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
+                if (!ipol.data.empty())
+                    TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
 
             return simuIdDest;
         }

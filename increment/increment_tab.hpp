@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <span>
+#include <print>
 
 #include "increment_curves.hpp"
 #include "opt_rot_times.hpp"
@@ -292,6 +293,10 @@ namespace g4m::increment {
             int tH = ceil(getTOpt(mai, ORT::MaxBm));
             double bmL = 0;
             double bmH = getAvgBm(tH, mai);
+
+            if (bmL == bmH)
+                return tH;
+
             double t = 0;
             if (avgBm < bmH) {
                 int tX = floor(0.5 + tH * 0.5);
@@ -304,10 +309,10 @@ namespace g4m::increment {
                         tL = tX;
                         bmL = bmX;
                     }
-                    tX = floor(0.5 + lerp(tL, tH - tL, (avgBm - bmL) / (bmH - bmL)));
+                    tX = floor(0.5 + lerp(tL, tH, (avgBm - bmL) / (bmH - bmL)));
                     bmX = getAvgBm(tX, mai);
                 } while (tX != tL && tX != tH);
-                t = lerp(tL, tH - tL, (avgBm - bmL) / (bmH - bmL));
+                t = lerp(tL, tH, (avgBm - bmL) / (bmH - bmL));
             } else
                 t = tH;
 
@@ -319,6 +324,10 @@ namespace g4m::increment {
             int tH = ceil(getTOptT(mai, ORT::MaxBm));
             double bmL = 0;
             double bmH = getAvgBmT(tH, mai);
+
+            if (bmL == bmH)
+                return tH;
+
             double t = 0;
             if (avgBm < bmH) {
                 int tX = floor(0.5 + tH * 0.5);
@@ -331,10 +340,10 @@ namespace g4m::increment {
                         tL = tX;
                         bmL = bmX;
                     }
-                    tX = floor(0.5 + lerp(tL, tH - tL, (avgBm - bmL) / (bmH - bmL)));
+                    tX = floor(0.5 + lerp(tL, tH, (avgBm - bmL) / (bmH - bmL)));
                     bmX = getAvgBmT(tX, mai);
                 } while (tX != tL && tX != tH);
-                t = lerp(tL, tH - tL, (avgBm - bmL) / (bmH - bmL));
+                t = lerp(tL, tH, (avgBm - bmL) / (bmH - bmL));
             } else
                 t = tH;
 
@@ -365,6 +374,10 @@ namespace g4m::increment {
             int tH = ceil(getTOptSdTab(mai, sd, ORT::MaxBm));
             double bmL = 0;
             double bmH = getAvgBmSdTab(tH, mai, sd);
+
+            if (bmL == bmH)
+                return tH;
+
             double t = 0;
             if (avgBm < bmH) {
                 int tX = floor(0.5 + tH * 0.5);
@@ -377,10 +390,10 @@ namespace g4m::increment {
                         tL = tX;
                         bmL = bmX;
                     }
-                    tX = floor(0.5 + lerp(tL, tH - tL, (avgBm - bmL) / (bmH - bmL)));
+                    tX = floor(0.5 + lerp(tL, tH, (avgBm - bmL) / (bmH - bmL)));
                     bmX = getAvgBmSdTab(tX, mai, sd);
                 } while (tX != tL && tX != tH);
-                t = lerp(tL, tH - tL, (avgBm - bmL) / (bmH - bmL));
+                t = lerp(tL, tH, (avgBm - bmL) / (bmH - bmL));
             } else
                 t = tH;
 
@@ -502,11 +515,16 @@ namespace g4m::increment {
         // Interpolate rotation time between mai
         [[nodiscard]] double ip(double mai, const span<const OptRotTimes> tab, const ORT type) const {
             mai /= maiStep;
-            auto maih = static_cast<size_t>(clamp(ceil(mai), 0., static_cast<double>(nmai - 1)));
+
             auto mail = static_cast<size_t>(clamp(floor(mai), 0., static_cast<double>(nmai - 1)));
-            int uh = tab[maih][type];
+            auto maih = static_cast<size_t>(clamp(ceil(mai), 0., static_cast<double>(nmai - 1)));
+
             int ul = tab[mail][type];
-            return lerp(ul, uh - ul, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
+            int uh = tab[maih][type];
+
+            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+
+            return mail == maih ? ul : lerp(ul, uh, t_mai);
         }
 
         // Interpolate rotation time between mai and stocking degree (sdNat: True..sdNat, false..sdTab)
@@ -541,9 +559,19 @@ namespace g4m::increment {
             int mlsh = tab[mail + sdh * nmai][type];
             int mlsl = tab[mail + sdl * nmai][type];
             //	MG: hot fix check
-            double t0 = lerp(mlsl, mhsl - mlsl, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
-            double t1 = lerp(mlsh, mhsh - mlsh, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
-            return lerp(t0, t1 - t0, (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl));
+            if (mail == maih)
+                return mlsl;
+
+            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+            double t0 = lerp(mlsl, mhsl, t_mai);
+
+            if (sdl == sdh)
+                return t0;
+
+            double t1 = lerp(mlsh, mhsh, t_mai);
+            double t_sd = (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl);
+
+            return lerp(t0, t1, t_sd);
         }
 
         // Interpolate between age and mai
@@ -558,10 +586,22 @@ namespace g4m::increment {
             double tmp1 = tab[ul + mail * nt];  // MG
             double tmp2 = tab[uh + mail * nt];  // MG
             double tmp3 = tab[ul + maih * nt];  // MG
+
             double tmp4 = tab[uh + maih * nt];  // MG
-            double t1 = lerp(tmp1, tmp2 - tmp1, (u - static_cast<double>(ul)) / static_cast<double>(uh - ul));
-            double t2 = lerp(tmp3, tmp4 - tmp3, (u - static_cast<double>(ul)) / static_cast<double>(uh - ul));
-            return lerp(t1, t2 - t1, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
+
+            if (ul == uh)
+                return tmp1;
+
+            double t_u = (u - static_cast<double>(ul)) / static_cast<double>(uh - ul);
+            double t1 = lerp(tmp1, tmp2, t_u);
+
+            if (mail == maih)
+                return t1;
+
+            double t2 = lerp(tmp3, tmp4, t_u);
+
+            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+            return lerp(t1, t2, t_mai);
         }
 
         // Interpolate between stocking degree, age and mai (sdNat: True..sdNat, false..sdTab)
@@ -586,24 +626,39 @@ namespace g4m::increment {
             size_t sdh = ceil(sd);
             size_t sdl = floor(sd);
 
-            double tmp1 = tab[ul + mail * nt + sdl * nt * nmai];  // mMG
+            double tmp1 = tab[ul + mail * nt + sdl * nt * nmai];  // MG
             double tmp2 = tab[uh + mail * nt + sdl * nt * nmai];  // MG
             double tmp3 = tab[ul + maih * nt + sdl * nt * nmai];  // MG
-            double tmp4 = tab[uh + maih * nt + sdl * nt * nmai];  // mMG
+            double tmp4 = tab[uh + maih * nt + sdl * nt * nmai];  // MG
 
-            double t1 = lerp(tmp1, tmp2 - tmp1, (u - static_cast<double>(ul)) / static_cast<double>(uh - ul));
-            double t2 = lerp(tmp3, tmp4 - tmp3, (u - static_cast<double>(ul)) / static_cast<double>(uh - ul));
-            double t0 = lerp(t1, t2 - t1, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
+            if (ul == uh)
+                return tmp1;
+
+            double t_u = (u - static_cast<double>(ul)) / static_cast<double>(uh - ul);
+
+            double t1 = lerp(tmp1, tmp2, t_u);
+
+            if (mail == maih)
+                return t1;
+
+            double t2 = lerp(tmp3, tmp4, t_u);
+            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+            double t0 = lerp(t1, t2, t_mai);
+
+            if (sdl == sdh)
+                return t0;
 
             tmp1 = tab[ul + mail * nt + sdh * nt * nmai];
             tmp2 = tab[uh + mail * nt + sdh * nt * nmai];
             tmp3 = tab[ul + maih * nt + sdh * nt * nmai];
             tmp4 = tab[uh + maih * nt + sdh * nt * nmai];
 
-            t1 = lerp(tmp1, tmp2 - tmp1, (u - static_cast<double>(ul)) / static_cast<double>(uh - ul));
-            t2 = lerp(tmp3, tmp4 - tmp3, (u - static_cast<double>(ul)) / static_cast<double>(uh - ul));
-            t1 = lerp(t1, t2 - t1, (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail));
-            return lerp(t0, t1 - t0, (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl));
+            t1 = lerp(tmp1, tmp2, t_u);
+            t2 = lerp(tmp3, tmp4, t_u);
+            t1 = lerp(t1, t2, t_mai);
+            double t_sd = (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl);
+
+            return lerp(t0, t1, t_sd);
         }
 
         // Function to fill up the tables using incrementCurves ic

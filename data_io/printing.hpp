@@ -4,8 +4,8 @@
 #include <string>
 
 #include "../start_data/start_data.hpp"
-#include "../constants.hpp"
-#include "../arrays/arrays.hpp"
+#include "../settings/constants.hpp"
+#include "../settings/arrays/arrays.hpp"
 #include "../log.hpp"
 
 using namespace std;

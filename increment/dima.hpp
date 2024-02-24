@@ -5,7 +5,7 @@
 #include <numeric>
 #include <numbers>
 
-#include "../constants.hpp"
+#include "../settings/constants.hpp"
 #include "../misc/concrete/ipol.hpp"
 
 using namespace std;
@@ -310,12 +310,11 @@ namespace g4m::increment {
         }
 
         // calculate a sum of the series of a discounted value
-        // TODO j += modTimeStep is necessary?
         [[nodiscard]] double calcNpvSum() const noexcept {
 //            double currF = 0;
 //            double r_year = r(year);
 //            npvSum = 0;
-//            for (int j = 0; currF > 0.00001 && j < 400; j += modTimeStep) {
+//            for (int j = 0; currF > 0.00001 && j < 400; ++j) {
 //                currF = pow(1 + r_year, -j);
 //                npvSum += currF;
 //            }

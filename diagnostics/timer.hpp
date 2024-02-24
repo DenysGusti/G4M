@@ -30,8 +30,8 @@ namespace g4m::diagnostics {
         }
 
         ~Timer() {
-//            println("{}: elapsed time: {}", message, elapsed());
-            INFO("{}: elapsed time: {}", message, elapsed());
+//            println("{}: elapsed time [H:M:S]: {:%T}", message, elapsed());
+            INFO("{}: elapsed time [H:M:S]: {:%T}", message, elapsed());
         }
     };
 }

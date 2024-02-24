@@ -7,9 +7,9 @@
 
 #include "../../log.hpp"
 #include "../../helper/check_file.hpp"
-#include "../../dicts/dicts.hpp"
+#include "../../settings/dicts/dicts.hpp"
 #include "../../misc/concrete/ipol.hpp"
-#include "../../constants.hpp"
+#include "../../settings/constants.hpp"
 
 using namespace std;
 using namespace g4m::helper;
@@ -62,7 +62,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsXY_SimuID: <[x, y], simuID> for quick plots search
         void readMAIClimate(const map<pair<uint32_t, uint32_t>, uint32_t> &plotsXY_SimuID) {
-            if (fileNames.at("maic").empty()) {
+            if (!fileNames.contains("maic") || fileNames.at("maic").empty()) {
                 WARN("No MAI climate data!!!!");
                 return;
             }
@@ -104,7 +104,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsSimuID for quick plots search
         void readGlobiomLandCalibrate(const unordered_set<uint32_t> &plotsSimuID) {
-            if (fileNames.at("gl_0").empty()) {
+            if (!fileNames.contains("gl_0") || fileNames.at("gl_0").empty()) {
                 WARN("No GLOBIOM LC data for 2000-2020!!!!");
                 return;
             }
@@ -153,8 +153,9 @@ namespace g4m::GLOBIOM_scenarios_data {
                             }
                             GLOBIOM_LandScenarios[bauScenario][simuId].data[year] = gl_tmp;
                         }
-                    } else
-                        DEBUG("Plots don't contain simuId = {}", simuId);
+                    } else {
+//                        DEBUG("Plots don't contain simuId = {}", simuId);
+                    }
                 }
             }
             INFO("Successfully read {} lines.", line_num);
@@ -162,7 +163,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsSimuID for quick plots search
         void readGlobiomLand(const unordered_set<uint32_t> &plotsSimuID) {
-            if (fileNames.at("gl").empty()) {
+            if (!fileNames.contains("gl") || fileNames.at("gl").empty()) {
                 WARN("No GLOBIOM LC data!!!!");
                 return;
             }
@@ -222,7 +223,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsXY_SimuID: <[x, y], simuID> for quick plots search
         void readDisturbances(const map<pair<uint32_t, uint32_t>, uint32_t> &plotsXY_SimuID) {
-            if (fileNames.at("disturbance").empty()) {
+            if (!fileNames.contains("disturbance") || fileNames.at("disturbance").empty()) {
                 WARN("No disturbance projection data!!!!");
                 return;
             }
@@ -271,7 +272,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsXY_SimuID: <[x, y], simuID> for quick plots search
         void readDisturbancesExtreme(const map<pair<uint32_t, uint32_t>, uint32_t> &plotsXY_SimuID) {
-            if (fileNames.at("disturbanceExtreme").empty()) {
+            if (!fileNames.contains("disturbanceExtreme") || fileNames.at("disturbanceExtreme").empty()) {
                 WARN("No extreme disturbance projection data!!!!");
                 return;
             }
@@ -320,11 +321,6 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
         void scaleMAIClimate2020() {
-            if (!scaleMAIClimate) {
-                INFO("scaleMAIClimate is turned off");
-                return;
-            }
-
             INFO("Scaling MAI climate shifters to the 2020 value!");
             for (auto &[scenario, MAI]: maiClimateShiftersScenarios)
                 for (auto &[simu_id, ipol]: MAI) {
@@ -343,11 +339,6 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         void scaleDisturbances2020() {
-            if (!scaleDisturbance2020) {
-                INFO("scaleDisturbance2020 is turned off");
-                return;
-            }
-
             const uint16_t scaleYear = 2020;
             scaleDisturbance(disturbWind, scaleYear);
             scaleDisturbance(disturbFire, scaleYear);

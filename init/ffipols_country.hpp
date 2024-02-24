@@ -4,7 +4,7 @@
 #include "../misc/concrete/ipol.hpp"
 #include "../misc/concrete/ffipol.hpp"
 #include "../log.hpp"
-#include "../arrays/arrays.hpp"
+#include "../settings/arrays/arrays.hpp"
 
 using namespace std;
 using namespace g4m::misc::concrete;

@@ -11,11 +11,13 @@
 
 #include "../misc/concrete/ipol.hpp"
 #include "../log.hpp"
-#include "../constants.hpp"
+#include "../settings/constants.hpp"
+#include "../settings/dicts/dicts.hpp"
 
 using namespace std;
 using namespace g4m::misc::concrete;
 using namespace g4m::Constants;
+using namespace g4m::Dicts;
 
 namespace g4m::init {
     // class with statistics by regions
@@ -44,7 +46,7 @@ namespace g4m::init {
 
         void setVal(const size_t country, const uint16_t year, const double value) noexcept {
             values[country].data[year] = value;
-            count[country].data[year]++;
+            count[country].data[year] = 1;
         }
 
         void inc(const size_t i, const uint16_t year, const double value) noexcept {
@@ -96,10 +98,6 @@ namespace g4m::init {
             return result;
         }
 
-        void setListOfCountries(const unordered_set<uint8_t> &countries) noexcept {
-            countriesToPrint = countries;
-        }
-
         // print array to file
         void
         printToFile(const string_view fileName, const uint16_t firstYear, const uint16_t lastYear, const uint16_t step,
@@ -117,7 +115,7 @@ namespace g4m::init {
             f << '\n';
 
             for (size_t i = 0; i < values.size(); ++i)
-                if (countriesToPrint.empty() || countriesToPrint.contains(i)) {
+                if (countriesList.contains(i)) {
                     f << i;
                     for (int j = firstYear; j <= lastYear; j += step)
                         f << '\t' << (statTypeValues ? values[i](j) : getAvg(i, j));
@@ -144,7 +142,6 @@ namespace g4m::init {
     private:
         vector<Ipol < double> > values{ numberOfCountries };
         vector<Ipol < double> > count{ numberOfCountries };
-        unordered_set<uint8_t> countriesToPrint;
     };
 
 }

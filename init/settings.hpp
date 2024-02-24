@@ -20,9 +20,9 @@ namespace g4m::init {
         string coefPath;
         string inputPath;
         string outputPath;
-        set<string, less<> > parametersTable;
-        set<string, less<> > parametersTableReg;
-        set<string, less<> > parametersMap;
+        unordered_set<string, StringHash, equal_to<> > parametersTable;
+        unordered_set<string, StringHash, equal_to<> > parametersTableReg;
+        unordered_set<string, StringHash, equal_to<> > parametersMap;
         bool produceTabs{};
         bool produceMaps{};
         array<bool, 3> tabs{};
@@ -43,7 +43,8 @@ namespace g4m::init {
 
             string line;
 
-            auto fillSet = [&](set<string, less<> > &s_set) -> void {
+            auto fillSet = [&](unordered_set<string, StringHash, equal_to<> > &s_set) -> void {
+                s_set.reserve(200);
                 stringstream ss{line};
                 int num{};
                 DEBUG("numSet = {}", num);

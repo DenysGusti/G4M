@@ -45,7 +45,7 @@ namespace g4m::misc::concrete {
             for (size_t i = 0; i < dim; ++i)
                 n.push_back(1 + zoom[i] * (ceil(idxMax[i]) - floor(idxMin[i])));
 
-            data.assign(reduce(n.cbegin(), n.cend(), size_t{1}, multiplies<>{}), 0);
+            data.assign(ranges::fold_left(n, size_t{1}, multiplies{}), 0);
 
             vector<T> key(dim, 0);
             fillMap(t, key, 0, 0, 1, add);

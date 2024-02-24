@@ -1,10 +1,10 @@
 #ifndef G4M_EUROPE_DG_READING_HPP
 #define G4M_EUROPE_DG_READING_HPP
 
-#include "../constants.hpp"
-#include "../arrays/arrays.hpp"
+#include "../settings/constants.hpp"
+#include "../settings/arrays/arrays.hpp"
 #include "../start_data/start_data.hpp"
-#include "../dicts/dicts.hpp"
+#include "../settings/dicts/dicts.hpp"
 #include "../log.hpp"
 #include "../helper/check_file.hpp"
 

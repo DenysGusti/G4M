@@ -17,7 +17,7 @@
 #include "cohort.hpp"
 #include "shelter_wood_timer.hpp"
 #include "increment_tab.hpp"
-#include "constants.hpp"
+#include "settings/constants.hpp"
 #include "cohort_res.hpp"
 #include "decisions.hpp"
 
@@ -176,7 +176,7 @@ namespace g4m::increment {
                         return dat0.front().bm;
                     if (ageH >= dat.size())
                         return dat0.back().bm;
-                    return lerp(dat0[ageH - 1].bm, dat0[ageH].bm, age - static_cast<double>(ageH));
+                    return lerp(dat0[ageH - 1].bm, dat0[ageH].bm, age - static_cast<double>(ageH - 1));
                 case 1:
                     if (dat.empty())
                         return 0;
@@ -184,7 +184,7 @@ namespace g4m::increment {
                         return dat.front().bm;
                     if (ageH >= dat.size())
                         return dat.back().bm;
-                    return lerp(dat[ageH - 1].bm, dat[ageH].bm, age - static_cast<double>(ageH));
+                    return lerp(dat[ageH - 1].bm, dat[ageH].bm, age - static_cast<double>(ageH - 1));
                 default:
                     ERROR("canopyLayer = {} is not implemented", canopyLayer);
                     return 0;
@@ -460,7 +460,7 @@ namespace g4m::increment {
         }
 
         // Set area for a specific ageCLASS for specified canopy layer
-        void setArea(size_t ageClass, double aArea, const int canopyLayer = 1) noexcept {
+        void setArea(size_t ageClass, double aArea, const int canopyLayer = 1) {
             // Here seems to be an error - Above just to allow some calculations
             if (aArea < 0) {
                 ERROR("aArea < 0: {}", aArea);
@@ -499,7 +499,7 @@ namespace g4m::increment {
         }
 
         // Set biomass per hectare for a specific ageCLASS for specified canopy layer
-        void setBm(size_t ageClass, double biomass, const int canopyLayer = 1) noexcept {
+        void setBm(size_t ageClass, double biomass, const int canopyLayer = 1) {
             if (biomass < 0) {
                 ERROR("biomass < 0: {}", biomass);
                 return;
@@ -539,7 +539,7 @@ namespace g4m::increment {
         }
 
         // Set dbh for a specific ageClass
-        void setD(size_t ageClass, double dbh) noexcept {
+        void setD(size_t ageClass, double dbh) {
             ageClass = min(ageClass, static_cast<size_t>(it->getTMax() / timeStep - 1));
             double age = static_cast<double>(ageClass) * timeStep;
             double minD = it->getDbh(age, avgMai);
@@ -626,7 +626,7 @@ namespace g4m::increment {
             minRotRef = aMinRotRef;
         }
 
-        void setMinRotVal(double aMinRotVal) noexcept {
+        void setMinRotVal(double aMinRotVal) {
             minRotVal = aMinRotVal;
             setMinRot();
         }
@@ -1013,7 +1013,7 @@ namespace g4m::increment {
 
         // MG: Get area-weighted thinned wood, tC/ha
         [[nodiscard]] double getThinnedWeight() const noexcept {
-            return (thinned_weight);
+            return thinned_weight;
         }
 
         // MG: Get stem deadwood in current timeStep (dead trees of Dbh>10cm), tC/ha
@@ -1174,6 +1174,10 @@ namespace g4m::increment {
 
         // returns harvestW, bmH, bmTh, performs aging and doesn't modify the cohort
         [[nodiscard]] CohortRes cohortRes() const {
+            if (dat.empty() || dat[0].isNaN()) {
+                FATAL("cohortRes: dat is not properly initialized!");
+                throw runtime_error{"cohortRes: dat is not properly initialized!"};
+            }
             auto cohortTmp = *this;
             auto res = cohortTmp.aging();
             double realArea = cohortTmp.getArea();
@@ -1214,6 +1218,10 @@ namespace g4m::increment {
             double harvArea = resWind.area + resFire.area + resBiotic.area;
 
             return {harvest, bmH, damagedFire, harvArea};
+        }
+
+        [[nodiscard]] vector<Cohort> getDat() const noexcept {
+            return dat;
         }
 
     private:
@@ -1328,7 +1336,7 @@ namespace g4m::increment {
         }
 
         // Set the minimal rotation time "minRot"
-        void setMinRot() noexcept {
+        void setMinRot() {
             switch (minRotRef) {
                 case 0:
                     minRot = minRotVal;
@@ -1436,7 +1444,7 @@ namespace g4m::increment {
         [[nodiscard]] V finalCut(const double aArea, const double aMinSw, const double aMinRw, const double aMinHarv,
                                  const bool eco, const bool sustainable) {
             V ret;
-            size_t endYear = eco || sustainable ? static_cast<size_t>(minRot / timeStep) : 0;
+            ptrdiff_t endYear = eco || sustainable ? static_cast<ptrdiff_t>(minRot / timeStep) : 0;
             array<double, 2> dbhBm{}; // Key to ask if harvest is economic
 
             double fcDBHTmp = 0;    // DBH of harvested trees, average weighted by clear-cut area and harvested biomass

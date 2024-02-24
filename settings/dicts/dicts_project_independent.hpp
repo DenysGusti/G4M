@@ -6,8 +6,8 @@
 #include <array>
 #include <vector>
 
-#include "../helper/string_hash.hpp"
-#include "../increment/increment_tab.hpp"
+#include "../../helper/string_hash.hpp"
+#include "../../increment/increment_tab.hpp"
 
 using namespace std;
 using namespace g4m::increment;

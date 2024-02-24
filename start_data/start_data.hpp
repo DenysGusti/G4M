@@ -21,8 +21,8 @@
 
 #include "../helper/string_hash.hpp"
 
-#include "../constants.hpp"
-#include "../arrays/arrays.hpp"
+#include "../settings/constants.hpp"
+#include "../settings/arrays/arrays.hpp"
 #include "../log.hpp"
 #include "../increment/increment_tab.hpp"
 
@@ -46,41 +46,8 @@ namespace fs = filesystem;
 namespace rv = ranges::views;
 
 namespace g4m::StartData {
-    CountryData countriesNforCover;
-    CountryData countriesNforTotC;
-    CountryData countriesAfforHaYear;
-    CountryData countriesAfforCYear;
-    CountryData countriesAfforCYear_ab;
-    CountryData countriesAfforCYear_bl;
-    CountryData countriesAfforCYear_biom;
-    CountryData countriesAfforCYear_dom;
-    CountryData countriesAfforCYear_soil;
-    CountryData countriesOforCover; // all old forest (existing in 2000)
-    CountryData countriesDeforHaYear;
-    CountryData countriesOfor_ab_C;
-    CountryData countriesOforC_biom;
-    CountryData countriesDeforCYear;
-    CountryData countriesDeforCYear_bl;
-    CountryData countriesDeforCYear_ab;
-    CountryData countriesDeforCYear_biom;
-    CountryData countriesDeforCYear_dom;
-    CountryData countriesDeforCYear_soil;
-    CountryData countriesWoodHarvestM3Year;
-    CountryData countriesWoodHarvestPlusM3Year;
-    CountryData countriesWoodHarvestFmM3Year;
-    CountryData countriesWoodHarvestDfM3Year;
-    CountryData countriesWoodLoosCYear;
-    CountryData countriesHarvLossesYear;
-    CountryData countriesManagedForHa;
-    CountryData countriesManagedCount;
-    CountryData countriesMAI;
-    CountryData countriesCAI;
-    CountryData countriesCAI_new;
-    CountryData countriesFM;
-    CountryData countriesFMbm;
-    CountryData countriesProfit;  // profit due to selling  harvested wood
     // Historic data on total wood production in EU countries (including Croatia) [th.m3/year, over bark); 1990-2010
-    CountryData countriesWoodProdStat;
+//    CountryData countriesWoodProdStat;
     CountryData countriesFmEmission_unfccc;
 
     vector<DataStruct> rawPlots;  // raw structure with data plots[<elNum>].<variable>[year]
@@ -146,7 +113,7 @@ namespace g4m::StartData {
 
     unordered_map<uint8_t, FFIpolsCountry> countriesFFIpols;
     // data related to harvesting the residues (residues amount, associated costs and soil loss emissions)
-    unordered_map<uint8_t, vector<HarvestResidues> > harvestResiduesCountry;  // a vector of harvest residues data for all single countries
+    unordered_map<uint8_t, vector<HarvestResidues> > commonHarvestResiduesCountry;  // a vector of harvest residues data for all single countries
 
     unordered_map<string, binary_semaphore, StringHash, equal_to<> > signalZeroCToMainScenarios;
     unordered_map<string, vector<vector<double> >, StringHash, equal_to<> > biomassBauScenarios;

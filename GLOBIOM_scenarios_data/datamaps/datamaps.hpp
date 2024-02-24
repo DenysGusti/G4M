@@ -24,7 +24,8 @@ namespace g4m::GLOBIOM_scenarios_data {
 
             TRACE("Obsolete {}:", message);
             for (const auto &[id, ipol]: histDatamap)
-                TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
+                if (!ipol.data.empty())
+                    TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
 
             return datamapDest;
         }
@@ -65,6 +66,18 @@ namespace g4m::GLOBIOM_scenarios_data {
             mergeObligatoryDatamaps(datamapScenarios, scenario);
             mergeOptionalDatamaps(datamapScenarios, scenario);
             initCO2Price(datamapScenarios, scenario, inputPriceC);
+
+            if (const auto missingFileCountries = fileNamesMissingCountriesToConsider(); !missingFileCountries.empty()) {
+                string str;
+                for (const auto &[fileName, countries]: missingFileCountries) {
+                    str += format("{}: ", fileName);
+                    for (const auto country: countries | rv::take(countries.size() - 1))
+                        str += format("{} ({}), ", country, idCountryGLOBIOM.at(country));
+                    str += format("{} ({});\n", countries.back(), idCountryGLOBIOM.at(countries.back()));
+                }
+                FATAL("Countries to consider are missing in datamap files!\n{}", str);
+                throw runtime_error{"Countries to consider are missing in datamap files!"};
+            }
         }
 
     private:
@@ -95,6 +108,31 @@ namespace g4m::GLOBIOM_scenarios_data {
             }
 
             CO2Price = datamapScenarios.CO2PriceScenarios.at(string{scenario});
+        }
+
+        [[nodiscard]] unordered_map<string, vector<uint8_t>, StringHash, equal_to<> >
+        fileNamesMissingCountriesToConsider() const {
+            unordered_map<string, vector<uint8_t>, StringHash, equal_to<> > fileNamesMissingCountriesToConsider;
+            fileNamesMissingCountriesToConsider.reserve(256);
+
+            auto pObligatoryDatamaps = {&landPrice, &woodPrice, &woodDemand, &residuesDemand};
+            auto obligatoryDatamapNames = {"landPrice", "woodPrice", "woodDemand", "residuesDemand"};
+
+            for (const auto [pDatamap, datamapName]: rv::zip(pObligatoryDatamaps, obligatoryDatamapNames))
+                for (const auto country: countriesList)
+                    if (!pDatamap->contains(country))
+                        fileNamesMissingCountriesToConsider[datamapName].push_back(country);
+
+            auto pOptionalDatamaps = {&GLOBIOM_AfforMaxCountry, &GLOBIOM_LandCountry, &CO2Price};
+            auto optionalDatamapNames = {"GLOBIOM_AfforMaxCountry", "GLOBIOM_LandCountry", "CO2Price"};
+
+            for (const auto [pDatamap, datamapName]: rv::zip(pOptionalDatamaps, optionalDatamapNames))
+                if (!pDatamap->empty())
+                    for (const auto country: countriesList)
+                        if (!pDatamap->contains(country))
+                            fileNamesMissingCountriesToConsider[datamapName].push_back(country);
+
+            return fileNamesMissingCountriesToConsider;
         }
     };
 }

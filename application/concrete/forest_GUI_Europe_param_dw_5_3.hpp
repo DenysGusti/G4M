@@ -14,7 +14,7 @@
 #include "../abstract/application.hpp"
 
 #include "../../start_data/start_data.hpp"
-#include "../../dicts/dicts.hpp"
+#include "../../settings/dicts/dicts.hpp"
 
 #include "../../structs/lw_price.hpp"
 #include "../../structs/harvest_residues.hpp"
@@ -154,18 +154,27 @@ namespace g4m::application::concrete {
         bool appMultifunction10 = commonMultifunction10;
         bool appMultifunction30 = commonMultifunction30;
 
+        unordered_set<uint8_t> toAdjust;            // country where FM to be adjusted
+        unordered_set<uint8_t> countriesNoFmCPol;   // List of countries where it's impossible to match demanded wood production in current year
+        unordered_set<uint8_t> doneList;            // countries already adjusted
+
+        unordered_map<uint8_t, vector<HarvestResidues> > appHarvestResiduesCountry = commonHarvestResiduesCountry;
+
+        CountryData countryRegMaxHarvest;
+        CountryData countryRegWoodProd;
+        CountryData countryRegWoodHarvestDfM3Year;
+
         CountryData countriesResiduesExtract_m3;        // sustainably extracted harvest residuals, m3
         CountryData countriesResiduesDemand_m3;         // harvest residues demand recalculated to m3
         CountryData countriesResExtSoilEm_MtCO2Year;    // soil loss emissions due to sustainably extracted harvest residuals, MtCO2/year
 
-        unordered_set<uint8_t> toAdjust;            // country where FM to be adjusted
-        unordered_set<uint8_t> countriesNoFmCPol;   // List of countries where it's impossible to match demanded wood production in current year
-        unordered_set<uint8_t> doneList;            // countries already adjusted
-        unordered_set<uint8_t> toAdjustSalvage;     // country where Salvage Logging to be adjusted
+        CountryData countryFMCPolMaxNPV;
+        CountryData countryFMCPolCurrNPV;
 
-        CountryData CountryRegMaxHarvest;
-        CountryData CountryRegWoodProd;
-        CountryData countryRegWoodHarvestDfM3Year;
+        CountryData countriesWoodHarvestM3Year;
+        CountryData countriesWoodHarvestUNM3Year;   // Harvest from usual old and new forests plus deforested wood
+        CountryData countriesWoodHarvest10M3Year;   // Harvest from 10% forest
+        CountryData countriesWoodHarvest30M3Year;   // Harvest from 30% forest
 
         void correctBelgium() noexcept {
             woodSupplement = dms.woodDemand.at(20);
@@ -284,7 +293,8 @@ namespace g4m::application::concrete {
             bool harvControl = true;        // Additional information to control output of the fmCPol module
             bool NPV_postControl_0 = false; // Control of old forest management NPV at 0 C price: Use only for testing!!!!
             bool NPV_postControl = true;    // Control of old forest management NPV at non-zero C price
-            uint8_t country_to_check = 0;       // Country code for deep analysis of G4M FM algorithm; 0 - no output of the deep analysis
+            // Country code for deep analysis of G4M FM algorithm; nullopt - no output of the deep analysis
+            // optional<uint8_t> country_to_check = nullopt;  // corresponds Null from python
             toAdjust = countriesList;
 
             if (year == coef.bYear)
@@ -345,14 +355,14 @@ namespace g4m::application::concrete {
 
             forest30GeneralFM();
 
-            if (fmPol && inputPriceC != 0 && year > refYear) {
+            if (fmPol && year > refYear && inputPriceC != 0) {
                 // populate list of countries where it's impossible to match demanded wood production in current year
                 countriesNoFmCPol.clear();
                 for (double tmpTimeStep = modTimeStep / 100.; const auto country: countriesList)
-                    if (CountryRegMaxHarvest.getVal(country, year - 1) <
-                        (0.8 - tmpTimeStep) * CountryRegWoodProd.getVal(country, year - 1) ||
+                    if (countryRegMaxHarvest.getVal(country, year - 1) <
+                        (0.8 - tmpTimeStep) * countryRegWoodProd.getVal(country, year - 1) ||
                         countryRegWoodHarvestDfM3Year.getVal(country, year - 1) >
-                        (1.1 + tmpTimeStep) * CountryRegWoodProd.getVal(country, year - 1) ||
+                        (1.1 + tmpTimeStep) * countryRegWoodProd.getVal(country, year - 1) ||
                         dms.CO2Price.at(country)(year) <= 0)
                         countriesNoFmCPol.insert(country);
 
@@ -361,10 +371,8 @@ namespace g4m::application::concrete {
                     DEBUG("{}", int{country});
 
                 findMaxWoodAndCNPV(year);
-                array<double, numberOfCountries> woodHarvest = calculateInitHarv();
-                printWoodHarvestPostControl(year, woodHarvest);
-                fmCPol(1, year, woodHarvest);
-                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest);
+                array<double, numberOfCountries> woodHarvest = fmCPol(1, year, true);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, true);
                 array<double, numberOfCountries> maxDiff0 = harvDiff;
 
                 // TODO continue logic
@@ -402,9 +410,7 @@ namespace g4m::application::concrete {
                             else if (fm_hurdle >= -2 && fm_hurdle < 0) fm_hurdle = -10;
                             else if (fm_hurdle >= -100'000 && fm_hurdle < 0) fm_hurdle = -1'000'000;
                         }
-
-                        woodHarvest = calculateInitHarv();
-                        fmCPol(fm_hurdle, year, woodHarvest);
+                        auto _ = fmCPol(fm_hurdle, year, true);
 
                         double maxDiffPrev = maxDiff0[maxDiffCountry];
 
@@ -416,7 +422,44 @@ namespace g4m::application::concrete {
                 }
 
                 INFO("Start adjust residues in FMCPol");
-                adjustResidues(year, residueHarvest);
+                array<double, numberOfCountries> harvestResiduesSoilEmissions = adjustResidues(year, residueHarvest);
+
+                INFO("-------------------------------");
+                if (year > residueHarvYear) {
+                    for (const auto i: countriesList)
+                        if (dms.woodDemand.at(i)(year) > 0) {
+                            double residuesDemand = dms.residuesDemand.at(i)(year);
+                            double residuesDiff = residuesDemand > 0 ? abs(residueHarvest[i] / residuesDemand - 1) : 0;
+                            TRACE("{}: residuesDiff = {}\tresiduesDemand = {}\tresiduesHarvest = {}\tharvestResiduesSoilEmissions = {}",
+                                  i, residuesDiff, residuesDemand, residueHarvest[i], harvestResiduesSoilEmissions[i]);
+                        }
+                }
+
+                INFO("-----NPV post control-----");
+                if (NPV_postControl)
+                    for (const auto &plot: appPlots)
+                        if (!plot.protect) {
+                            bool used = appThinningForest(plot.x, plot.y) > 0;
+                            double NPVTmp = npvCalc(plot, appCohortsU[plot.asID], year,
+                                                    appRotationForest(plot.x, plot.y), used).first;
+                            countryFMCPolMaxNPV.inc(plot.country, year, maxNPVGrid(plot.x, plot.y));
+                            countryFMCPolCurrNPV.inc(plot.country, year, NPVTmp);
+                        }
+            } else {
+                // 0 - path
+                array<double, numberOfCountries> woodHarvest = fmCPol(1, year, false);
+
+                INFO("Start adjust residues");
+                array<double, numberOfCountries> harvestResiduesSoilEmissions = adjustResidues(year, residueHarvest);
+
+                INFO("-----NPV post control-----");
+                if (fmPol && year > refYear && NPV_postControl_0)
+                    for (const auto &plot: appPlots)
+                        if (!plot.protect) {
+                            bool used = appThinningForest(plot.x, plot.y) > 0;
+                            double NPVTmp = npvCalc(plot, appCohortsU[plot.asID], year,
+                                                    appRotationForest(plot.x, plot.y), used).first;
+                        }
             }
         }
 
@@ -845,8 +888,7 @@ namespace g4m::application::concrete {
         void findMaxWoodAndCNPV(const uint16_t year) {
             for (const auto &plot: appPlots)
                 // Don't do initial disturbance for countries which cannot produce demanded amount of wood due to lack of forest resources or very high deforestation
-                if (countriesNoFmCPol.contains(plot.country) && toAdjust.contains(plot.country) &&
-                    !plot.protect)
+                if (countriesNoFmCPol.contains(plot.country) && toAdjust.contains(plot.country) && !plot.protect)
                     if (appMaiForest(plot.x, plot.y) > 0 && appDats[plot.asID].OForestShare > 0) {
 
                         if (appManagedForest(plot.x, plot.y) > 0) {
@@ -888,94 +930,182 @@ namespace g4m::application::concrete {
                     }
         }
 
-        [[nodiscard]] array<double, numberOfCountries> calculateInitHarv() {
-            array<double, numberOfCountries> woodHarvest{};
+        // returns newHarvestTmp, newHarvestTmp10, newHarvestTmp30
+        [[nodiscard]] array<double, 3> calculatePlotHarvest(const DataStruct &plot) const {
+            double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
+            double harvestO10 = appCohorts10[plot.asID].cohortRes().getTotalWoodRemoval();
+            double harvestO30 = appCohorts30[plot.asID].cohortRes().getTotalWoodRemoval();
+            double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-            for (const auto &plot: appPlots)
-                if (toAdjust.contains(plot.country) && !plot.protect) {
-                    double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
-                    double harvestO10 = appCohorts10[plot.asID].cohortRes().getTotalWoodRemoval();
-                    double harvestO30 = appCohorts30[plot.asID].cohortRes().getTotalWoodRemoval();
-                    double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
+            double cleanedWoodUseCurrent =
+                    cleanedWoodUse[plot.country] + appDats[plot.asID].harvestEfficiencyMultifunction;
 
-                    double cleanedWoodUseCurrent =
-                            cleanedWoodUse[plot.country] + appDats[plot.asID].harvestEfficiencyMultifunction;
+            double cleanedWoodUseCurrent10 = appForest10Policy ? 0 : cleanedWoodUseCurrent;
+            if (appForest10Policy && appMultifunction10)
+                cleanedWoodUseCurrent10 = cleanWoodUseShare10 * cleanedWoodUse[plot.country];
 
-                    double cleanedWoodUseCurrent10 = appForest10Policy ? 0 : cleanedWoodUseCurrent;
-                    if (appForest10Policy && appMultifunction10)
-                        cleanedWoodUseCurrent10 = cleanWoodUseShare10 * cleanedWoodUse[plot.country];
+            double cleanedWoodUseCurrent30 = appForest30Policy ? 0 : cleanedWoodUseCurrent;
+            if (appForest30Policy && appMultifunction30)
+                cleanedWoodUseCurrent30 = cleanWoodUseShare30 * cleanedWoodUse[plot.country];
 
-                    double cleanedWoodUseCurrent30 = appForest30Policy ? 0 : cleanedWoodUseCurrent;
-                    if (appForest30Policy && appMultifunction30)
-                        cleanedWoodUseCurrent30 = cleanWoodUseShare30 * cleanedWoodUse[plot.country];
+            double forestShareApplied =
+                    appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
 
-                    double forestShareApplied =
-                            appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
+            // Total current harvested wood in the cell, m3
+            double newHarvestTmp =
+                    (harvestO * forestShareApplied + harvestN * appDats[plot.asID].N.forestShare) *
+                    appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
+                    appDats[plot.asID].deforWoodTotM3;
 
-                    // Total current harvested wood in the cell, m3
-                    double newHarvestTmp =
-                            (harvestO * forestShareApplied + harvestN * appDats[plot.asID].N.forestShare) *
-                            appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                            appDats[plot.asID].deforWoodTotM3;
+            if (appThinningForest(plot.x, plot.y) <= 0)
+                newHarvestTmp *= cleanedWoodUseCurrent;
 
-                    if (appThinningForest(plot.x, plot.y) <= 0)
-                        newHarvestTmp *= cleanedWoodUseCurrent;
+            double newHarvestTmp10 =
+                    harvestO10 * appDats[plot.asID].O10.forestShare * appDats[plot.asID].landAreaHa *
+                    plot.fTimber(coef.bYear);
 
-                    double newHarvestTmp10 =
-                            harvestO10 * appDats[plot.asID].O10.forestShare * appDats[plot.asID].landAreaHa *
-                            plot.fTimber(coef.bYear);
+            if (appThinningForest10(plot.x, plot.y) <= 0)
+                newHarvestTmp10 *= cleanedWoodUseCurrent10;
 
-                    if (appThinningForest10(plot.x, plot.y) <= 0)
-                        newHarvestTmp10 *= cleanedWoodUseCurrent10;
+            double newHarvestTmp30 =
+                    harvestO30 * appDats[plot.asID].O30.forestShare * appDats[plot.asID].landAreaHa *
+                    plot.fTimber(coef.bYear);
 
-                    double newHarvestTmp30 =
-                            harvestO30 * appDats[plot.asID].O30.forestShare * appDats[plot.asID].landAreaHa *
-                            plot.fTimber(coef.bYear);
+            if (appThinningForest30(plot.x, plot.y) <= 0)
+                newHarvestTmp30 *= cleanedWoodUseCurrent30;
 
-                    if (appThinningForest30(plot.x, plot.y) <= 0)
-                        newHarvestTmp30 *= cleanedWoodUseCurrent30;
-
-                    woodHarvest[plot.country] +=
-                            newHarvestTmp + newHarvestTmp10 + newHarvestTmp30 + salvageLogging(plot.x, plot.y);
-                    appHarvestGrid(plot.x, plot.y) = newHarvestTmp + newHarvestTmp30;
-
-                    DEBUG("asID = {}\tcountry = {}\tnewHarvestTmp = {}\tnewHarvestTmp10 = {}\tnewHarvestTmp30 = {}",
-                          plot.asID, idCountryGLOBIOM.at(plot.country),
-                          newHarvestTmp, newHarvestTmp10, newHarvestTmp30);
-                }
-
-            return woodHarvest;
+            return {newHarvestTmp, newHarvestTmp10, newHarvestTmp30};
         }
 
-        // Adjust forest management in the case of a non-zero carbon price of the carbon in tree biomass.
+        // Control (calculate) the detailed amount of harvested wood after adjusting forest management.
+        // Used together with printHarvestDiagnostics to check how do the adjustment functions work.
+        // Not necessary for release.
+        // woodHarvestDetailed[country]: 0 - woodHarvestTotal, 1 - UN, 2 - O10, 3 - O30, 4 - salvageLogging
+        // returns woodHarvestDetailed, harvestGridLocal
+        [[nodiscard]] pair<array<array<double, numberOfCountries>, 5>, DataGrid<double> >
+        calculateHarvestDetailed(const bool toAdjustOnly) const {
+            // 0 - woodHarvestTotal, 1 - UN, 2 - O10, 3 - O30, 4 - salvageLogging
+            array<array<double, numberOfCountries>, 5> woodHarvestDetailed{};
+            DataGrid<double> harvestGridLocal{resLatitude};
+
+            for (const auto &plot: appPlots)
+                if ((!toAdjustOnly || toAdjust.contains(plot.country)) && !plot.protect) {  // using Karnaugh map
+                    const auto [newHarvestTmp, newHarvestTmp10, newHarvestTmp30] = calculatePlotHarvest(plot);
+
+                    double woodHarvestTotal =
+                            newHarvestTmp + newHarvestTmp10 + newHarvestTmp30 + salvageLogging(plot.x, plot.y);
+                    woodHarvestDetailed[0][plot.country] += woodHarvestTotal;
+                    woodHarvestDetailed[1][plot.country] += newHarvestTmp;
+                    woodHarvestDetailed[2][plot.country] += newHarvestTmp10;
+                    woodHarvestDetailed[3][plot.country] += newHarvestTmp30;
+                    woodHarvestDetailed[4][plot.country] += salvageLogging(plot.x, plot.y);
+                    harvestGridLocal(plot.x, plot.y) = newHarvestTmp + newHarvestTmp30;
+
+//                    DEBUG("asID = {}\tcountry = {}\twoodHarvestTotal = {}\tnewHarvestTmp = {}\tnewHarvestTmp10 = {}\tnewHarvestTmp30 = {}\tsalvageLogging = {}",
+//                          plot.asID, idCountryGLOBIOM.at(plot.country), woodHarvestTotal,
+//                          newHarvestTmp, newHarvestTmp10, newHarvestTmp30, salvageLogging(plot.x, plot.y));
+                }
+
+            return {woodHarvestDetailed, harvestGridLocal};
+        }
+
+        // Control (output) the amount of harvested wood after adjusting forest management.
+        // Used together with calculateHarvestDetailed to check how do the adjustment functions work.
+        // Not necessary for release.
+        void printHarvestDiagnostics(const array<array<double, numberOfCountries>, 5> &woodHarvestDetailed,
+                                     const span<const double> harvDiff, const uint16_t year) const {
+            if (harvDiff.size() != numberOfCountries) {
+                FATAL("harvDiff.size() is wrong: {} != ", harvDiff.size(), numberOfCountries);
+                throw runtime_error{"harvDiff.size() is wrong!"};
+            }
+            TRACE("Wood Harvest Post Control:");
+            for (const auto i: countriesList) {
+                TRACE("i = {}\t\tharvDiff = {}\t\twoodDemand = {}\t\twoodHarvestTotal = {}\t\tUN = {}\t\tO10 = {}\t\tO30 = {}\t\tsalvageLogging = {}",
+                      i, harvDiff[i], dms.woodDemand.at(i)(year), woodHarvestDetailed[0][i],
+                      woodHarvestDetailed[1][i], woodHarvestDetailed[2][i], woodHarvestDetailed[3][i],
+                      woodHarvestDetailed[4][i]);
+//                TRACE("harvestCalcPrev = {}\t\tprevUN = {}\t\tprevO10 = {}\t\tprevO30 = {}",
+//                      countriesWoodHarvestM3Year.getVal(i, year - 1), countriesWoodHarvestUNM3Year.getVal(i, year - 1),
+//                      countriesWoodHarvest10M3Year.getVal(i, year - 1),
+//                      countriesWoodHarvest30M3Year.getVal(i, year - 1));
+            }
+        }
+
+        // Adjust forest management in the case of a non-zero or zero carbon price of the carbon in tree biomass.
+        // CPol = true - non-zero carbon price
         // Wood and land prices by countries
-        void fmCPol(const double fm_hurdle, const uint16_t year, const span<double> woodHarvest) {
+        // returns woodHarvest
+        [[nodiscard]] array<double, numberOfCountries>
+        fmCPol(const double fm_hurdle, const uint16_t year, const bool CPol) {
+            array<double, numberOfCountries> woodHarvest{};
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, harvestGridLocal] = calculateHarvestDetailed(CPol);
+                woodHarvest = woodHarvestDetailed[0];
+                appHarvestGrid = harvestGridLocal;
+            }
+
             // ------- Zero pass = Adjust thinning if population density changed --------------------
             const double stockingDegree = 1.3;
             if (year > 2000 && year % 10 == 0) {
                 INFO("Start Zero pass = adjust thinning if population density changed");
-                adjustSD(year, 0.12, woodHarvest, stockingDegree, fm_hurdle, true);
+                adjustSD(year, 0.12, woodHarvest, stockingDegree, fm_hurdle, CPol);
+            }
+
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, _] = calculateHarvestDetailed(CPol);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
             }
 
             // ---- First pass = adjust rotation time -------
             INFO("Start First pass = adjust rotation time");
-            adjustRT(year, 0.01, woodHarvest, fm_hurdle, true);
+            adjustRT(year, 0.01, woodHarvest, fm_hurdle, CPol, false);
+
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, _] = calculateHarvestDetailed(CPol);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+            }
 
             //----Second pass = adjust rotation time -------
             INFO("Start Second pass = adjust rotation time");
-            adjustRT(year, 0.02, woodHarvest, fm_hurdle, true, true);
+            adjustRT(year, 0.02, woodHarvest, fm_hurdle, CPol, true);
+
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, _] = calculateHarvestDetailed(CPol);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+            }
 
             //----Third pass = adjust rotation time -------
             INFO("Start Third pass = adjust thinning");
-            adjustSD(year, 0.01, woodHarvest, stockingDegree, fm_hurdle, true);
+            adjustSD(year, 0.01, woodHarvest, stockingDegree, fm_hurdle, CPol);
+
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, _] = calculateHarvestDetailed(CPol);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+            }
 
             //----Forth pass = adjust rotation time -------
             INFO("Start Forth pass = adjust rotation time");
-            adjustRT(year, 0.01, woodHarvest, fm_hurdle, true);
+            adjustRT(year, 0.01, woodHarvest, fm_hurdle, CPol, false);
+
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, _] = calculateHarvestDetailed(CPol);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+            }
 
             //----Fifth pass = adjust rotation time -------
             INFO("Start Fifth pass = adjust rotation time");
-            adjustRT(year, 0.02, woodHarvest, fm_hurdle, true, true);
+            adjustRT(year, 0.02, woodHarvest, fm_hurdle, CPol, true);
+
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, _] = calculateHarvestDetailed(CPol);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+            }
 
             // adjustHarvestEfficiency was deprecated
             //**************** Adjust Salvage logging ************************
@@ -984,10 +1114,17 @@ namespace g4m::application::concrete {
                 //	if (year > 2019 && year < 2038)         // salvage logging in Czech Black scenario (NFAP, 2019)
                 if (year > 2018 && year < 2051) {            // salvage logging in Czech Red scenario (NFAP, 2019)
                     INFO("Adjust salvage logging");
-                    salvageLoggingCZ(year, 0.02, stockingDegree, woodHarvest, 1);
+                    salvageLoggingCZ(year, 0.02, stockingDegree, woodHarvest, 1, CPol);
                 }
 
+            {   // toAdjustOnly = CPol
+                const auto [woodHarvestDetailed, _] = calculateHarvestDetailed(CPol);
+                array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+            }
+
             forest30GeneralFM();
+            return woodHarvest;
         }
 
         // TEMPORAL SHORTCUT FOR forest10 and forest30 when there are no the forest10 and forest30 policies
@@ -1084,6 +1221,7 @@ namespace g4m::application::concrete {
         // Calculate NPV for the period from current year till end of the modeling
         // cohortTmp now isn't a lvalue reference, use AgeStruct::createSetU for encapsulation
         // maiV computes internally
+        // returns npvSum, harvestTmp
         [[nodiscard]] pair<double, double>
         npvCalc(const DataStruct &plot, AgeStruct cohortTmp, const uint16_t year, const double rotation,
                 const bool used, const double wpMult = 1, const bool zeroC = false) const {
@@ -1167,7 +1305,7 @@ namespace g4m::application::concrete {
         // Adjust forest management type depending on wood demand and the state of the forests
         // wood and land prices are by countries!
         void adjustSD(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
-                      const double stockingDegree, const double fm_hurdle, const bool CPol = false) {
+                      const double stockingDegree, const double fm_hurdle, const bool CPol) {
             const double adjustTolerance = 2;
 
             auto CPolPart = [&](const DataStruct &plot, const double rotation, const double countryHarvestTmp,
@@ -1583,7 +1721,7 @@ namespace g4m::application::concrete {
         //                  and extend rotation in less productive forests if we need to decrease wood harvest
         // allMng = True - adjust rotation in forests
         void adjustRT(const uint16_t year, const double woodProdTolerance, const span<double> woodHarvest,
-                      const double fm_hurdle, const bool CPol = false, const bool allMng = false) {
+                      const double fm_hurdle, const bool CPol, const bool allMng) {
 
             auto CPolPart = [&](const DataStruct &plot, const double rotation, const double countryHarvestTmp,
                                 const double countryWoodDemand, const double newHarvestTmp,
@@ -1732,8 +1870,9 @@ namespace g4m::application::concrete {
         // 1. Mark the grid cells which are infested following vulnerability criteria
         // 2. Do salvage logging
         // 3. Adjust forest management in the grid cells, which we re not infested
+        // TODO deprecated
         void salvageLoggingCZ(const uint16_t year, const double woodProdTolerance, const double stockingDegree,
-                              const span<double> woodHarvest, const double fm_hurdle, const bool CPol = false) {
+                              const span<double> woodHarvest, const double fm_hurdle, const bool CPol) {
             array<double, 32> allHarvestedUsed = initAllHarvestedUsed();  // CZ:  m3 total harvested wood used by the industry
             // according to NIR2022 95% of wood removals was from salvage logging
             allHarvestedUsed[0] = dms.woodDemand.at(57)(2019) * 1e-6;
@@ -1811,7 +1950,12 @@ namespace g4m::application::concrete {
                         }
 
                 TRACE("PostControl 1");
-                printWoodHarvestPostControl(year, woodHarvest);
+                {   // toAdjustOnly = CPol
+                    array<array<double, numberOfCountries>, 5> woodHarvestDetailed{};
+                    array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                    ranges::copy(woodHarvest, woodHarvestDetailed[0].begin());
+                    printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+                }
 
                 // Not all felled salvage is used
                 woodHarvest[57] -= (salvageLoggingTotal[yearSalvage] - salvageLoggingUsed[yearSalvage]) * 1e6;
@@ -1820,68 +1964,26 @@ namespace g4m::application::concrete {
                     adjustRT_allMngSalvage(year, tolerance, woodHarvest, fm_hurdle, infested, CPol);
 
                 TRACE("PostControl 2");
-                printWoodHarvestPostControl(year, woodHarvest);
+                {   // toAdjustOnly = CPol
+                    array<array<double, numberOfCountries>, 5> woodHarvestDetailed{};
+                    array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, CPol);
+                    ranges::copy(woodHarvest, woodHarvestDetailed[0].begin());
+                    printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
+                }
             } else
                 WARN("salvageYear > available salvage data");
         }
 
-        // Control (calculate) the amount of harvested wood after adjusting forest management.
-        // Used together with printWoodHarvestPostControl to check how do the adjustment functions work.
-        // Not necessary for release.
-        [[nodiscard]] array<double, numberOfCountries> getWoodHarvestPostControl() const {
-            array<double, numberOfCountries> woodHarvestPostControl{};
-
-            for (const auto &plot: appPlots)  // additionally filtered by countriesList (see filter plots)
-                if (toAdjust.contains(plot.country) && !plot.protect) {
-                    double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
-                    double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
-
-                    double forestShareApplied =
-                            appDats[plot.asID].OForestShare - appDats[plot.asID].deforestShare;
-
-                    // Total current harvested wood in the cell, m3
-                    double newHarvestTmp = (harvestO * forestShareApplied +
-                                            harvestN * appDats[plot.asID].N.forestShare) *
-                                           appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
-
-                    if (appThinningForest(plot.x, plot.y) <= 0)
-                        newHarvestTmp *= cleanedWoodUse[plot.country];
-
-                    woodHarvestPostControl[plot.country] += newHarvestTmp + appDats[plot.asID].deforWoodTotM3;
-                }
-            return woodHarvestPostControl;
-        }
-
-        [[nodiscard]] array<double, numberOfCountries> getHarvDiff(const uint16_t year,
-                                                                   const span<const double> woodHarvest) const {
+        [[nodiscard]] array<double, numberOfCountries>
+        getHarvDiff(const uint16_t year, const span<const double> woodHarvest, const bool toAdjustOnly) const {
             array<double, numberOfCountries> harvDiff{};
 
-            for (size_t i = 0; i < numberOfCountries; ++i)
-                if (dms.woodDemand.at(i)(year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i) &&
-                    !countriesNoFmCPol.contains(i))
+            for (const auto i: countriesList)
+                if ((!toAdjustOnly || toAdjust.contains(i) && !countriesNoFmCPol.contains(i)) &&
+                    dms.woodDemand.at(i)(year) > 0)
                     harvDiff[i] = abs(woodHarvest[i] / dms.woodDemand.at(i)(year) - 1);
 
             return harvDiff;
-        }
-
-        // Control (output) the amount of harvested wood after adjusting forest management.
-        // Used together with getWoodHarvestPostControl to check how do the adjustment functions work.
-        // Not necessary for release.
-        void printWoodHarvestPostControl(const uint16_t year, const span<const double> woodHarvest) const {
-            array<double, numberOfCountries> woodHarvestPostControl = getWoodHarvestPostControl();
-            array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest);
-
-            for (size_t i = 0; i < numberOfCountries; ++i) {
-                if (dms.woodDemand.at(i)(year) > 0 && regions.contains(countryRegion[i]) && toAdjust.contains(i)) {
-                    if (countriesNoFmCPol.contains(i)) {
-                        TRACE("No NoFmCPol for country");
-                        continue;
-                    }
-                    TRACE("i = {}\tyear = \tharvDiff = {}\twoodHarvest = {}\twoodHarvestPostControl = {}\twoodDemand = {}\tcountriesWoodHarvestM3Year = {}",
-                          i, year, harvDiff[i], woodHarvest[i], woodHarvestPostControl[i], dms.woodDemand.at(i)(year),
-                          countriesWoodHarvestM3Year.getVal(i, year));
-                }
-            }
         }
 
         // TODO deprecated, made for all countries
@@ -2035,9 +2137,11 @@ namespace g4m::application::concrete {
         // if necessary, collect stumps at the clear-cut areas,
         // then, if necessary, collect branches and harvest losses at the low-intensity harvest areas
         // then, if necessary, collect dead trees in the low-intensity management forests
-        void adjustResidues(const uint16_t year, const span<double> residueHarvest) {
+        // returns harvestResiduesSoilEmissions
+        [[nodiscard]] array<double, numberOfCountries>
+        adjustResidues(const uint16_t year, const span<double> residueHarvest) {
             if (year <= residueHarvYear)
-                return;
+                return {};
 
             const double residueUse30 = !appForest30Policy;
 
@@ -2138,12 +2242,12 @@ namespace g4m::application::concrete {
                     }
 					*/
                     // Locate the struct with asID==asID within the country. Binary search O(log n)
-                    auto it_hr = lower_bound(harvestResiduesCountry.at(plot.country).begin(),
-                                             harvestResiduesCountry.at(plot.country).end(), plot.asID,
+                    auto it_hr = lower_bound(appHarvestResiduesCountry.at(plot.country).begin(),
+                                             appHarvestResiduesCountry.at(plot.country).end(), plot.asID,
                                              [](const HarvestResidues &hr, const size_t asID) -> bool {
                                                  return hr.asID < asID;
                                              });
-                    if (it_hr == harvestResiduesCountry.at(plot.country).end() || it_hr->asID != plot.asID) {
+                    if (it_hr == appHarvestResiduesCountry.at(plot.country).end() || it_hr->asID != plot.asID) {
                         FATAL("country = {}, asID = {} not found in harvestResiduesCountry", plot.country, plot.asID);
                         throw runtime_error{"Missing asID harvestResidues"};
                     }
@@ -2233,9 +2337,10 @@ namespace g4m::application::concrete {
             // calculate minimum costs residues use
             // go to each country
             for (const auto country: countriesList) {
-                if (!harvestResiduesCountry.at(country).empty()) {
+                if (!commonHarvestResiduesCountry.at(country).empty()) {
                     // sort the cells by costs of residue extraction
-                    sort(harvestResiduesCountry.at(country).begin(), harvestResiduesCountry.at(country).end(),
+                    sort(commonHarvestResiduesCountry.at(country).begin(),
+                         commonHarvestResiduesCountry.at(country).end(),
                          [](const HarvestResidues &lop, const HarvestResidues &rop) -> bool {
                              return lop.costsSuit1 < rop.costsSuit1;
                          });
@@ -2245,7 +2350,7 @@ namespace g4m::application::concrete {
                     // Usual forest
                     // first check the amount of residues from branches and harvest losses in the intensive
                     // clear-cut areas and estimate respective soil loss emissions
-                    for (auto &hr: harvestResiduesCountry.at(country)) {
+                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                         if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
 
@@ -2274,7 +2379,7 @@ namespace g4m::application::concrete {
                     // first check the amount of residues from branches and harvest losses in the intensive
                     // clear-cut areas and estimate respective soil loss emissions
                     if (!appForest30Policy)
-                        for (auto &hr: harvestResiduesCountry.at(country)) {
+                        for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                             if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                                 break;
 
@@ -2298,7 +2403,7 @@ namespace g4m::application::concrete {
 
                     // stumps of logged trees from production forests
                     // usual forest
-                    for (auto &hr: harvestResiduesCountry.at(country)) {
+                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                         if (!stumpHarvCountrySpecies.contains({country, hr.species}) ||
                             residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
@@ -2333,7 +2438,7 @@ namespace g4m::application::concrete {
                     // stumps of logged trees from production forests
                     // forest 30
                     if (!appForest30Policy)     // no residueUse30 = !appForest30Policy
-                        for (auto &hr: harvestResiduesCountry.at(country)) {
+                        for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                             if (!stumpHarvCountrySpecies.contains({country, hr.species}) ||
                                 residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                                 break;
@@ -2362,7 +2467,7 @@ namespace g4m::application::concrete {
 
                     // harvest residues and branches of logged trees from multifunctional forests
                     // usual forest
-                    for (auto &hr: harvestResiduesCountry.at(country)) {
+                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                         if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
 
@@ -2394,7 +2499,7 @@ namespace g4m::application::concrete {
                     // harvest residues and branches of logged trees from multifunctional forests
                     // forest 30
                     if (!appForest30Policy)
-                        for (auto &hr: harvestResiduesCountry.at(country)) {
+                        for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                             if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                                 break;
 
@@ -2422,7 +2527,7 @@ namespace g4m::application::concrete {
 
                     // whole (above-ground) trees from multifunctional forests that die but are not harvested
                     // usual forest
-                    for (auto &hr: harvestResiduesCountry.at(country)) {
+                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                         if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
 
@@ -2453,7 +2558,7 @@ namespace g4m::application::concrete {
 
                     // whole (above-ground) trees from multifunctional forests that die but are not harvested
                     // forest 30
-                    for (auto &hr: harvestResiduesCountry.at(country)) {
+                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
                         if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
 
@@ -2480,11 +2585,12 @@ namespace g4m::application::concrete {
                     }
                 }
                 // TODO fTimber by cells!
-                double fTimber = harvestResiduesCountry.at(country)[0].fTimber;
+                double fTimber = commonHarvestResiduesCountry.at(country)[0].fTimber;
                 countriesResiduesDemand_m3.setVal(country, year, dms.residuesDemand.at(country)(year) * fTimber);
                 countriesResiduesExtract_m3.inc(country, year, residueHarvest[country] * fTimber);
                 countriesResExtSoilEm_MtCO2Year.setVal(country, year, harvestResiduesSoilEmissions[country] * 1e-6);
             }
+            return harvestResiduesSoilEmissions;
         }
     };
 }

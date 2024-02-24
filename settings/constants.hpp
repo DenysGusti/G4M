@@ -2,7 +2,7 @@
 #define G4M_EUROPE_DG_VARS_HPP
 
 #include <string>
-#include "helper/string_hash.hpp"
+#include "../helper/string_hash.hpp"
 
 using namespace std;
 
@@ -24,38 +24,7 @@ namespace g4m::Constants {
     // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
     constexpr string_view suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_";
 
-    const unordered_map<string, string, StringHash, equal_to<> > fileNames = {
-            {"lp0",                "output_glo4myk_LandRent_myk_01042023.csv"},
-            {"wp0",                "output_glo4myk_SupplyWood_myk_price_01042023.csv"},
-            // 18 Jan 2021 NL corrected according to NFAP / a share of wood reported to FAOSTAT comes from non-forest sources (communication with NL experts in Dec 2020)
-            {"wd0",                "output_glo4myk_SupplyWood_CntDet_01042023.csv"},
-            {"rd0",                "output_glo4myk_Residues_myk_01042023.csv"}, // in m^3
-
-            {"lp",                 "output_glo4myk_LandRent_myk_04072023.csv"},
-            {"wp",                 "output_glo4myk_SupplyWood_myk_price_04072023.csv"},
-            {"wd",                 "output_glo4myk_SupplyWood_CntDet_04072023.csv"},
-            {"rd",                 "output_glo4myk_Residues_myk_04072023.csv"}, // in th t
-
-            // could be empty
-
-            // GLOBIOM land cell scale
-            {"gl_0",               "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_devANBEXT_02052023_newClasses_updated_2000_2020.csv"},
-            {"gl",                 "GLOBIOM_LC_MCS_BIOCLIMA_GRSCor9_FinJune11_11062023_newClasses_updated_CORRECTED.csv"},
-            {"gl_country_0",       "GLOBIOM_LC_CountryLevel_Ref2070_05042023.csv"},
-            {"gl_country",         "GLOBIOM_LC_CountryLevel_CTP_S2_CC_04072023_04072023.csv"},
-
-            {"co2p",               "output_glo4myk_CO2price_myk_04072023.csv"},
-            {"nuts2",              "nuts2_xy_05.csv"},
-
-            {"maic",               "shifters_g4m_v2.csv"},  // MAI climate shifters
-            {"disturbance",        "disturbances_g4m_m3ha_29062023.csv"},  // disturbance damage
-            {"disturbanceExtreme", "disturbances_g4m_m3ha_29062023.csv"},  // disturbance damage
-
-            // As ageStructData_EUCLIMIT2020_03012021, but IR and DE are corrected according to the countries' comments in 2022
-            {"ageStruct",          "ageStructData_EUCLIMIT2020_15092022.csv"},
-            // as _30032023 but unfccc managed forest area increased for a number of countries
-            {"dat",                "b2_euclimit6_bioclima_feu2020_nai2010_11052023.csv"},
-    };
+    constexpr bool debugWithoutBigFiles = false;
 
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
 

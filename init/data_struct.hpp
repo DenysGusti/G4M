@@ -7,7 +7,7 @@
 #include <optional>
 
 #include "../misc/concrete/ipol.hpp"
-#include "../constants.hpp"
+#include "../settings/constants.hpp"
 #include "species.hpp"
 
 using namespace g4m::misc::concrete;

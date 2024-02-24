@@ -6,7 +6,7 @@
 #include "../data_io/reading.hpp"
 #include "../data_io/printing.hpp"
 #include "../increment/dima.hpp"
-#include "../dicts/dicts.hpp"
+#include "../settings/dicts/dicts.hpp"
 
 using namespace g4m;
 using namespace g4m::DataIO::reading;
@@ -14,54 +14,6 @@ using namespace g4m::DataIO::printing;
 using namespace g4m::Dicts;
 
 namespace g4m::StartData {
-    void setCountryData(const unordered_set<uint8_t> &countries_list) noexcept {
-        countriesNforCover.setListOfCountries(countries_list);
-        countriesAfforHaYear.setListOfCountries(countries_list);
-
-        countriesNforTotC.setListOfCountries(countries_list);
-        countriesAfforCYear.setListOfCountries(countries_list);
-        countriesAfforCYear_ab.setListOfCountries(countries_list);
-        countriesAfforCYear_bl.setListOfCountries(countries_list);
-        countriesAfforCYear_biom.setListOfCountries(countries_list);
-        countriesAfforCYear_dom.setListOfCountries(countries_list);
-        countriesAfforCYear_soil.setListOfCountries(countries_list);
-//---------
-        countriesOforCover.setListOfCountries(countries_list);
-        countriesDeforHaYear.setListOfCountries(countries_list);
-
-        countriesOfor_ab_C.setListOfCountries(countries_list);
-        countriesOforC_biom.setListOfCountries(countries_list);
-        countriesDeforCYear.setListOfCountries(countries_list);
-        countriesDeforCYear_bl.setListOfCountries(countries_list);
-        countriesDeforCYear_ab.setListOfCountries(countries_list);
-        countriesDeforCYear_biom.setListOfCountries(countries_list);
-        countriesDeforCYear_dom.setListOfCountries(countries_list);
-        countriesDeforCYear_soil.setListOfCountries(countries_list);
-
-//---------
-
-        countriesWoodHarvestM3Year.setListOfCountries(countries_list);
-        countriesWoodHarvestPlusM3Year.setListOfCountries(countries_list);
-        countriesWoodHarvestFmM3Year.setListOfCountries(countries_list);
-        countriesWoodHarvestDfM3Year.setListOfCountries(countries_list);
-        countriesWoodLoosCYear.setListOfCountries(countries_list);
-        countriesHarvLossesYear.setListOfCountries(countries_list);
-//---------
-        countriesManagedForHa.setListOfCountries(countries_list);
-        countriesManagedCount.setListOfCountries(countries_list);
-
-        countriesMAI.setListOfCountries(countries_list);
-        countriesCAI.setListOfCountries(countries_list);
-        countriesCAI_new.setListOfCountries(countries_list);
-
-        countriesFM.setListOfCountries(countries_list);
-        countriesFMbm.setListOfCountries(countries_list);
-//---------
-        //countriesWprod.setListOfCountries(countries_list);
-//---------
-        countriesProfit.setListOfCountries(countries_list);
-    }
-
     [[nodiscard]] CountryData setCountriesWoodProdStat() noexcept {
         CountryData fun_countriesWoodProdStat;
 
@@ -273,17 +225,6 @@ namespace g4m::StartData {
     }
 
     void initGlobiomLandAndManagedForest() {
-        array<double, numberOfCountries> woodHarvest{};
-        array<double, numberOfCountries> woodLost{};
-
-        double sawnW = 0;      // MG: get harvestable sawn-wood for the set (old) forest tC/ha for final cut.
-        double restW = 0;      // MG: get harvestable rest-wood for the set (old) forest tC/ha for final cut.
-        double sawnThW = 0;    // MG: get harvestable sawn-wood for the set (old) forest tC/ha for thinning.
-        double restThW = 0;    // MG: get harvestable rest-wood for the set (old) forest tC/ha for thinning.
-        double bmH = 0;        // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
-        double bmTh = 0;       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for thinning
-        double harvRes = 0;    // MG: usable harvest residues for the set (old) forest tC/ha
-
         for (auto &plot: commonPlots) {
             plot.initForestArrange();  // initGlobiomLandGlobal included here
             double forestShare0 = max(0., plot.forest);
@@ -315,9 +256,6 @@ namespace g4m::StartData {
             // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
             // Max mean annual increment of New forest (with uniform age structure and managed with rotation length maximizing MAI)
             double MAI = max(0., forestShare0 > 0 ? plot.MAIE(coef.bYear) : plot.MAIN(coef.bYear));
-            double defIncome = 0;
-
-            double rotUnmanaged = 0, rotMAI = 0, rotMaxBm = 0, rotMaxBmTh = 0, rotHarvFin = 0, rotHarvAve = 0;
 
             if (plot.protect)
                 plot.managedFlag = false;
@@ -336,11 +274,7 @@ namespace g4m::StartData {
                 biomassRotTh = species[plot.speciesType].getUT(plot.CAboveHa, MAI);
             }
 
-            if (commonMaiForest(plot.x, plot.y) > 0) {
-                rotMAI = species[plot.speciesType].getTOptT(MAI, ORT::MAI);
-                rotMaxBm = species[plot.speciesType].getTOpt(MAI, ORT::MaxBm);
-                rotMaxBmTh = species[plot.speciesType].getTOptT(MAI, ORT::MaxBm);
-            }
+            double rotMAI = commonMaiForest(plot.x, plot.y) > 0 ? species[plot.speciesType].getTOptT(MAI, ORT::MAI) : 0;
 
             DIMA decision{1990, plot.NPP, plot.sPopDens, plot.sAgrSuit, plot.priceIndex, coef.priceIndexE, plot.R,
                           coef.priceC, coef.plantingCostsR, coef.priceLandMinR, coef.priceLandMaxR, coef.maxRotInter,
@@ -357,7 +291,7 @@ namespace g4m::StartData {
                         plot.CAboveHa * (decision.priceTimber() * plot.fTimber(coef.bYear) * (1 - coef.harvLoos));
                 // Immediate Pay if deforested (Slash and Burn)
                 double sDefIncome = pDefIncome;
-                defIncome =
+                double defIncome =
                         pDefIncome * (1 - plot.slashBurn(coef.bYear)) + sDefIncome * plot.slashBurn(coef.bYear);
 
                 if (plot.managedFlag) {
@@ -426,6 +360,19 @@ namespace g4m::StartData {
         throw runtime_error{"Missing bau file"};
     }
 
+    void normalizeAgeStructData(unordered_map<uint8_t, vector<double> > &ageStructData) {
+        for (auto &[country, ageShares]: ageStructData) {
+            double sum = ranges::fold_left(ageShares, 0., plus{});
+            if (sum <= 0)
+                ageShares.assign(ageShares.size(), 1 / static_cast<double>(ageShares.size()));
+            else {
+                double norm_coef = 1 / sum;
+                for (auto &el: ageShares)
+                    el *= norm_coef;
+            }
+        }
+    }
+
     // Initialise forest objects with observed parameters in each grid cell
     void initLoop() {
         INFO("Start initialising cohorts");
@@ -435,16 +382,17 @@ namespace g4m::StartData {
         commonCohortsP.reserve(commonPlots.size());
         commonCohortsN.reserve(commonPlots.size());
         commonDats.reserve(commonPlots.size());
-        harvestResiduesCountry.reserve(256);
+        commonHarvestResiduesCountry.reserve(256);
 
-        const unordered_map<uint8_t, vector<double> > ageStructData = readAgeStructData();
+        unordered_map<uint8_t, vector<double> > ageStructData = readAgeStructData();
+        normalizeAgeStructData(ageStructData);
 
         // type and size will be deduced
         constexpr array priceCiS = {0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 70, 100, 150};
         constexpr array ageBreaks = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 999};
         constexpr array ageSize = {11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
 
-        for (size_t asId = 0; const auto &plot: commonPlots) {
+        for (const auto &plot: commonPlots) {
             coef.priceC = priceCiS[0] * plot.corruption;
 
             double forestShare = clamp(plot.getForestShare(), 0., plot.getMaxAffor());
@@ -487,7 +435,6 @@ namespace g4m::StartData {
             }
 
             rotation = thinning_tmp > 0 ? biomassRotTh : biomassRot;
-
             double abBiomass0 = 0;  // Modelled biomass at time 0, tC/ha
 
             // Stocking degree depending on tree height is not implemented
@@ -528,7 +475,16 @@ namespace g4m::StartData {
             if (plot.forest + plot.oldGrowthForest_thirty > 0 && mai_tmp > 0) {
                 if (ageStructData.contains(plot.country) && thinning_tmp > 0 && (forFlag || forFlag30) &&
                     plot.potVeg < 10) {
+
+//                    DEBUG("before createNormalForest");
+//                    for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
+//                        DEBUG("dat[{}] = [{}]", i, el.str());
+
                     cohort.createNormalForest(321, 0, 1);
+
+//                    DEBUG("after createNormalForest");
+//                    for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
+//                        DEBUG("dat[{}] = [{}]", i, el.str());
 
                     for (size_t i = 1; i < 161; ++i) {
                         size_t ageGroup = distance(ageBreaks.begin(),
@@ -585,17 +541,35 @@ namespace g4m::StartData {
                         cohort.setStockingDegreeMin(stockingDegree * sdMinCoef);
                         cohort.setStockingDegreeMax(stockingDegree * sdMaxCoef);
                         commonThinningForest(plot.x, plot.y) = stockingDegree;
-                        for (int i = 0; i < 321; ++i)
+
+//                        DEBUG("before setBm");
+//                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
+//                            DEBUG("dat[{}] = [{}]", i, el.str());
+
+                        for (int i = 0; i < 321; ++i) {
                             cohort.setBm(i, stockingDegree * cohort.getBm(i));
+
+//                            DEBUG("after setBm({})", i);
+//                            for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
+//                                DEBUG("dat[{}] = [{}]", i, el.str());
+                        }
                         cohort.setU(321);
-                        auto ignored = cohort.aging();
+
+//                        DEBUG("after setU(321), before aging");
+//                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
+//                            DEBUG("dat[{}] = [{}]", i, el.str());
+
+                        auto _ = cohort.aging();
+
+//                        DEBUG("after aging");
+//                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
+//                            DEBUG("dat[{}] = [{}]", i, el.str());
                     }
 
                     rotation = max(MAIRot,
                                    species[plot.speciesType].getUSdTab(cohort.getBm() / cohort.getArea(), mai_tmp,
                                                                        thinning_tmp) + 1);
                     cohort.setU(rotation);
-
                     if (plot.oldGrowthForest_thirty > 0)
                         cohort30 = cohort;
                     else
@@ -696,7 +670,7 @@ namespace g4m::StartData {
             commonDats.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohort10.getBm(),
                                     cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
 
-            harvestResiduesCountry[plot.country].emplace_back(plot);
+            commonHarvestResiduesCountry[plot.country].emplace_back(plot);
         }
     }
 
@@ -724,7 +698,7 @@ namespace g4m::StartData {
                 double rotMAI = 1;
                 double rotMaxBm = 1;
 
-                double Bm = commonCohortsU[plot.asID].getBm();
+//                double bm = commonCohortsU[plot.asID].getBm();
 
                 if (plot.CAboveHa > 0 && MAI > 0) {
                     // rotation time to get current biomass (without thinning)
@@ -732,7 +706,7 @@ namespace g4m::StartData {
                     rotMAI = species[plot.speciesType].getTOpt(MAI, ORT::MAI);
                     rotMaxBm = species[plot.speciesType].getTOpt(MAI, ORT::MaxBm);
                     // rotation time to get current biomass (with thinning)
-                    biomassRotTh = species[plot.speciesType].getUSdTab(Bm, MAI, commonThinningForest(plot.x, plot.y));
+//                    biomassRotTh = species[plot.speciesType].getUSdTab(bm, MAI, commonThinningForest(plot.x, plot.y));
                 }
 
                 biomassRot = max(rotMaxBm, commonRotationForest(plot.x, plot.y));

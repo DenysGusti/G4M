@@ -7,9 +7,9 @@
 
 #include "../../log.hpp"
 #include "../../helper/check_file.hpp"
-#include "../../dicts/dicts.hpp"
+#include "../../settings/dicts/dicts.hpp"
 #include "../../misc/concrete/ipol.hpp"
-#include "../../constants.hpp"
+#include "../../settings/constants.hpp"
 
 using namespace std;
 using namespace g4m::helper;
@@ -202,7 +202,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         [[nodiscard]] array<double, numberOfCountries> readGlobiomLandCountryCalibrate_calcCountryLandArea() {
-            if (fileNames.at("gl_country_0").empty()) {
+            if (!fileNames.contains("gl_country_0") || fileNames.at("gl_country_0").empty()) {
                 WARN("No GLOBIOM LC country data for 2000-2020!!!!");
                 return {};
             }
@@ -270,7 +270,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         void readGlobiomLandCountry() {
-            if (fileNames.at("gl_country").empty()) {
+            if (!fileNames.contains("gl_country") || fileNames.at("gl_country").empty()) {
                 WARN("No GLOBIOM LC country data!!!!");
                 return;
             }

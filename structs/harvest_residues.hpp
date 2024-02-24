@@ -4,7 +4,7 @@
 #include "residues_forest.hpp"
 #include "../init/data_struct.hpp"
 #include "../init/species.hpp"
-#include "../arrays/arrays.hpp"
+#include "../settings/arrays/arrays.hpp"
 
 namespace g4m::structs {
 
