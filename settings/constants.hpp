@@ -22,14 +22,14 @@ namespace g4m::Constants {
     // t4 setup; New baseline; Reduced hurdle 0.9
     // 22.06.2023: defShare_correction is introduced (calc v17)
     // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
-    constexpr string_view suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_";
+    const string suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_";
 
-    constexpr bool debugWithoutBigFiles = false;
+    constexpr bool debugWithoutBigFiles = true;
 
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
 
-    constexpr bool disturbanceClimateSensitive = true; // Do the disturbances depend on the RCP scenario? If True the damaged wood doubles for RCP7 and 2.5 for the RCP8. Works with disturbanceTrend = true;
-    constexpr bool scaleDisturbance2020 = true;
+    constexpr bool disturbanceClimateSensitive = false; // Do the disturbances depend on the RCP scenario? If True the damaged wood doubles for RCP7 and 2.5 for the RCP8. Works with disturbanceTrend = true;
+    constexpr bool scaleDisturbance2020 = false;
 
     constexpr bool protectedNatLnd = true;  // Don't afforest Natura2000 natural vegetation and heathland to be protected in 2030 (only EU27); Check if GRLND_PROTECT is available in input data
     constexpr bool zeroProdAreaInit = true; // Let G4M to set up minimum necessary forest area used for satisfying wood demand

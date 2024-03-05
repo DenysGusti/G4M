@@ -10,8 +10,8 @@
 #include <span>
 #include <ranges>
 
-#include "../misc/concrete/ffipolm.hpp"
-#include "../init/ffipols_country.hpp"
+#include "../misc/abstract/iipol.hpp"
+#include "../misc/abstract/iipolm.hpp"
 #include "../log.hpp"
 #include "v.hpp"
 #include "cohort.hpp"
@@ -19,12 +19,13 @@
 #include "increment_tab.hpp"
 #include "settings/constants.hpp"
 #include "cohort_res.hpp"
-#include "decisions.hpp"
+#include "../parameters/decisions.hpp"
 
 using namespace std;
 namespace rv = ranges::views;
 using namespace g4m::misc::concrete;
 using namespace g4m::init;
+using namespace g4m::parameters;
 
 namespace g4m::increment {
     // simulator of forest growth, development, and forest management
@@ -59,19 +60,20 @@ namespace g4m::increment {
 
         AgeStruct(
                 // Increment table which will be used, the time step width (simulation period length) of *it will also be used in ageStruct
-                IncrementTab *aIt,
+                IncrementTab *it_,
                 // Sawn-wood share of harvested wood depending on dbh
-                IIpol<double> *aSws,
-                FFIpolsCountry *aFc,
+                IIpol<double> *sws_,
+                IIpol<double> *hlv_, //1-harvesting losses thinning (Vornutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
+                IIpol<double> *hle_, //1-harvesting losses final felling (Endnutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
                 // Thinning costs depending on d and removed volume per hectare in relation to standing timber (Vorratsfestmeter)
-                IIpolM<double> *aCov,
+                IIpolM<double> *cov_,
                 // Harvesting costs depending on d and vol
-                IIpolM<double> *aCoe,
+                IIpolM<double> *coe_,
                 // do thinning (depending on d and removed volume per hectare) and final felling
                 // (depending on d and stocking volume per hectare) in relation to standing timber (Vorratsfestmeter)
                 Decisions *decisions_,
                 // mean annual increment in tC stem-wood per hectare and year at increment optimal rotation time
-                double aMai,
+                double mai_,
                 // objective of production:
                 // 0. Rotation time in years,
                 // 1. amount of wood which need to be harvested every year,
@@ -82,29 +84,29 @@ namespace g4m::increment {
                 // 5. Highest possible age,
                 // 6. Maximum harvest at final cut,
                 // 7. Average Maximum harvest at final cut
-                int aObjOfProd = 3,
+                int objOfProd_ = 3,
                 // Rotation time if objOfProd 0
-                double aU = 0,
+                double u_ = 0,
                 // if objOfProd 1, 2 amount of sawn-wood to harvest
-                double aMinSw = 0,
+                double minSw_ = 0,
                 // if objOfProd 1, 2 amount of rest-wood to harvest
-                double aMinRw = 0,
+                double minRw_ = 0,
                 // if objOfProd 1, 2 amount of total harvest
-                double aMinHarv = 0,
+                double minHarv_ = 0,
                 // Usage of stocking degree:
                 // 0. Keep all the time sdMax,
                 // 1. alternate between sdMin and sdMax,
                 // 3. alternate between sdMinH and sdMaxH
-                int aSdDef = 0,
+                int sdDef_ = 0,
                 // Stocking degree: if sd exceeds sdMax do thinning until sdMin.
                 // d > 0 stockingDegree yield table,sd -1 to 0 natural stocking degree
                 // Maybe sdMin and sdMax can be made dependent on h/hmax and MAI
-                double aSdMax = 1,
-                double aSdMin = 1,
+                double sdMax_ = 1,
+                double sdMin_ = 1,
                 // Years to calculate average mai
-                size_t aMaiYears = 30,
+                size_t maiYears_ = 30,
                 // Minimal rotation time in years or as share given in minRotRef which needs to be exceeded until final harvests are done
-                double aMinRotVal = 0.75,
+                double minRotVal_ = 0.75,
                 // meaning of minRotVal value
                 // 0. use it as years,
                 // 1. minRotVal * u (u > 0),
@@ -113,53 +115,54 @@ namespace g4m::increment {
                 // 4. * uMaxAge,
                 // 5. * uMaxHarvest,
                 // 6. * uAvgMaxHarvest
-                int aMinRotRef = 2,
+                int minRotRef_ = 2,
                 // how fast should the stoking degree target be reached
                 // 0. do only remove caused by stand density  to  1. do only typical removes
-                double aFlexSd = 0,
-                uint32_t aMaxAge = 300,
+                double flexSd_ = 0,
+                uint32_t maxAge_ = 300,
                 // MG: A key to create multi-layer forest and provide selective logging // 07.01.2019
-                bool aSelectiveLogging = false
+                bool selectiveLogging_ = false
                 // , FFIpol<double> *sdMaxH  // Stocking degree depending on max tree height
                 // , FFIpol<double> *sdMinH  // Stocking degree depending on min tree height
-        ) : it{aIt},
-            sws{aSws},
-            fc{aFc},
-            cov{aCov},
-            coe{aCoe},
+        ) : it{it_},
+            sws{sws_},
+            hlv{hlv_},
+            hle{hle_},
+            cov{cov_},
+            coe{coe_},
             decisions{decisions_},
-            mai{aMai},
-            uRef{aU},
-            objOfProd{aObjOfProd},
-            minSw{aMinSw},
-            minRw{aMinRw},
-            minHarv{aMinHarv},
-            sdDef{aSdDef},
-            sdMin{aSdMin},
-            sdMax{aSdMax},
-            minRotVal{aMinRotVal},
-            minRotRef{aMinRotRef},
-            flexSd{aFlexSd},
-            selectiveLogging{aSelectiveLogging} {
+            mai{mai_},
+            uRef{u_},
+            objOfProd{objOfProd_},
+            minSw{minSw_},
+            minRw{minRw_},
+            minHarv{minHarv_},
+            sdDef{sdDef_},
+            sdMin{sdMin_},
+            sdMax{sdMax_},
+            minRotVal{minRotVal_},
+            minRotRef{minRotRef_},
+            flexSd{flexSd_},
+            selectiveLogging{selectiveLogging_} {
             avgMai = mai;
-            qMai.assign(aMaiYears, mai);
+            qMai.assign(maiYears_, mai);
             setRotationTime();
             setMinRot();
             timeStep = it->getTimeframe();  // Check if this should be tStep or timeframe
-            maxNumberOfAgeClasses = ceil(aMaxAge / timeStep);
+            maxNumberOfAgeClasses = ceil(maxAge_ / timeStep);
         }
 
-        void createNormalForest(const double rotationPeriod, const double aArea, const double sd = 1) {
+        void createNormalForest(const double rotationPeriod, const double area_, const double sd = 1) {
             selectiveLogging ?
-            createNormalForestSLTrue(rotationPeriod, aArea, sd) : createNormalForestSLFalse(rotationPeriod, aArea, sd);
+            createNormalForestSLTrue(rotationPeriod, area_, sd) : createNormalForestSLFalse(rotationPeriod, area_, sd);
         }
 
         // MG: Clear vector<Cohort> dat and create normal forest with new parameters
-        void recreateNormalForest(const double rotationPeriod, const double aArea, const double sd = 1) {
+        void recreateNormalForest(const double rotationPeriod, const double area_, const double sd = 1) {
             dat.assign(1, {});
             if (selectiveLogging)
                 dat0.assign(1, {});
-            createNormalForest(rotationPeriod, aArea, sd);
+            createNormalForest(rotationPeriod, area_, sd);
         }
 
         // get biomass per ha by age
@@ -193,27 +196,27 @@ namespace g4m::increment {
 
         // get average biomass per ha
         [[nodiscard]] double getBm() const noexcept {
-            double aArea = 0;
+            double area_ = 0;
             double bm = 0;
             if (selectiveLogging) {
                 for (const auto &dat_i: dat)
                     bm += dat_i.area * dat_i.bm;
                 for (const auto &dat0_i: dat0) {
-                    aArea += dat0_i.area;
+                    area_ += dat0_i.area;
                     bm += dat0_i.area * dat0_i.bm;
                 }
             } else {
                 for (const auto &dat_i: dat) {
-                    aArea += dat_i.area;
+                    area_ += dat_i.area;
                     bm += dat_i.area * dat_i.bm;
                 }
             }
-            return aArea > 0 ? bm / aArea : 0;
+            return area_ > 0 ? bm / area_ : 0;
         }
 
         // MG 09052022: get standing stem biomass with a diameter greater than dbh0 cm
         [[nodiscard]] double getBmGDbh(const double dbh0) const noexcept {
-            double aArea = 0;
+            double area_ = 0;
             double bm = 0;
             if (selectiveLogging) {
                 for (const auto &dat_i: dat)
@@ -221,45 +224,45 @@ namespace g4m::increment {
                         bm += dat_i.area * dat_i.bm;
                 for (const auto &dat0_i: dat0)
                     if (dat0_i.d > dbh0) {
-                        aArea += dat0_i.area;
+                        area_ += dat0_i.area;
                         bm += dat0_i.area * dat0_i.bm;
                     }
             } else {
                 for (const auto &dat_i: dat)
                     if (dat_i.d > dbh0) {
-                        aArea += dat_i.area;
+                        area_ += dat_i.area;
                         bm += dat_i.area * dat_i.bm;
                     }
             }
-            return aArea > 0 ? bm / aArea : 0;
+            return area_ > 0 ? bm / area_ : 0;
         }
 
         // get average biomass per ha
         [[nodiscard]] double getBmSL(const int canopyLayer) const noexcept {
-            double aArea = 0;
+            double area_ = 0;
             double bm = 0;
             switch (canopyLayer) {
                 case 0:
                     for (const auto &dat0_i: dat0) {
-                        aArea += dat0_i.area;
+                        area_ += dat0_i.area;
                         bm += dat0_i.area * dat0_i.bm;
                     }
                     break;
                 case 1:
                     for (const auto &dat_i: dat) {
-                        aArea += dat_i.area;
+                        area_ += dat_i.area;
                         bm += dat_i.area * dat_i.bm;
                     }
                     break;
                 default:
                     ERROR("canopyLayer = {} is not implemented", canopyLayer);
             }
-            return aArea > 0 ? bm / aArea : 0;
+            return area_ > 0 ? bm / area_ : 0;
         }
 
         // get biomass  in canopyLayer for age interval >= lAge and <= uAge
         [[nodiscard]] double getBmIntSL(const int canopyLayer, size_t lAge, size_t uAge) const noexcept {
-            double aArea = 0;
+            double area_ = 0;
             double bm = 0;
             if (lAge > uAge)  // size_t >= 0, possible expected lAge overflow
                 lAge = 0;
@@ -267,38 +270,38 @@ namespace g4m::increment {
                 case 0:
                     uAge = min(uAge, dat0.size());
                     for (size_t i = lAge; i <= uAge; ++i) {
-                        aArea += dat0[i].area;
+                        area_ += dat0[i].area;
                         bm += dat0[i].area * dat0[i].bm;
                     }
                     break;
                 case 1:
                     uAge = min(uAge, dat.size());
                     for (const auto &dat_i: dat) {
-                        aArea += dat_i.area;
+                        area_ += dat_i.area;
                         bm += dat_i.area * dat_i.bm;
                     }
                     break;
                 default:
                     ERROR("canopyLayer = {} is not implemented", canopyLayer);
             }
-            return aArea > 0 ? bm / aArea : 0;
+            return area_ > 0 ? bm / area_ : 0;
         }
 
         // get average biomass per ha for age classes with Bm > 0 (including 0 age class)
         [[nodiscard]] double getBmNonZero() const noexcept {
-            double aArea = 0;
+            double area_ = 0;
             double bm = 0;
             for (size_t i = 0; i < dat.size(); ++i)
                 if (i > 0 && dat[i].bm > 0 || i == 0) {
-                    aArea += dat[i].area;
+                    area_ += dat[i].area;
                     bm += dat[i].area * dat[i].bm;
                 }
-            return aArea > 0 ? bm / aArea : 0;
+            return area_ > 0 ? bm / area_ : 0;
         }
 
         // get average biomass increment in canopyLayer for age interval >= lAge and <= uAge
         [[nodiscard]] double getAvgIncBmSL(const int canopyLayer, size_t lAge, size_t uAge) const noexcept {
-            double aArea = 0;
+            double area_ = 0;
             double bmInc = 0;
             if (lAge > uAge)  // size_t >= 0, possible expected lAge overflow
                 lAge = 0;
@@ -306,21 +309,21 @@ namespace g4m::increment {
                 case 0:
                     uAge = min(uAge, dat0.size());
                     for (size_t i = lAge; i < uAge; ++i) {
-                        aArea += dat0[i].area;
+                        area_ += dat0[i].area;
                         bmInc += (dat0[i + 1].bm - dat0[i].bm) * dat0[i].area;
                     }
                     break;
                 case 1:
                     uAge = min(uAge, dat.size());
                     for (size_t i = lAge; i < uAge; ++i) {
-                        aArea += dat[i].area;
+                        area_ += dat[i].area;
                         bmInc += (dat[i + 1].bm - dat[i].bm) * dat[i].area;
                     }
                     break;
                 default:
                     ERROR("canopyLayer = {} is not implemented", canopyLayer);
             }
-            return aArea > 0 ? bmInc / aArea : 0;
+            return area_ > 0 ? bmInc / area_ : 0;
         }
 
         // Share of biomass of the canopy layer that can be removed without exceeding average maximum increment
@@ -384,11 +387,11 @@ namespace g4m::increment {
 
         // get forest area where Bm > 0, including the first age class
         [[nodiscard]] double getAreaNonZero() const noexcept {
-            double aArea = 0;
+            double area_ = 0;
             for (size_t i = 0; i < dat.size(); ++i)
                 if (i > 0 && dat[i].bm > 0 || i == 0)
-                    aArea += dat[i].area;
-            return aArea;
+                    area_ += dat[i].area;
+            return area_;
         }
 
         // get Diameter
@@ -460,42 +463,42 @@ namespace g4m::increment {
         }
 
         // Set area for a specific ageCLASS for specified canopy layer
-        void setArea(size_t ageClass, double aArea, const int canopyLayer = 1) {
+        void setArea(size_t ageClass, double area_, const int canopyLayer = 1) {
             // Here seems to be an error - Above just to allow some calculations
-            if (aArea < 0) {
-                ERROR("aArea < 0: {}", aArea);
+            if (area_ < 0) {
+                ERROR("area_ < 0: {}", area_);
                 return;
             }
             ageClass = min(ageClass, static_cast<size_t>(it->getTMax() / timeStep - 1));
             switch (canopyLayer) {
                 case 0: {
                     if (ageClass < dat0.size()) {
-                        area += aArea - dat0[ageClass].area;
-                        dat0[ageClass].area = aArea;
+                        area += area_ - dat0[ageClass].area;
+                        dat0[ageClass].area = area_;
                         return;
                     }
                     size_t oldSize = dat0.size();
                     dat0.resize(ageClass + 1);
                     initCohortSL0(oldSize, ageClass);
-                    dat0[ageClass].area = aArea;
+                    dat0[ageClass].area = area_;
                     break;
                 }
                 case 1: {
                     if (ageClass < dat.size()) {
-                        area += aArea - dat[ageClass].area;
-                        dat[ageClass].area = aArea;
+                        area += area_ - dat[ageClass].area;
+                        dat[ageClass].area = area_;
                         return;
                     }
                     size_t oldSize = dat.size();
                     dat.resize(ageClass + 1);
                     initCohortSL1(oldSize, ageClass);
-                    dat[ageClass].area = aArea;
+                    dat[ageClass].area = area_;
                     break;
                 }
                 default:
                     ERROR("canopyLayer = {} is not implemented", canopyLayer);
             }
-            area += aArea; // MG: can be a problem here as area must be the same for L0 and L1
+            area += area_; // MG: can be a problem here as area must be the same for L0 and L1
         }
 
         // Set biomass per hectare for a specific ageCLASS for specified canopy layer
@@ -556,8 +559,8 @@ namespace g4m::increment {
         }
 
         // Just set mai but don't influence avgMai
-        void setMai(const double aMai) noexcept {
-            mai = aMai;
+        void setMai(const double mai_) noexcept {
+            mai = mai_;
         }
 
         void setMaiYears(const size_t maiYears) {
@@ -581,9 +584,9 @@ namespace g4m::increment {
             setMinRot();
         }
 
-        void setMaiAndAvgMai(const double aMai) {
-            setMai(aMai);
-            setAvgMai(aMai);
+        void setMaiAndAvgMai(const double mai_) {
+            setMai(mai_);
+            setAvgMai(mai_);
         }
 
         [[nodiscard]] double getMai() const noexcept {
@@ -622,40 +625,40 @@ namespace g4m::increment {
             sdMax = sd;
         }
 
-        void setMinRotRef(int aMinRotRef) noexcept {
+        void setMinRotRef(const int aMinRotRef) noexcept {
             minRotRef = aMinRotRef;
         }
 
-        void setMinRotVal(double aMinRotVal) {
-            minRotVal = aMinRotVal;
+        void setMinRotVal(const double minRotVal_) {
+            minRotVal = minRotVal_;
             setMinRot();
         }
 
-        void setFlexSd(double aFlexSd) noexcept {
-            flexSd = aFlexSd;
+        void setFlexSd(const double flexSd_) noexcept {
+            flexSd = flexSd_;
         }
 
-        void setShareSL(double aslShare) noexcept {
-            slShare = aslShare;
+        void setShareSL(const double slShare_) noexcept {
+            slShare = slShare_;
         }
 
         // Insert in the youngest age class
-        void afforest(const double aArea) noexcept {
-            if (aArea <= 0) {
-                ERROR("aArea <= 0: {}", aArea);
+        void afforest(const double area_) noexcept {
+            if (area_ <= 0) {
+                ERROR("area_ <= 0: {}", area_);
                 return;
             }
-            dat[0].area += aArea;
-            area += aArea;
+            dat[0].area += area_;
+            area += area_;
         }
 
         // Make afforestation in age class 0 and 1
         // MG: correct problem with 0 biomass in 1st age class
         // Proposed by Georg 21 August 2015
         // Make fake afforestation in age class 0; new species are planted in the new forest instead
-        void reforest(const double aArea, bool speciesChange = false) {
-            if (aArea < 0) {
-                ERROR("aArea < 0: {}", aArea);
+        void reforest(const double area_, bool speciesChange = false) {
+            if (area_ < 0) {
+                ERROR("area_ < 0: {}", area_);
                 return;
             }
             if (dat.size() < 2) {
@@ -663,26 +666,26 @@ namespace g4m::increment {
                 dat.resize(2);
                 initCohort(oldSize, 2);
             }
-            if (aArea == 0)
+            if (area_ == 0)
                 return;
             if (speciesChange) {
-                dat[0].area += aArea;
+                dat[0].area += area_;
                 dat[0].bm = 0;
-                area += aArea;
+                area += area_;
                 return;
             }
-            double halfArea = aArea * 0.5;
+            double halfArea = area_ * 0.5;
             dat[0].area += halfArea;
             dat[1].bm = (dat[1].bm * dat[1].area +
                          it->getBmSdTab(0.5 * timeStep, mai, 1) * halfArea) / (dat[1].area + halfArea);
             dat[1].area += halfArea;
-            area += aArea;
+            area += area_;
         }
 
         // MG: Make afforestation in age class 0 and 1 of the 2 canopy layer only
-        void reforestSL(const double aArea) {
-            if (aArea < 0) {
-                ERROR("aArea < 0: {}", aArea);
+        void reforestSL(const double area_) {
+            if (area_ < 0) {
+                ERROR("area_ < 0: {}", area_);
                 return;
             }
             if (dat0.size() < 2) {
@@ -690,38 +693,38 @@ namespace g4m::increment {
                 dat0.resize(2);
                 initCohortSL0(oldSize, 2);
             }
-            if (aArea == 0)
+            if (area_ == 0)
                 return;
-            double halfArea = aArea * 0.5;
+            double halfArea = area_ * 0.5;
             dat0[0].area += halfArea;
             dat0[1].bm = (dat0[1].bm * dat0[1].area + it->getBmSdNat(0.5 * timeStep, (1 - slShare) * mai, 1) * halfArea)
                          / (dat0[1].area + halfArea);
             dat0[1].area += halfArea;
-            area += aArea;
+            area += area_;
         }
 
         // type: 0. Take from all age classes, 1. Take from the eldest age classes
         // area is a non-negative number, return the deforested biomass
-        [[nodiscard]] V deforest(const double aArea, const int type = 0) {
-            if (aArea < 0) {
-                ERROR("aArea < 0: {}", aArea);
+        [[nodiscard]] V deforest(const double area_, const int type = 0) {
+            if (area_ < 0) {
+                ERROR("area_ < 0: {}", area_);
                 return {};
             }
-            return selectiveLogging ? deforestSLTrue(aArea) : deforestSLFalse(aArea, type);
+            return selectiveLogging ? deforestSLTrue(area_) : deforestSLFalse(area_, type);
         }
 
         // calculates damage to biomass of the 1 and 2 (understory) canopy layers when selective logging is done on area "area";
         // Share of damage can be set
-        // aArea - area on which the trees of the 1 canopy layer were logged
-        [[nodiscard]] V damage(double aArea) {
+        // area_ - area on which the trees of the 1 canopy layer were logged
+        [[nodiscard]] V damage(double area_) {
             if (area <= 0)
                 return {};
-            aArea = min(aArea, area);
+            area_ = min(area_, area);
             V ret;
-            ret.area = aArea;
+            ret.area = area_;
             double slDamage0 = 0.2; // damage to trees of the 2 canopy layer (understory) at selective logging
             double slDamage1 = 0.05; // damage to trees of 1 layer canopy layer
-            double mul = 1 - aArea * slDamage1 / area;
+            double mul = 1 - area_ * slDamage1 / area;
             array<double, 2> dbhBm{};  // Key of dbh and biomass
 
             for (size_t i = 0; i < dat.size(); ++i)
@@ -734,7 +737,7 @@ namespace g4m::increment {
                     dbhBm[1] = max(0., dat[i].bm + dbm);
                     double totalWood = dat[i].area * (1 - mul) * dbhBm[1];
                     ret.bm += totalWood;
-                    double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                    double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                     ret.sawnWood += sawnWood;
                     ret.restWood += harvestedWood - sawnWood;
@@ -742,7 +745,7 @@ namespace g4m::increment {
                     dat[i].bm *= mul;
                 }
 
-            mul = 1 - aArea * slDamage0 / area;
+            mul = 1 - area_ * slDamage0 / area;
             double tmp_arg = (1 - slShare) * avgMai;
 
             for (size_t i = 0; i < dat0.size(); ++i)
@@ -755,7 +758,7 @@ namespace g4m::increment {
                     dbhBm[1] = max(0., dat[i].bm + dbm);
                     double totalWood = dat0[i].area * (1 - mul) * dbhBm[1];
                     ret.bm += totalWood;
-                    double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                    double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                     ret.sawnWood += sawnWood;
                     ret.restWood += harvestedWood - sawnWood;
@@ -775,8 +778,8 @@ namespace g4m::increment {
 
         // .first = thinning, .second = harvest
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] pair<V, V> aging(const double aMai) {
-            return aging(aMai, false, false);
+        [[nodiscard]] pair<V, V> aging(const double mai_) {
+            return aging(mai_, false, false);
         }
 
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
@@ -786,12 +789,12 @@ namespace g4m::increment {
         }
 
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] pair<V, V> aging(const double aMai, const bool speciesChange, const bool shelterWood) {
+        [[nodiscard]] pair<V, V> aging(const double mai_, const bool speciesChange, const bool shelterWood) {
             V retThin, retHarvest, retDamage;
             double areaShift = 0;
             gapArea = 0;
             gapArea0 = 0;
-            mai = aMai;
+            mai = mai_;
             qMai.pop_front();
             qMai.push_back(mai);
             calcAvgMai();
@@ -933,39 +936,39 @@ namespace g4m::increment {
         }
 
         // MG: set age structure Area
-        void setAgeStructArea(const span<const double> area_set) noexcept {
-            dat.resize(area_set.size());
-            for (size_t i = 0; i < area_set.size(); ++i)
-                dat[i].area = area_set[i];
+        void setAgeStructArea(const span<const double> area_) noexcept {
+            dat.resize(area_.size());
+            for (size_t i = 0; i < area_.size(); ++i)
+                dat[i].area = area_[i];
         }
 
         // MG: set age structure Bm
-        void setAgeStructBm(const span<const double> bm_set) noexcept {
-            dat.resize(bm_set.size());
-            for (size_t i = 0; i < bm_set.size(); ++i)
-                dat[i].bm = bm_set[i];
+        void setAgeStructBm(const span<const double> bm_) noexcept {
+            dat.resize(bm_.size());
+            for (size_t i = 0; i < bm_.size(); ++i)
+                dat[i].bm = bm_[i];
         }
 
         // MG: set age structure DBH
-        void setAgeStructD(const span<const double> d_set) noexcept {
-            dat.resize(d_set.size());
-            for (size_t i = 0; i < d_set.size(); ++i)
-                dat[i].d = d_set[i];
+        void setAgeStructD(const span<const double> d_) noexcept {
+            dat.resize(d_.size());
+            for (size_t i = 0; i < d_.size(); ++i)
+                dat[i].d = d_[i];
         }
 
         // MG: set age structure Height
-        void setAgeStructH(const span<const double> h_set) noexcept {
-            dat.resize(h_set.size());
-            for (size_t i = 0; i < h_set.size(); ++i)
-                dat[i].h = h_set[i];
+        void setAgeStructH(const span<const double> h_) noexcept {
+            dat.resize(h_.size());
+            for (size_t i = 0; i < h_.size(); ++i)
+                dat[i].h = h_[i];
         }
 
-        void setDbhHarvestSL(const double aDbhHarvestSL = 50) noexcept {
-            dbhHarvestSL = aDbhHarvestSL;
+        void setDbhHarvestSL(const double dbhHarvestSL_ = 50) noexcept {
+            dbhHarvestSL = dbhHarvestSL_;
         }
 
-        void setBmRmSL(const double aBmRmSL = 0.02) noexcept {
-            bmRmSL = aBmRmSL;
+        void setBmRmSL(const double bmRmSL_ = 0.02) noexcept {
+            bmRmSL = bmRmSL_;
         }
 
         // MG: get area of shelters that should be cut in current year and age of which is less than Max biomass
@@ -1114,7 +1117,7 @@ namespace g4m::increment {
                     if (dbhHBm[0] > targetDbh && dbhHBm[1] > targetHeight) {  // given amount of damage
                         double harvestShare = 1;
                         double totalWood = dat[i].area * dbhHBm[2];
-                        double harvestedWood = totalWood * harvestableShare * fc->getHle().ip(dbhHBm[0]);
+                        double harvestedWood = totalWood * harvestableShare * hle->ip(dbhHBm[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhHBm[0]);
                         double hArea = 0;  // clear-cut area in current age class
 
@@ -1185,9 +1188,9 @@ namespace g4m::increment {
         }
 
         // Create copy and set U inline for the sake of encapsulation
-        [[nodiscard]] AgeStruct createSetU(const double aU) const {
+        [[nodiscard]] AgeStruct createSetU(const double u_) const {
             auto cohortTmp = *this;
-            cohortTmp.setU(aU);
+            cohortTmp.setU(u_);
             return cohortTmp;
         }
 
@@ -1227,7 +1230,8 @@ namespace g4m::increment {
     private:
         IncrementTab *it = nullptr;
         IIpol<double> *sws = nullptr;
-        FFIpolsCountry *fc = nullptr;
+        IIpol<double> *hlv = nullptr;
+        IIpol<double> *hle = nullptr;
         IIpolM<double> *cov = nullptr;
         IIpolM<double> *coe = nullptr;
         Decisions *decisions = nullptr;
@@ -1441,7 +1445,7 @@ namespace g4m::increment {
                 area += dat_i.area;
         }
 
-        [[nodiscard]] V finalCut(const double aArea, const double aMinSw, const double aMinRw, const double aMinHarv,
+        [[nodiscard]] V finalCut(const double area_, const double minSw_, const double minRw_, const double minHarv_,
                                  const bool eco, const bool sustainable) {
             V ret;
             ptrdiff_t endYear = eco || sustainable ? static_cast<ptrdiff_t>(minRot / timeStep) : 0;
@@ -1451,9 +1455,9 @@ namespace g4m::increment {
             double fcHTmp = 0;      // height of harvested trees, average weighted by clear-cut area and harvested biomass
             double hWoodArea = 0;   // clear-cut area X harvested biomass
 
-            for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < aArea ||
-                                                                (ret.sawnWood < aMinSw || ret.restWood < aMinRw ||
-                                                                 (ret.sawnWood + ret.restWood) < aMinHarv)); --i)
+            for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < area_ ||
+                                                                (ret.sawnWood < minSw_ || ret.restWood < minRw_ ||
+                                                                 (ret.sawnWood + ret.restWood) < minHarv_)); --i)
                 if (dat[i].area > 0 && dat[i].bm > 0) {
                     double age = static_cast<double>(i) * timeStep;
                     // The Stands get half increment of the next growing period
@@ -1464,10 +1468,10 @@ namespace g4m::increment {
                     dbhBm[0] = max(0., dat[i].d + id);
                     dbhBm[1] = max(0., dat[i].bm + dbm);
                     if (decisions->DOE(dbhBm[0], dbhBm[1]) || !eco) {  // do harvest if it is economic
-                        if (aArea >= 0) { //Given area to harvest
+                        if (area_ >= 0) { //Given area to harvest
                             double totalWood = 0;
                             double hArea = 0;  // clearcut area in current age class
-                            if (ret.area + dat[i].area < aArea) { //Harvest all of this age class
+                            if (ret.area + dat[i].area < area_) { //Harvest all of this age class
                                 totalWood = dat[i].area * dbhBm[1];
                                 ret.area += dat[i].area;
                                 area -= dat[i].area;
@@ -1475,19 +1479,19 @@ namespace g4m::increment {
                                 dat[i].area = 0;
 
                             } else {
-                                double tmp_arg = aArea - ret.area;
+                                double tmp_arg = area_ - ret.area;
                                 totalWood = tmp_arg * dbhBm[1];
                                 area -= tmp_arg;
                                 dat[i].area -= tmp_arg;
                                 hArea = tmp_arg;
-                                ret.area = aArea;
+                                ret.area = area_;
                             }
                             double tmp_arg = totalWood * hArea;
                             fcDBHTmp += dat[i].d * tmp_arg;
                             fcHTmp += dat[i].h * tmp_arg;
                             hWoodArea += tmp_arg;
                             ret.bm += totalWood;
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
                             ret.restWood += harvestedWood - sawnWood;
@@ -1495,7 +1499,7 @@ namespace g4m::increment {
                         } else {  // given amount of harvest
                             double harvestShare = 1;
                             double totalWood = dat[i].area * dbhBm[1];
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             if (ret.sawnWood + sawnWood < minSw || ret.restWood + harvestedWood - sawnWood < minRw ||
                                 ret.sawnWood + ret.restWood + harvestedWood < minHarv) {//Harvest all
@@ -1550,7 +1554,7 @@ namespace g4m::increment {
         }
 
         // MG: Cut only when diameter > doe and Fulfill area
-        [[nodiscard]] V finalCutSL(const double aArea, const double aMinSw, const double aMinRw, const double aMinHarv,
+        [[nodiscard]] V finalCutSL(const double area_, const double minSw_, const double minRw_, const double minHarv_,
                                    const double dbhHarv, double bmRemovedShare,
                                    const bool eco, const bool sustainable) {
             V ret;
@@ -1561,8 +1565,8 @@ namespace g4m::increment {
             double bmBefore = getBmSL(1) * getAreaSL(1);
             double bmRemoved = 0;
             for (size_t i = ssize(dat) - 1;
-                 i >= endYear && (ret.area < aArea || ret.sawnWood < aMinSw || ret.restWood < aMinRw ||
-                                  ret.sawnWood + ret.restWood < aMinHarv ||
+                 i >= endYear && (ret.area < area_ || ret.sawnWood < minSw_ || ret.restWood < minRw_ ||
+                                  ret.sawnWood + ret.restWood < minHarv_ ||
                                   bmRemoved < bmRemovedShare * bmBefore); --i)
                 if (dat[i].area > 0) {
                     double age = static_cast<double>(i) * timeStep;
@@ -1573,19 +1577,19 @@ namespace g4m::increment {
                     dbhBm[0] = max(0., dat[i].d + id);
                     dbhBm[1] = max(0., dat[i].bm + dbm);
                     if (decisions->DOE(dbhBm[0], dbhBm[1]) || !eco) {  // do harvest if it is economic
-                        if (aArea >= 0) {  // Given area to harvest
+                        if (area_ >= 0) {  // Given area to harvest
                             double totalWood = 0;
-                            if (ret.area + dat[i].area < aArea) {  // Harvest all of this age class
+                            if (ret.area + dat[i].area < area_) {  // Harvest all of this age class
                                 totalWood = dat[i].area * dbhBm[1];
                                 ret.area += dat[i].area;
                                 dat[i].area = 0;
                             } else {
-                                totalWood = (aArea - ret.area) * dbhBm[1];
-                                dat[i].area -= aArea - ret.area;
-                                ret.area = aArea;
+                                totalWood = (area_ - ret.area) * dbhBm[1];
+                                dat[i].area -= area_ - ret.area;
+                                ret.area = area_;
                             }
                             ret.bm += totalWood;
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
                             ret.restWood += harvestedWood - sawnWood;
@@ -1593,7 +1597,7 @@ namespace g4m::increment {
                         } else if (minHarv >= 0 || minRw >= 0 || minSw >= 0) {  // given amount of harvest
                             double harvestShare = 1;
                             double totalWood = dat[i].area * dbhBm[1];
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             if (ret.sawnWood + sawnWood < minSw || ret.restWood + harvestedWood - sawnWood < minRw ||
                                 ret.sawnWood + ret.restWood + harvestedWood < minHarv) {  // Harvest all
@@ -1643,7 +1647,7 @@ namespace g4m::increment {
                                 dat[i].area *= 1 - harvestShare;
                             }
 
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
                             ret.restWood += harvestedWood - sawnWood;
@@ -1662,19 +1666,19 @@ namespace g4m::increment {
         }
 
         // Fulfill area
-        [[nodiscard]] V finalCut(const double aArea, const bool eco = true) {
-            return finalCut(aArea, -1, -1, -1, eco, true);
+        [[nodiscard]] V finalCut(const double area_, const bool eco = true) {
+            return finalCut(area_, -1, -1, -1, eco, true);
         }
 
         // Fulfill amount
-        [[nodiscard]] V finalCut(const double aMinSw, const double aMinRw, const double aMinHarv, const bool eco = true,
+        [[nodiscard]] V finalCut(const double minSw_, const double minRw_, const double minHarv_, const bool eco = true,
                                  const bool sustainable = true) {
-            return finalCut(-1, aMinSw, aMinRw, aMinHarv, eco, sustainable);
+            return finalCut(-1, minSw_, minRw_, minHarv_, eco, sustainable);
         }
 
         // MG: Cut only when diameter > doe and Fulfill area
-        [[nodiscard]] V finalCutSL(const double aArea, const bool eco = true) {
-            return finalCutSL(aArea, -1, -1, -1, -1, 1, eco, true);
+        [[nodiscard]] V finalCutSL(const double area_, const bool eco = true) {
+            return finalCutSL(area_, -1, -1, -1, -1, 1, eco, true);
         }
 
         // MG: Cut all trees diameter > doe
@@ -1687,8 +1691,8 @@ namespace g4m::increment {
             return finalCutSL(-1, -1, -1, -1, dbhHarv, bmRemovedShare, false, true);
         }
 
-        [[nodiscard]] V finalCutShelterWood(const double aArea, const double aMinSw, const double aMinRw,
-                                            const double aMinHarv, const bool eco, const bool sustainable) {
+        [[nodiscard]] V finalCutShelterWood(const double area_, const double minSw_, const double minRw_,
+                                            const double minHarv_, const bool eco, const bool sustainable) {
             V ret;
             int timeTo2Cut = 20; // Time, years, after which the shelter will be cut
             // int timeTo2Cut = ceil(0.4 * it->getTOptT(mai, 0)); // Expert suggestion by Fulvio Di Fulvio, 07.08.2019.
@@ -1696,9 +1700,9 @@ namespace g4m::increment {
             double areaShelterCut_total = 0;
             size_t endYear = eco || sustainable ? static_cast<size_t>(minRot / timeStep) : 0;
             array<double, 2> dbhBm{}; // Key to ask if harvest is economic
-            for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < aArea * 0.5 || ret.sawnWood < aMinSw ||
-                                                                ret.restWood < aMinRw ||
-                                                                ret.sawnWood + ret.restWood < aMinHarv); --i)
+            for (ptrdiff_t i = ssize(dat) - 1; i >= endYear && (ret.area < area_ * 0.5 || ret.sawnWood < minSw_ ||
+                                                                ret.restWood < minRw_ ||
+                                                                ret.sawnWood + ret.restWood < minHarv_); --i)
                 if (dat[i].area > 0 && dat[i].bm > 0) {
                     double age = static_cast<double>(i) * timeStep;
                     //The Stands get half increment of the next growing period
@@ -1709,7 +1713,7 @@ namespace g4m::increment {
                     dbhBm[0] = max(0., dat[i].d + id);
                     dbhBm[1] = max(0., dat[i].bm + dbm);
                     if (decisions->DOE(dbhBm[0], dbhBm[1]) || !eco) {  // do harvest if it is economic
-                        if (aArea >= 0) {  // Given area to harvest
+                        if (area_ >= 0) {  // Given area to harvest
                             timeTo2Cut = clamp(timeTo2Cut, 0, static_cast<int>(maxAge - i));
                             double totalWood = 0;
                             double areaShelter = 0;  // Shelter area in current age class
@@ -1732,11 +1736,11 @@ namespace g4m::increment {
                             }
 
                             double area_tmp = 0;
-                            if (ret.area + dat[i].area - areaShelter < aArea) {  // Harvest all of this age class
+                            if (ret.area + dat[i].area - areaShelter < area_) {  // Harvest all of this age class
                                 area_tmp = (dat[i].area - areaShelter) * 0.5;
                                 dat[i].area = area_tmp + areaShelter - areaShelterCut;
                             } else {
-                                area_tmp = (aArea - ret.area * 2) * 0.5;
+                                area_tmp = (area_ - ret.area * 2) * 0.5;
                                 dat[i].area -= area_tmp + areaShelterCut;
                             }
                             totalWood = (area_tmp + areaShelterCut) * dbhBm[1];
@@ -1747,7 +1751,7 @@ namespace g4m::increment {
                             areaShelterCut_total += areaShelterCut;
 
                             ret.bm += totalWood;
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
                             ret.restWood += harvestedWood - sawnWood;
@@ -1755,7 +1759,7 @@ namespace g4m::increment {
                         } else {  // given amount of harvest
                             double harvestShare = 1;
                             double totalWood = dat[i].area * dbhBm[1];
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             if (ret.sawnWood + sawnWood < minSw || ret.restWood + harvestedWood - sawnWood < minRw ||
                                 ret.sawnWood + ret.restWood + harvestedWood < minHarv) {  // Harvest all
@@ -1816,7 +1820,7 @@ namespace g4m::increment {
                             area -= area2Cut;
                             dat[age_idx].area -= area2Cut;
                             ret.bm += totalWood;
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
                             ret.restWood += harvestedWood - sawnWood;
@@ -1837,8 +1841,8 @@ namespace g4m::increment {
             return ret;
         }
 
-        [[nodiscard]] V finalCut(const double aArea, const bool eco, const bool shelterWood) {
-            return shelterWood ? finalCutShelterWood(aArea, -1, -1, -1, eco, true) : finalCut(aArea, eco);
+        [[nodiscard]] V finalCut(const double area_, const bool eco, const bool shelterWood) {
+            return shelterWood ? finalCutShelterWood(area_, -1, -1, -1, eco, true) : finalCut(area_, eco);
         }
 
         [[nodiscard]] V thinAndGrow() {
@@ -1911,7 +1915,7 @@ namespace g4m::increment {
                     double age = static_cast<double>(i) * timeStep;
                     // do thinning if it is economic
                     if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2]) && totalWood > 0) {
-                        double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
+                        double harvestedWood = totalWood * hlv->ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
                         ret.bm += totalWood;
@@ -2028,7 +2032,7 @@ namespace g4m::increment {
                     dbhBmSh[2] = totalWood / dbhBmSh[1];
                     double age = static_cast<double>(i) * timeStep;
                     if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2])) { // do thinning if it is economic
-                        double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
+                        double harvestedWood = totalWood * hlv->ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
                         ret.bm += totalWood;
@@ -2133,7 +2137,7 @@ namespace g4m::increment {
                     dbhBmSh[2] = totalWood / dbhBmSh[1];
                     double age = static_cast<double>(i) * timeStep;
                     if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2])) {  // do thinning if it is economic
-                        double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
+                        double harvestedWood = totalWood * hlv->ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
                         ret.bm += totalWood;
@@ -2191,7 +2195,7 @@ namespace g4m::increment {
                     double tmp_arg_1 = (1 - slShare) * avgMai;
                     double tmp_arg_2 = (1 - slShare) * mai;
                     if (decisions->DOV(dbhBmSh[0], dbhBmSh[1], dbhBmSh[2])) {  // do thinning if it is economic
-                        double harvestedWood = totalWood * fc->getHlv().ip(dbhBmSh[0]);
+                        double harvestedWood = totalWood * hlv->ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat0[i].area;
                         ret.bm += totalWood;
@@ -2322,7 +2326,7 @@ namespace g4m::increment {
                             }
                             double totalWood = dat[i].area * dat[i].bm * (1 - reduce);
                             dat[i].bm *= reduce;
-                            double harvestedWood = totalWood * fc->getHlv().ip(dat[i].d);
+                            double harvestedWood = totalWood * hlv->ip(dat[i].d);
                             double sawnWood = harvestedWood * sws->ip(dat[i].d);
                             ret.area += dat[i].area;
                             ret.bm += totalWood;
@@ -2348,7 +2352,7 @@ namespace g4m::increment {
                     if (dat[i].bm > bmMax) {
                         if (!constSd && thinningWasDone) {
                             double totalWood = dat[i].area * (dat[i].bm - bmMax);
-                            double harvestedWood = totalWood * fc->getHlv().ip(dat[i].d);
+                            double harvestedWood = totalWood * hlv->ip(dat[i].d);
                             double sawnWood = harvestedWood * sws->ip(dat[i].d);
                             ret.bm += totalWood;
                             ret.sawnWood += sawnWood;
@@ -2501,9 +2505,9 @@ namespace g4m::increment {
 
         // MG: shift cohorts of the 2 and 1 canopy layers,
         // populate gapArea in the 1 layer from the 2 layer (if selectiveLogging = TRUE)
-        [[nodiscard]] double cohortShiftSL(const double aGapArea) {
+        [[nodiscard]] double cohortShiftSL(const double gapArea_) {
             double areaShift = 0;
-            double areaDebt = getAreaSL(0) - (getAreaSL(1) + aGapArea);
+            double areaDebt = getAreaSL(0) - (getAreaSL(1) + gapArea_);
             if (dat.size() > slAge) {
                 ptrdiff_t i = ssize(dat) - 2;
                 if (dat[i + 1].area > 0) {
@@ -2530,7 +2534,7 @@ namespace g4m::increment {
                 if (dat0.size() > slAge) {
                     double treeShift = 0;
                     areaDebt = max(0., areaDebt);
-                    for (i = ssize(dat0) - 1; treeShift < aGapArea + areaDebt &&
+                    for (i = ssize(dat0) - 1; treeShift < gapArea_ + areaDebt &&
                                               static_cast<double>(i) * timeStep > static_cast<double>(slAge) &&
                                               i >= 0; --i)
                         if (dat0[i].area > 0 && dat0[i].bm > 0) {
@@ -2538,9 +2542,9 @@ namespace g4m::increment {
                             size_t j = 1;
                             const auto [sd, iGwl, bmT, id] = incStaticSL1(i);
                             double ih = it->getIncHeight(static_cast<double>(j) * timeStep, avgMai);
-                            while (it->getDbhSdNat(static_cast<double>(j), mai, slShare) < dbh0 + 2 * id)
-                                ++j;  // find respective diameter class for the undergrowth
-                            j = min(dat.size() - 1, j);
+                            // find respective diameter class for the undergrowth
+                            for (; it->getDbhSdNat(static_cast<double>(j), mai, slShare) < dbh0 + 2 * id &&
+                                   j < dat.size(); ++j) {}
                             double bm1 = it->getBmSdNat(static_cast<double>(j), mai, slShare);
                             double d1 = it->getDbhSdNat(static_cast<double>(j), mai, slShare);
                             double h1 = it->getHeight(static_cast<double>(j), mai);
@@ -2548,7 +2552,7 @@ namespace g4m::increment {
                             double d0 = min(dat0[i].d + 2 * id, d1);
                             double h0 = min(dat0[i].h + 2 * ih, h1);
 
-                            if (treeShift + dat0[i].area < aGapArea + areaDebt) { // Shift all age class
+                            if (treeShift + dat0[i].area < gapArea_ + areaDebt) { // Shift all age class
                                 dat[j].area += dat0[i].area;
                                 dat[j].bm += bm0 * dat0[i].area;
                                 dat[j].d += d0 * dat0[i].area;
@@ -2556,8 +2560,8 @@ namespace g4m::increment {
                                 treeShift += dat0[i].area;
                                 dat0[i].reset();
                             } else {
-                                double treeShiftShare = (aGapArea + areaDebt - treeShift) / dat0[i].area;
-                                double tmp_arg = aGapArea + areaDebt - treeShift;
+                                double treeShiftShare = (gapArea_ + areaDebt - treeShift) / dat0[i].area;
+                                double tmp_arg = gapArea_ + areaDebt - treeShift;
                                 dat[j].area += tmp_arg;
                                 dat[j].bm += bm0 * tmp_arg;
                                 dat[j].d += d0 * tmp_arg;
@@ -2605,7 +2609,7 @@ namespace g4m::increment {
                     double treeShift = 0;
                     auto slAge_d = static_cast<double>(slAge);
                     for (ptrdiff_t i = ssize(dat0) - 1;
-                         treeShift < aGapArea + areaDebt && static_cast<double>(i) * timeStep > slAge_d && i >= 0; --i)
+                         treeShift < gapArea_ + areaDebt && static_cast<double>(i) * timeStep > slAge_d && i >= 0; --i)
                         if (dat0[i].area > 0 && dat0[i].bm > 0) {
                             const auto [sd, iGwl, bmT, id] = incStaticSL1(i);
                             double ih = it->getIncHeight(slAge_d * timeStep, avgMai);
@@ -2616,7 +2620,7 @@ namespace g4m::increment {
                             double d0 = min(dat0[i].d + 2 * id, d1);
                             double h0 = min(dat0[i].h + 2 * ih, h1);
 
-                            if (treeShift + dat0[i].area < aGapArea + areaDebt) {  // Shift all age class
+                            if (treeShift + dat0[i].area < gapArea_ + areaDebt) {  // Shift all age class
                                 dat[slAge].area += dat0[i].area;
                                 dat[slAge].bm += bm0 * dat0[i].area;
                                 dat[slAge].d += d0 * dat0[i].area;
@@ -2624,8 +2628,8 @@ namespace g4m::increment {
                                 treeShift += dat0[i].area;
                                 dat0[i].reset();
                             } else {
-                                double treeShiftShare = (aGapArea + areaDebt - treeShift) / dat0[i].area;
-                                double tmp_arg = aGapArea + areaDebt - treeShift;
+                                double treeShiftShare = (gapArea_ + areaDebt - treeShift) / dat0[i].area;
+                                double tmp_arg = gapArea_ + areaDebt - treeShift;
                                 dat[slAge].area += tmp_arg;
                                 dat[slAge].bm += bm0 * tmp_arg;
                                 dat[slAge].d += d0 * tmp_arg;
@@ -2683,7 +2687,7 @@ namespace g4m::increment {
             return areaShift;
         }
 
-        void createNormalForestSLTrue(double rotationPeriod, double aArea, double sd) {
+        void createNormalForestSLTrue(double rotationPeriod, double area_, double sd) {
             //slAge = 20; // should be defined as optimal increment age (e.g. jumpAge = it->getTOpt((1-slShare)*mai,0);)
             //slShare = 0.2;
             sd = abs(sd);
@@ -2693,25 +2697,25 @@ namespace g4m::increment {
             setAgeSL();
             setDbhHarvestSL();
             setBmRmSL();
-            areaSL1 = aArea;
-            aArea = max(0., aArea);
-            area = aArea;
+            areaSL1 = area_;
+            area_ = max(0., area_);
+            area = area_;
             rotationPeriod = clamp(rotationPeriod, 1., it->getTMax() - 1);
             size_t ageClassesL0 = ceil(0.5 + rotationPeriod / timeStep);
             dat0.resize(max(dat0.size(), ageClassesL0));
             maxNumberOfAgeClasses = max(maxNumberOfAgeClasses, ageClassesL0);
-            double aArea1 = aArea;
-            aArea /= rotationPeriod;
+            double area_1 = area_;
+            area_ /= rotationPeriod;
             double maxRotationL1 = it->getTOptSdNat(mai, slShare * sd, ORT::MaxBm); // maximum average biomass
             double rotationPeriodL1 = min(rotationPeriod, maxRotationL1);
             size_t ageClassesL1 = ceil(rotationPeriodL1 / timeStep);
             dat.resize(max(dat.size(), ageClassesL1));
 
             auto slAge_d = static_cast<double>(slAge);
-            double aAreaL1 = aArea1 / (rotationPeriodL1 - slAge_d);
+            double area_L1 = area_1 / (rotationPeriodL1 - slAge_d);
             Cohort tmp, tmp0;
-            tmp.area = aAreaL1 * timeStep;
-            tmp0.area = aArea * timeStep;
+            tmp.area = area_L1 * timeStep;
+            tmp0.area = area_ * timeStep;
             for (size_t i = 0; i < ageClassesL0; ++i) {
                 double age = static_cast<double>(i) * timeStep;
                 double tmp_arg = (1 - slShare) * avgMai;
@@ -2728,7 +2732,7 @@ namespace g4m::increment {
                     tmp.bm = it->getBmSdNat(age, avgMai, tmp_arg);
                     tmp.d = it->getDbhSdNat(age, avgMai, tmp_arg);
                     tmp.h = it->getHeight(age, avgMai);
-                    tmp.area = aAreaL1 * timeStep;
+                    tmp.area = area_L1 * timeStep;
                 } else
                     tmp.reset();
                 dat[i] = tmp;
@@ -2742,7 +2746,7 @@ namespace g4m::increment {
             double shareL1 = 0.5 + tmp_arg - lround(tmp_arg);
 
             if (shareL0 > 0)
-                dat0[ageClassesL0 - 1].area = aArea * timeStep * shareL0;
+                dat0[ageClassesL0 - 1].area = area_ * timeStep * shareL0;
             for (auto &dat0_i: dat)
                 dat0_i.area = 0;
             for (auto &dat_i: dat)
@@ -2751,16 +2755,16 @@ namespace g4m::increment {
             setShareSL(max(0., getAreaSL(1) / getAreaSL(0) * sd));
         }
 
-        void createNormalForestSLFalse(double rotationPeriod, double aArea, double sd) {
-            aArea = max(0., aArea);
-            area = aArea;
+        void createNormalForestSLFalse(double rotationPeriod, double area_, double sd) {
+            area_ = max(0., area_);
+            area = area_;
             rotationPeriod = clamp(rotationPeriod, 1., it->getTMax() - 1);
             size_t ageClasses = ceil(0.5 + rotationPeriod / timeStep);
             dat.resize(max(dat.size(), ageClasses));
             maxNumberOfAgeClasses = max(maxNumberOfAgeClasses, ageClasses);
-            aArea /= rotationPeriod;
+            area_ /= rotationPeriod;
             Cohort tmp;
-            tmp.area = aArea * timeStep;
+            tmp.area = area_ * timeStep;
 
             for (size_t i = 0; i < ageClasses; ++i) {
                 double age = static_cast<double>(i) * timeStep;
@@ -2788,19 +2792,19 @@ namespace g4m::increment {
             double tmp_arg = rotationPeriod / timeStep;
             double share = 0.5 + tmp_arg - lround(tmp_arg);
             if (share > 0)
-                dat[ageClasses - 1].area = aArea * timeStep * share;
+                dat[ageClasses - 1].area = area_ * timeStep * share;
             for (auto &dat_i: dat)
                 dat_i.area = 0;
         }
 
         // area is a non-negative number, return the deforested biomass
-        V deforestSLTrue(double aArea) {
+        V deforestSLTrue(double area_) {
             if (area <= 0)
                 return {};
-            aArea = min(aArea, area);
+            area_ = min(area_, area);
             V ret;
-            ret.area = aArea;
-            double mul = 1 - aArea / area;
+            ret.area = area_;
+            double mul = 1 - area_ / area;
             array<double, 2> dbhBm{}; // Key of dbh and biomass
 
             for (size_t i = 0; i < dat.size(); ++i)
@@ -2813,7 +2817,7 @@ namespace g4m::increment {
                     dbhBm[1] = max(0., dat[i].bm + dbm);
                     double totalWood = dat[i].area * (1 - mul) * dbhBm[1];
                     ret.bm += totalWood;
-                    double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                    double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                     ret.sawnWood += sawnWood;
                     ret.restWood += harvestedWood - sawnWood;
@@ -2834,7 +2838,7 @@ namespace g4m::increment {
                     dbhBm[1] = max(0., dat0[i].bm + dbm);
                     double totalWood = dat0[i].area * (1 - mul) * dbhBm[1];
                     ret.bm += totalWood;
-                    double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                    double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                     ret.sawnWood += sawnWood;
                     ret.restWood += harvestedWood - sawnWood;
@@ -2853,17 +2857,17 @@ namespace g4m::increment {
 
         // type: 0. Take from all age classes, 1. Take from the eldest age classes
         // area is a non-negative number, return the deforested biomass
-        V deforestSLFalse(double aArea, const int type) {
+        V deforestSLFalse(double area_, const int type) {
             if (area <= 0)
                 return {};
 
             switch (type) {
                 case 0: { // Clearcut FM
                     // Take from all age classes
-                    aArea = min(aArea, area);
+                    area_ = min(area_, area);
                     V ret;
-                    ret.area = aArea;
-                    double mul = 1 - aArea / area;
+                    ret.area = area_;
+                    double mul = 1 - area_ / area;
                     array<double, 2> dbhBm{};  // Key of dbh and biomass
 
                     for (size_t i = 0; i < dat.size(); ++i)
@@ -2876,7 +2880,7 @@ namespace g4m::increment {
                             dbhBm[1] = max(0., dat[i].bm + dbm);
                             double totalWood = dat[i].area * (1 - mul) * dbhBm[1];
                             ret.bm += totalWood;
-                            double harvestedWood = totalWood * fc->getHle().ip(dbhBm[0]);
+                            double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
                             ret.restWood += harvestedWood - sawnWood;
@@ -2894,7 +2898,7 @@ namespace g4m::increment {
                     return ret;
                 }
                 case 1:  // Take from the old age classes
-                    return finalCut(aArea, false);
+                    return finalCut(area_, false);
                 default:
                     ERROR("type = {} is not implemented", type);
                     return {};

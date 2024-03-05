@@ -123,7 +123,7 @@ namespace g4m::increment {
         [[nodiscard]] double getImul(const double bg, const double t) const noexcept {
             if (bg <= 0)
                 return 0;
-            if (bg >= 1 && t <= 0)
+            if (bg >= 1 || t <= 0)
                 return 1;
 
             const auto &c = coef.imul;

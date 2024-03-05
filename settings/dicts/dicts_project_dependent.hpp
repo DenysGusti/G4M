@@ -184,7 +184,7 @@ namespace g4m::Dicts {
         //    fun_countriesList.insert(16);         // Australia
 
         fun_countriesList.insert(17);               // Austria
-
+/*
         //    fun_countriesList.insert(18);
         //    fun_countriesList.insert(19);
         fun_countriesList.insert(20);               // Belgium
@@ -369,7 +369,7 @@ namespace g4m::Dicts {
         //    fun_countriesList.insert(239);
         //    fun_countriesList.insert(240);
         //    fun_countriesList.insert(241);
-
+*/
         return fun_countriesList;
     }
 

@@ -17,31 +17,31 @@ namespace g4m::Arrays {
     consteval array<double, numberOfCountries> initCountryLosses() noexcept {
         array<double, numberOfCountries> countryLosses{};
         countryLosses.fill(0.15);
-        countryLosses[16] = 0.13;   // Austria
-        countryLosses[19] = 0.05;   // 0.15; Belgium
-        countryLosses[23] = 0.16;   // 0.32; Bulgaria
-        countryLosses[40] = 0.14;
-        countryLosses[56] = 0.09;   // 0.2; Czech
-        countryLosses[57] = 0.2;
-        countryLosses[67] = 0.04;   // 0.15	;  // Spain
-        countryLosses[68] = 0.1;    // 0.15	;  // Estonia
-        countryLosses[70] = 0.09;
-        countryLosses[73] = 0.05;   // 0.21	; France
-        countryLosses[77] = 0.14;
-        countryLosses[96] = 0.07;
-        countryLosses[98] = 0.12;
-        countryLosses[102] = 0.06;  // 0.15	; Ireland 10.02.2023 national value
-        countryLosses[107] = 0.04;
-        countryLosses[129] = 0.11;  // 0.17; Latvia
-        countryLosses[160] = 0.14;  // 0.15; Netherlands
-        countryLosses[161] = 0.13;  // 0.06;  // Norway // according to MCPFE2015 data in 2010 (removals / fellings)
-        countryLosses[173] = 0.12;  // 0.17; Poland
-        countryLosses[176] = 0.02;
-        countryLosses[182] = 0.02;  // 0.12;	// 0.15; Romania
-        countryLosses[201] = 0.03;  // 0.14;	// 0.24; Slovakia
-        countryLosses[203] = 0.07;  // Sweden
-        countryLosses[218] = 0.07;
-        countryLosses[226] = 0.14;
+        countryLosses[17] = 0.13;   // Austria
+        countryLosses[20] = 0.05;   // 0.15; Belgium
+        countryLosses[24] = 0.16;   // 0.32; Bulgaria
+        countryLosses[41] = 0.14;
+        countryLosses[57] = 0.09;   // 0.2; Czech
+        countryLosses[58] = 0.2;
+        countryLosses[68] = 0.04;   // 0.15	;  // Spain
+        countryLosses[69] = 0.1;    // 0.15	;  // Estonia
+        countryLosses[71] = 0.09;
+        countryLosses[74] = 0.05;   // 0.21	; France
+        countryLosses[78] = 0.14;
+        countryLosses[97] = 0.07;
+        countryLosses[99] = 0.12;
+        countryLosses[103] = 0.06;  // 0.15	; Ireland 10.02.2023 national value
+        countryLosses[108] = 0.04;
+        countryLosses[130] = 0.11;  // 0.17; Latvia
+        countryLosses[161] = 0.14;  // 0.15; Netherlands
+        countryLosses[162] = 0.13;  // 0.06;  // Norway // according to MCPFE2015 data in 2010 (removals / fellings)
+        countryLosses[174] = 0.12;  // 0.17; Poland
+        countryLosses[177] = 0.02;
+        countryLosses[183] = 0.02;  // 0.12;	// 0.15; Romania
+        countryLosses[202] = 0.03;  // 0.14;	// 0.24; Slovakia
+        countryLosses[204] = 0.07;  // Sweden
+        countryLosses[219] = 0.07;
+        countryLosses[227] = 0.14;
         return countryLosses;
     }
 
@@ -88,32 +88,32 @@ namespace g4m::Arrays {
     consteval array<double, numberOfCountries> initCountryLossesD() noexcept {
         array<double, numberOfCountries> countryLossesD{};
         countryLossesD.fill(9);
-        countryLossesD[16] = 14;    //13;	//12;	//11;	//9;//Austria
-        countryLossesD[19] = 4;    //7; //Belgium
-        countryLossesD[23] = 8;    //7;	//6;	//5;	//4;	//2;	//4;	//7; //Bulgaria
-        countryLossesD[96] = 6.2;    //6;	//5;	//4; //Croatia
-        countryLossesD[56] = 13;    //12;	//11;	//10;	//9;	//7;	//9;	//16; //Czech
-        countryLossesD[60] = 6; //Denmark
-        countryLossesD[68] = 12; //Estonia
-        countryLossesD[70] = 1.5;    //1.3;	//1.2;	//1.1;	//1; //Finland
-        countryLossesD[73] = 4;    //3;	//4;	//9;	//13; //France
-        countryLossesD[57] = 15;    //14;	//13;	//11; //Germany
-        countryLossesD[86] = 2;    //3; //Greece
-        countryLossesD[98] = 7;    //6;	//5;	//4;	//5;	//6; //Hungary
-        countryLossesD[102] = 4;    //6; //Ireland
-        countryLossesD[107] = 1;    //2;	//4; //Italy
-        countryLossesD[129] = 9;    //7; //Latvia
-        countryLossesD[127] = 12;    //11;	//10;	//9; //Lithuania
-        countryLossesD[160] = 12;    //11;	//9;	//8;	//7;	//5;	//7; //Netherlands
-        countryLossesD[161] = 1; //Norway
-        countryLossesD[173] = 13;    //12;	//11;	//10;	//9;	//11;	//12; //Poland
-        countryLossesD[176] = 3;    //2; //Portugal
-        countryLossesD[182] = 1.3;    //1.5;	//2; //Romania
-        countryLossesD[201] = 1.5;    //2;	//3;	//5;	//7;	//13; //Slovakia
-        countryLossesD[202] = 2.3;    //2; //Slovenia
-        countryLossesD[67] = 0.5;    //0.8;	//1;	//1.5; //2//Spain
-        countryLossesD[203] = 1;    //1.5;	//2; //Sweden
-        countryLossesD[77] = 5;    //7; //UK
+        countryLossesD[17] = 14;    //13;	//12;	//11;	//9;//Austria
+        countryLossesD[20] = 4;    //7; //Belgium
+        countryLossesD[24] = 8;    //7;	//6;	//5;	//4;	//2;	//4;	//7; //Bulgaria
+        countryLossesD[97] = 6.2;    //6;	//5;	//4; //Croatia
+        countryLossesD[57] = 13;    //12;	//11;	//10;	//9;	//7;	//9;	//16; //Czech
+        countryLossesD[61] = 6; //Denmark
+        countryLossesD[69] = 12; //Estonia
+        countryLossesD[71] = 1.5;    //1.3;	//1.2;	//1.1;	//1; //Finland
+        countryLossesD[74] = 4;    //3;	//4;	//9;	//13; //France
+        countryLossesD[58] = 15;    //14;	//13;	//11; //Germany
+        countryLossesD[87] = 2;    //3; //Greece
+        countryLossesD[99] = 7;    //6;	//5;	//4;	//5;	//6; //Hungary
+        countryLossesD[103] = 4;    //6; //Ireland
+        countryLossesD[108] = 1;    //2;	//4; //Italy
+        countryLossesD[128] = 12;    //11;	//10;	//9; //Lithuania
+        countryLossesD[130] = 9;    //7; //Latvia
+        countryLossesD[161] = 12;    //11;	//9;	//8;	//7;	//5;	//7; //Netherlands
+        countryLossesD[162] = 1; //Norway
+        countryLossesD[174] = 13;    //12;	//11;	//10;	//9;	//11;	//12; //Poland
+        countryLossesD[177] = 3;    //2; //Portugal
+        countryLossesD[183] = 1.3;    //1.5;	//2; //Romania
+        countryLossesD[202] = 1.5;    //2;	//3;	//5;	//7;	//13; //Slovakia
+        countryLossesD[203] = 2.3;    //2; //Slovenia
+        countryLossesD[68] = 0.5;    //0.8;	//1;	//1.5; //2//Spain
+        countryLossesD[204] = 1;    //1.5;	//2; //Sweden
+        countryLossesD[78] = 5;    //7; //UK
         return countryLossesD;
     }
 

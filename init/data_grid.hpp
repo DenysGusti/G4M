@@ -41,11 +41,6 @@ namespace g4m::init {
             gridCountries.assign(bottomRight.x - topLeft.x, vector<uint8_t>(bottomRight.y - topLeft.y, 0));
         }
 
-        void fillFromNUTS(const map<pair<uint32_t, uint32_t>, string> &NUTS2_dict) requires is_same_v<T, string> {
-            for (const auto &[coords, NUTS2]: NUTS2_dict)
-                grid[0][coords.first - topLeft.x][coords.second - topLeft.y] = NUTS2;
-        }
-
         //  https://en.cppreference.com/w/cpp/compiler_support/23
         //  wait for P2128R6 in MSVC, update to C++23 and change () to []
         T &operator()(const size_t x, const size_t y, const size_t year = 0) {

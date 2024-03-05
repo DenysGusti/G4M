@@ -20,15 +20,15 @@ namespace g4m::StartData {
 
         future<void> NUTS2_future = async(launch::async, [] {
             Log::Init("NUTS2");
-            nuts2id = readNUTS2();
+            nuts2.readNUTS2();
         });
 
         future<void> plots_future = async(launch::async, [] {
             Log::Init("plots");
-            rawPlots = readPlots();
-            commonPlots = filterPlots(rawPlots);
-            plotsSimuID = initPlotsSimuID(rawPlots);
-            plotsXY_SimuID = initPlotsXY_SimuID(rawPlots);
+            plots.readPlots();
+            plots.filterPlots();
+            plots.initPlotsSimuID();
+            plots.initPlotsSimuID();
         });
 
         coef_future.get();
@@ -51,9 +51,7 @@ namespace g4m::StartData {
         future<void> MAI_future = async(launch::async, [] {
             if (!debugWithoutBigFiles) {
                 Log::Init("MAI");
-                correctMAI(commonPlots);
-                MAI_CountryUprotect = calculateAverageMAI(commonPlots);
-                simuIdScenarios.readMAIClimate(plotsXY_SimuID);
+                simuIdScenarios.readMAIClimate(plots.plotsXY_SimuID);
                 if (!scaleMAIClimate)
                     simuIdScenarios.scaleMAIClimate2020();
                 else
@@ -64,8 +62,8 @@ namespace g4m::StartData {
         future<void> globiom_land_future = async(launch::async, [] {
             if (!debugWithoutBigFiles) {
                 Log::Init("globiom_land");
-                simuIdScenarios.readGlobiomLandCalibrate(plotsSimuID);
-                simuIdScenarios.readGlobiomLand(plotsSimuID);
+                simuIdScenarios.readGlobiomLandCalibrate(plots.plotsSimuID);
+                simuIdScenarios.readGlobiomLand(plots.plotsSimuID);
             }
         });
 
@@ -80,7 +78,7 @@ namespace g4m::StartData {
         future<void> disturbances_future = async(launch::async, [] {
             if (!debugWithoutBigFiles) {
                 Log::Init("disturbances");
-                simuIdScenarios.readDisturbances(plotsXY_SimuID);
+                simuIdScenarios.readDisturbances(plots.plotsXY_SimuID);
                 simuIdScenarios.add2020Disturbances();
                 if (scaleDisturbance2020)
                     simuIdScenarios.scaleDisturbances2020();
@@ -92,15 +90,14 @@ namespace g4m::StartData {
         future<void> disturbances_extreme_future = async(launch::async, [] {
             if (!debugWithoutBigFiles) {
                 Log::Init("disturbances_extreme");
-                simuIdScenarios.readDisturbancesExtreme(plotsXY_SimuID);
+                simuIdScenarios.readDisturbancesExtreme(plots.plotsXY_SimuID);
             }
         });
 
         future<void> biomass_bau_future = async(launch::async, [] {
             Log::Init("biomass_bau");
             if (fmPol && binFilesOnDisk) {
-                const auto &[scenario, bau_vec] = findAndReadBau("biomass_bau");
-                biomassBauScenarios[scenario] = bau_vec;
+                bauScenarios.readBiomassBau();
             } else
                 INFO("biomass_bau reading is turned off");
         });
@@ -108,20 +105,27 @@ namespace g4m::StartData {
         future<void> NPV_bau_future = async(launch::async, [] {
             Log::Init("NPV_bau");
             if (fmPol && binFilesOnDisk) {
-                const auto &[scenario, bau_vec] = findAndReadBau("NPVbau");
-                NPVBauScenarios[scenario] = bau_vec;
+                bauScenarios.readNPVBau();
             } else
                 INFO("NPV_bau reading is turned off");
         });
 
+        future<void> age_struct_data_future = async(launch::async, [] {
+            Log::Init("age_struct_data");
+            asd.readAgeStructData();
+            asd.normalizeAgeStructData();
+        });
+
+        plots.correctMAI();
+        MAI_CountryUprotect = plots.calculateAverageMAI();
 //        countriesWoodProdStat = setCountriesWoodProdStat();
         countriesFmEmission_unfccc = setCountriesFmEmission_unfccc();
         calcAvgFM_sink_stat();
-        setupFMP();
-        nuts2grid.fillFromNUTS(nuts2id);
-        correctNUTS2Data(commonPlots);
-        countriesFFIpols = initCountriesFFIpols(commonPlots);
-        setAsIds(commonPlots);
+        fmp.initCountriesHLVE(plots.filteredPlots);
+        fmp.setupFMP();
+        nuts2.fillFromNUTS();
+        nuts2.correctNUTS2Data(plots.filteredPlots);
+        plots.setAsIds();
 
         CO2_price_future.get();
         globiom_land_country_future.get();
@@ -132,13 +136,19 @@ namespace g4m::StartData {
         MAI_future.get();
         biomass_bau_future.get();
         NPV_bau_future.get();
+        age_struct_data_future.get();
 
         // start calculations
         initGlobiomLandAndManagedForest();
         initLoop();
         initZeroProdArea();
 
-//        printData();
+//        plots.printPlots();
+//        nuts2.printNuts2Id();
+//        datamapScenarios.printData();
+//        simuIdScenarios.printData();
+//        for (const auto &[i, area]: countryLandArea | rv::enumerate)
+//            TRACE("{} area = {}", idCountryGLOBIOM.at(i), area);
     }
 }
 

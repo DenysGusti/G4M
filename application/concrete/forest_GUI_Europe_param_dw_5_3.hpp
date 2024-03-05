@@ -107,13 +107,13 @@ namespace g4m::application::concrete {
         array<string, 3> c_scenario = {args[1], args[2], args[3]};
         int inputPriceC = stoi(args[4]);
         string full_scenario = c_scenario[0] + '_' + c_scenario[1] + '_' + c_scenario[2];
-        string local_suffix = string{suffix} + full_scenario + (inputPriceC == 0 ? "_Pco2_0" : "");
+        string local_suffix = suffix + full_scenario + (inputPriceC == 0 ? "_Pco2_0" : "");
         string suffix0 = c_scenario[0] + '_' + c_scenario[1];
 
         // Apply the MAI climate shifters starting from MAIClimateShiftYear
         bool MAIClimateShift = c_scenario[1].contains("RCP");
 
-        vector<DataStruct> appPlots = commonPlots;
+        vector<DataStruct> appPlots = plots.filteredPlots;
 
         Datamaps dms;
         SimuIds sis;
@@ -1019,11 +1019,16 @@ namespace g4m::application::concrete {
                 throw runtime_error{"harvDiff.size() is wrong!"};
             }
             TRACE("Wood Harvest Post Control:");
+
+            constexpr int width = 15;
+            constexpr int precision = 6;
+
+            // https://docs.python.org/3/library/string.html
             for (const auto i: countriesList) {
-                TRACE("i = {}\t\tharvDiff = {}\t\twoodDemand = {}\t\twoodHarvestTotal = {}\t\tUN = {}\t\tO10 = {}\t\tO30 = {}\t\tsalvageLogging = {}",
-                      i, harvDiff[i], dms.woodDemand.at(i)(year), woodHarvestDetailed[0][i],
-                      woodHarvestDetailed[1][i], woodHarvestDetailed[2][i], woodHarvestDetailed[3][i],
-                      woodHarvestDetailed[4][i]);
+                TRACE("i = {0:3}\tharvDiff = {1:{8}.{9}f}\twoodDemand = {2:{8}.{9}f}\twoodHarvestTotal = {3:{8}.{9}f}\tUN = {4:{8}.{9}f}\tO10 = {5:{8}.{9}f}\tO30 = {6:{8}.{9}f}\tsalvageLogging = {7:{8}.{9}f}",
+                      i, harvDiff[i], dms.woodDemand.at(i)(year),
+                      woodHarvestDetailed[0][i], woodHarvestDetailed[1][i], woodHarvestDetailed[2][i],
+                      woodHarvestDetailed[3][i], woodHarvestDetailed[4][i], width, precision);
 //                TRACE("harvestCalcPrev = {}\t\tprevUN = {}\t\tprevO10 = {}\t\tprevO30 = {}",
 //                      countriesWoodHarvestM3Year.getVal(i, year - 1), countriesWoodHarvestUNM3Year.getVal(i, year - 1),
 //                      countriesWoodHarvest10M3Year.getVal(i, year - 1),
@@ -1235,7 +1240,7 @@ namespace g4m::application::concrete {
             double harvestedArea = 0;
 
             double npvSum = 0;
-            size_t n = biomassBauScenarios.at(suffix0).size();
+            size_t n = bauScenarios.biomassBauScenarios.at(suffix0).size();
             auto maxYear = min(static_cast<uint16_t>(refYear + n * modTimeStep), coef.eYear);
             for (int j = 0; year + j + modTimeStep <= maxYear; j += modTimeStep) {
                 auto resTmp = cohortTmp.aging();
@@ -1294,9 +1299,12 @@ namespace g4m::application::concrete {
             }
 
             // extension to total biomass
-            double CBenefit = fdcFlag ? 1.2 * dms.CO2Price.at(plot.country)(year) *
-                                        (biomassCur - biomassBauScenarios.at(suffix0)[
-                                                (year - refYear) / modTimeStep - 1][plot.asID]) : 0;
+            double CBenefit = 0;
+            if (fdcFlag) {
+                size_t idx = (year - refYear) / modTimeStep - 1;
+                double biomassBau = bauScenarios.biomassBauScenarios.at(suffix0)[idx][plot.asID];
+                CBenefit = 1.2 * dms.CO2Price.at(plot.country)(year) * (biomassCur - biomassBau);
+            }
 
             //MG: Value of Forestry during one rotation External // Changed to 1 year!!!!
             return (priceWExt - priceHarvest) * harvestedW - plantingCosts + CBenefit;

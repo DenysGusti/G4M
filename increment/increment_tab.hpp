@@ -21,11 +21,11 @@ namespace g4m::increment {
         IncrementTab() = default;
 
         IncrementTab
-                (const span<const double> a, const double aMaiMax, const double aMaiStep, const double atMax,
-                 const double atStep, const double asdNatStep, const double asdTabMax,
-                 const double asdTabStep, const double aTimeframe = -1)
-                : ic{a, 1}, maiHi{max(0., aMaiMax)}, maiStep{aMaiStep}, tHi{max(0., atMax)}, tStep{atStep},
-                  sdNatStep{asdNatStep}, sdTabHi{asdTabMax}, sdTabStep{asdTabStep}, timeframe{aTimeframe} {
+                (const span<const double> a, const double maiMax_, const double aMaiStep, const double atMax,
+                 const double tStep_, const double sdNatStep_, const double sdTabMax_,
+                 const double sdTabStep_, const double timeframe_ = -1)
+                : ic{a, 1}, maiHi{max(0., maiMax_)}, maiStep{aMaiStep}, tHi{max(0., atMax)}, tStep{tStep_},
+                  sdNatStep{sdNatStep_}, sdTabHi{sdTabMax_}, sdTabStep{sdTabStep_}, timeframe{timeframe_} {
             if (tStep <= 0. && tHi > 0)
                 tStep = tHi / 100;
 
@@ -44,31 +44,32 @@ namespace g4m::increment {
             if (sdTabHi > 0 && sdTabStep > 0)
                 nsdTab = 1 + static_cast<size_t>(ceil(sdTabHi / sdTabStep));
 
-            abm.assign(nt * nmai, 0);
-            abmT.assign(nt * nmai, 0);
-            abmSdTab.assign(nt * nmai * nsdTab, 0);  // sd below 1 is not used
-            bm.assign(nt * nmai, 0);
-            bmT.assign(nt * nmai, 0);
-            gwl.assign(nt * nmai, 0);
-            gwlT.assign(nt * nmai, 0);
-            gwlSdNat.assign(nt * nmai * nsdNat, 0);
-            gwlSdTab.assign(nt * nmai * nsdTab, 0);
-            dbh.assign(nt * nmai, 0);
-            dbhT.assign(nt * nmai, 0);
-            height.assign(nt * nmai, 0);
-            sdNat.assign(nt * nmai, 0);
-            incGwl.assign(nt * nmai, 0);  // The inc arrays could be in size (nt - 1)
-            incGwlT.assign(nt * nmai, 0);
-            incBm.assign(nt * nmai, 0);
-            incBmT.assign(nt * nmai, 0);
-            incDbh.assign(nt * nmai, 0);
-            incDbhT.assign(nt * nmai, 0);
-            incHeight.assign(nt * nmai, 0);
-            incGwlSdNat.assign(nt * nmai * nsdNat, 0);
-            incDbhSdNat.assign(nt * nmai * nsdNat, 0);
-            incGwlSdTab.assign(nt * nmai * nsdTab, 0);
-            incDbhSdTab.assign(nt * nmai * nsdTab, 0);
-            dbhSdTab.assign(nt * nmai * nsdTab, 0);
+            size_t table_size = nt * nmai;
+            abm.assign(table_size, 0);
+            abmT.assign(table_size, 0);
+            abmSdTab.assign(table_size * nsdTab, 0);  // sd below 1 is not used
+            bm.assign(table_size, 0);
+            bmT.assign(table_size, 0);
+            gwl.assign(table_size, 0);
+            gwlT.assign(table_size, 0);
+            gwlSdNat.assign(table_size * nsdNat, 0);
+            gwlSdTab.assign(table_size * nsdTab, 0);
+            dbh.assign(table_size, 0);
+            dbhT.assign(table_size, 0);
+            height.assign(table_size, 0);
+            sdNat.assign(table_size, 0);
+            incGwl.assign(table_size, 0);  // The inc arrays could be in size (nt - 1)
+            incGwlT.assign(table_size, 0);
+            incBm.assign(table_size, 0);
+            incBmT.assign(table_size, 0);
+            incDbh.assign(table_size, 0);
+            incDbhT.assign(table_size, 0);
+            incHeight.assign(table_size, 0);
+            incGwlSdNat.assign(table_size * nsdNat, 0);
+            incDbhSdNat.assign(table_size * nsdNat, 0);
+            incGwlSdTab.assign(table_size * nsdTab, 0);
+            incDbhSdTab.assign(table_size * nsdTab, 0);
+            dbhSdTab.assign(table_size * nsdTab, 0);
             optTime.assign(nmai, {});
             optTimeT.assign(nmai, {});
             optTimeSdNat.assign(nmai * nsdNat, {});
@@ -522,9 +523,9 @@ namespace g4m::increment {
             int ul = tab[mail][type];
             int uh = tab[maih][type];
 
-            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+            double t_mai = mail == maih ? 0 : (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
 
-            return mail == maih ? ul : lerp(ul, uh, t_mai);
+            return lerp(ul, uh, t_mai);
         }
 
         // Interpolate rotation time between mai and stocking degree (sdNat: True..sdNat, false..sdTab)
@@ -559,17 +560,10 @@ namespace g4m::increment {
             int mlsh = tab[mail + sdh * nmai][type];
             int mlsl = tab[mail + sdl * nmai][type];
             //	MG: hot fix check
-            if (mail == maih)
-                return mlsl;
-
-            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+            double t_mai = mail == maih ? 0 : (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
             double t0 = lerp(mlsl, mhsl, t_mai);
-
-            if (sdl == sdh)
-                return t0;
-
             double t1 = lerp(mlsh, mhsh, t_mai);
-            double t_sd = (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl);
+            double t_sd = sdl == sdh ? 0 : (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl);
 
             return lerp(t0, t1, t_sd);
         }
@@ -586,21 +580,14 @@ namespace g4m::increment {
             double tmp1 = tab[ul + mail * nt];  // MG
             double tmp2 = tab[uh + mail * nt];  // MG
             double tmp3 = tab[ul + maih * nt];  // MG
-
             double tmp4 = tab[uh + maih * nt];  // MG
 
-            if (ul == uh)
-                return tmp1;
-
-            double t_u = (u - static_cast<double>(ul)) / static_cast<double>(uh - ul);
+            double t_u = ul == uh ? 0 : (u - static_cast<double>(ul)) / static_cast<double>(uh - ul);
             double t1 = lerp(tmp1, tmp2, t_u);
 
-            if (mail == maih)
-                return t1;
+            double t2 = mail == maih ? t1 : lerp(tmp3, tmp4, t_u);
 
-            double t2 = lerp(tmp3, tmp4, t_u);
-
-            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+            double t_mai = mail == maih ? 0 : (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
             return lerp(t1, t2, t_mai);
         }
 
@@ -631,22 +618,13 @@ namespace g4m::increment {
             double tmp3 = tab[ul + maih * nt + sdl * nt * nmai];  // MG
             double tmp4 = tab[uh + maih * nt + sdl * nt * nmai];  // MG
 
-            if (ul == uh)
-                return tmp1;
-
-            double t_u = (u - static_cast<double>(ul)) / static_cast<double>(uh - ul);
+            double t_u = ul == uh ? 0 : (u - static_cast<double>(ul)) / static_cast<double>(uh - ul);
 
             double t1 = lerp(tmp1, tmp2, t_u);
 
-            if (mail == maih)
-                return t1;
-
             double t2 = lerp(tmp3, tmp4, t_u);
-            double t_mai = (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
+            double t_mai = mail == maih ? 0 : (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
             double t0 = lerp(t1, t2, t_mai);
-
-            if (sdl == sdh)
-                return t0;
 
             tmp1 = tab[ul + mail * nt + sdh * nt * nmai];
             tmp2 = tab[uh + mail * nt + sdh * nt * nmai];
@@ -656,14 +634,14 @@ namespace g4m::increment {
             t1 = lerp(tmp1, tmp2, t_u);
             t2 = lerp(tmp3, tmp4, t_u);
             t1 = lerp(t1, t2, t_mai);
-            double t_sd = (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl);
+            double t_sd = sdl == sdh ? 0 : (sd - static_cast<double>(sdl)) / static_cast<double>(sdh - sdl);
 
             return lerp(t0, t1, t_sd);
         }
 
         // Function to fill up the tables using incrementCurves ic
         void fillTables() {
-            double minMAI = 0.01;
+            const double minMAI = 0.01;
             fillArraysGLWBiomass(minMAI);
             getIncTimeSteps(minMAI);
             searchORT();
@@ -713,15 +691,6 @@ namespace g4m::increment {
         void getIncTimeSteps(const double minMAI) {
             for (size_t cmai = 0; cmai < nmai; ++cmai) {
                 ic.setMai(max(static_cast<double>(cmai) * maiStep, minMAI));
-                dbhT[0 + cmai * nt] = 0;
-                gwlT[0 + cmai * nt] = 0;
-                for (size_t csd = 0; csd < nsdTab; ++csd) {
-                    dbhSdTab[0 + cmai * nt + csd * nt * nmai] = 0;
-                    gwlSdTab[0 + cmai * nt + csd * nt * nmai] = 0;
-                }
-                for (size_t csd = 0; csd < nsdNat; ++csd) {
-                    gwlSdNat[0 + cmai * nt + csd * nt * nmai] = 0;
-                }
                 for (size_t ct = 1; ct < nt; ++ct) {
                     // Natural stocking degree at begin (0) and end (1) of period of
                     // Yield table stocking degree = 1
