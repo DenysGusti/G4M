@@ -15,6 +15,7 @@ int main(int argc, char *argv[]) {
     try {
         Timer timer{"main"};
         Log::Init();
+//        increment::CanopyLayer::Test_createNormalForest();
         StartData::Init();
 
         // 1 scenario

@@ -10,7 +10,6 @@
 
 #include "increment_curves.hpp"
 #include "opt_rot_times.hpp"
-#include "ort.hpp"
 
 using namespace std;
 
@@ -77,44 +76,99 @@ namespace g4m::increment {
             fillTables();
         }
 
-        int setCoef(const span<const double> a) {
+        void setCoef(const span<const double> a) {
             ic.setCoef(a);
         }
 
+        enum class TableMode {
+            N,
+            T,
+            SdNat,
+            SdTab
+        };
+
+        [[nodiscard]] static TableMode getTableModeBySD(const double sd) {
+            if (sd == 0)
+                throw invalid_argument{"getTableModeBySD: sd = 0!"};
+            if (sd > 0) // Yield table stocking degree
+                return sd == 1 ? TableMode::T : TableMode::SdTab;
+            else    // Natural stocking degree
+                return sd == -1 ? TableMode::N : TableMode::SdNat;
+        }
+
+        [[nodiscard]] double
+        getAvgBm(const TableMode mode, const double u, const double mai,
+                 const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getAvgBm(u, mai);
+                case TableMode::T:
+                    return getAvgBmT(u, mai);
+                case TableMode::SdNat:
+                    return getAvgBmSdNat(u, mai, sd);
+                case TableMode::SdTab:
+                    return getAvgBmSdTab(u, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
+        [[nodiscard]] double getAvgBm(const double u, const double mai, const optional<double> sd) const {
+            return ip(u, mai, abm);
+        }
+
         // get Average biomass, u .. rotation time, mai .. Site index
-        [[nodiscard]] double getAvgBm(const double u, const double mai) const {
+        [[nodiscard]] inline double getAvgBm(const double u, const double mai) const {
             return ip(u, mai, abm);
         }
 
         // With thinning like yield table
-        [[nodiscard]] double getAvgBmT(const double u, const double mai) const {
+        [[nodiscard]] inline double getAvgBmT(const double u, const double mai) const {
             return ip(u, mai, abmT);
         }
 
         // natural stocking degree
-        [[nodiscard]] double getAvgBmSdNat(const double u, const double mai, const double sd) const {
+        [[nodiscard]] inline double getAvgBmSdNat(const double u, const double mai, const double sd) const {
             return ip(u, mai, abm) * clamp(sd, 0., 1.);
         }
 
         // yield table SD
-        [[nodiscard]] double getAvgBmSdTab(const double u, const double mai, const double sd) const {
+        [[nodiscard]] inline double getAvgBmSdTab(const double u, const double mai, const double sd) const {
             if (sd <= 1)
                 return ip(u, mai, abmT) * max(0., sd);
 
             return ip(u, mai, max(0., sd), abmSdTab, false);
         }
 
+        [[nodiscard]] double
+        getBm(const TableMode mode, const double age, const double mai,
+              const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getBm(age, mai);
+                case TableMode::T:
+                    return getBmT(age, mai);
+                case TableMode::SdNat:
+                    return getBmSdNat(age, mai, sd);
+                case TableMode::SdTab:
+                    return getBmSdTab(age, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         // Get stocking Biomass
-        [[nodiscard]] double getBm(const double age, const double mai) const {
+        [[nodiscard]] inline double getBm(const double age, const double mai) const {
             return ip(age, mai, bm);
         }
 
-        [[nodiscard]] double getBmT(const double age, const double mai) const {
+        [[nodiscard]] inline double getBmT(const double age, const double mai) const {
             return ip(age, mai, bmT);
         }
 
-        [[nodiscard]] double getBmSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getBmSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, bm) * clamp(sd, 0., 1.);
+            // TODO Check is SD should be <= 1 or can be > 1?
         }
 
         [[nodiscard]] double getBmSdTab(const double age, const double mai, const double sd) const {
@@ -126,77 +180,145 @@ namespace g4m::increment {
             return min(t1, t2);
         }
 
+        [[nodiscard]] double
+        getDbh(const TableMode mode, const double age, const double mai,
+               const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getDbh(age, mai);
+                case TableMode::T:
+                    return getDbhT(age, mai);
+                case TableMode::SdNat:
+                    return getDbhSdNat(age, mai, sd);
+                case TableMode::SdTab:
+                    return getDbhSdTab(age, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         //Get Diameter
-        [[nodiscard]] double getDbh(const double age, const double mai) const {
+        [[nodiscard]] inline double getDbh(const double age, const double mai) const {
             return ip(age, mai, dbh);
         }
 
-        [[nodiscard]] double getDbhT(const double age, const double mai) const {
+        [[nodiscard]] inline double getDbhT(const double age, const double mai) const {
             return ip(age, mai, dbhT);
         }
 
-        [[nodiscard]] double getDbhSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getDbhSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, dbh) * ic.getDmul(clamp(sd, 0., 1.));
         }
 
-        [[nodiscard]] double getDbhSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getDbhSdTab(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, dbhSdTab, false);
         }
 
+        [[nodiscard]] double
+        getGwl(const TableMode mode, const double age, const double mai,
+               const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getGwl(age, mai);
+                case TableMode::T:
+                    return getGwlT(age, mai);
+                case TableMode::SdNat:
+                    return getGwlSdNat(age, mai, sd);
+                case TableMode::SdTab:
+                    return getGwlSdTab(age, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         // Get Total increment
-        [[nodiscard]] double getGwl(const double age, const double mai) const {
+        [[nodiscard]] inline double getGwl(const double age, const double mai) const {
             return ip(age, mai, gwl);
         }
 
-        [[nodiscard]] double getGwlT(const double age, const double mai) const {
+        [[nodiscard]] inline double getGwlT(const double age, const double mai) const {
             return ip(age, mai, gwlT);
         }
 
-        [[nodiscard]] double getGwlSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getGwlSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, gwlSdNat, true);
         }
 
-        [[nodiscard]] double getGwlSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getGwlSdTab(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, gwlSdTab, false);
         }
 
         // Get tree height
-        [[nodiscard]] double getHeight(const double age, const double mai) const {
+        [[nodiscard]] inline double getHeight(const double age, const double mai) const {
             return ip(age, mai, height);
         }
 
         // Get natural stocking degree if yield table stocking degree is 1
-        [[nodiscard]] double getSdNat(const double age, const double mai) const {
+        [[nodiscard]] inline double getSdNat(const double age, const double mai) const {
             return ip(age, mai, sdNat);
         }
 
+        [[nodiscard]] double
+        getIncGwl(const TableMode mode, const double age, const double mai,
+                  const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getIncGwl(age, mai);
+                case TableMode::T:
+                    return getIncGwlT(age, mai);
+                case TableMode::SdNat:
+                    return getIncGwlSdNat(age, mai, sd);
+                case TableMode::SdTab:
+                    return getIncGwlSdTab(age, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         // Get Total increment increments
-        [[nodiscard]] double getIncGwl(const double age, const double mai) const {
+        [[nodiscard]] inline double getIncGwl(const double age, const double mai) const {
             return ip(age, mai, incGwl);
         }
 
-        [[nodiscard]] double getIncGwlT(const double age, const double mai) const {
+        [[nodiscard]] inline double getIncGwlT(const double age, const double mai) const {
             return ip(age, mai, incGwlT);
         }
 
-        [[nodiscard]] double getIncGwlSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getIncGwlSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, incGwlSdNat, true);
         }
 
-        [[nodiscard]] double getIncGwlSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getIncGwlSdTab(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, incGwlSdTab, false);
         }
 
+        [[nodiscard]] double
+        getIncBm(const TableMode mode, const double age, const double mai,
+                 const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getIncBm(age, mai);
+                case TableMode::T:
+                    return getIncBmT(age, mai);
+                case TableMode::SdNat:
+                    return getIncBmSdNat(age, mai, sd);
+                case TableMode::SdTab:
+                    return getIncBmSdTab(age, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         // Get Biomass change
-        [[nodiscard]] double getIncBm(const double age, const double mai) const {
+        [[nodiscard]] inline double getIncBm(const double age, const double mai) const {
             return ip(age, mai, incBm);
         }
 
-        [[nodiscard]] double getIncBmT(const double age, const double mai) const {
+        [[nodiscard]] inline double getIncBmT(const double age, const double mai) const {
             return ip(age, mai, incBmT);
         }
 
-        [[nodiscard]] double getIncBmSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getIncBmSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, incBm) * clamp(sd, 0., 1.);
         }
 
@@ -209,61 +331,129 @@ namespace g4m::increment {
             return min(t1, t2);
         }
 
+        [[nodiscard]] double
+        getIncDbh(const TableMode mode, const double age, const double mai,
+                  const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getIncDbh(age, mai);
+                case TableMode::T:
+                    return getIncDbhT(age, mai);
+                case TableMode::SdNat:
+                    return getIncDbhSdNat(age, mai, sd);
+                case TableMode::SdTab:
+                    return getIncDbhSdTab(age, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         // Get DBH-Increment without thinning
-        [[nodiscard]] double getIncDbh(const double age, const double mai) const {
+        [[nodiscard]] inline double getIncDbh(const double age, const double mai) const {
             return ip(age, mai, incDbh);
         }
 
-        [[nodiscard]] double getIncDbhT(const double age, const double mai) const {
+        [[nodiscard]] inline double getIncDbhT(const double age, const double mai) const {
             return ip(age, mai, incDbhT);
         }
 
-        [[nodiscard]] double getIncDbhSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getIncDbhSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, incDbhSdNat, true);
         }
 
-        [[nodiscard]] double getIncDbhSdTab(double age, double mai, double sd) const {
+        [[nodiscard]] inline double getIncDbhSdTab(double age, double mai, double sd) const {
             return ip(age, mai, sd, incDbhSdTab, false);
         }
 
         // Get height increment
-        [[nodiscard]] double getIncHeight(const double age, const double mai) const {
+        [[nodiscard]] inline double getIncHeight(const double age, const double mai) const {
             return ip(age, mai, incHeight);
+        }
+
+        [[nodiscard]] double
+        getRemBm(const TableMode mode, const double age, const double mai,
+                 const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getRemBm(age, mai);
+                case TableMode::T:
+                    return getRemBmT(age, mai);
+                case TableMode::SdNat:
+                    return getRemBmSdNat(age, mai, sd);
+                case TableMode::SdTab:
+                    return getRemBmSdTab(age, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
         }
 
         // Get Biomass which comes from mortality or thinning and can be used
         // If IncBm is also needed it will be faster to calculate by own
-        [[nodiscard]] double getRemBm(const double age, const double mai) const {
+        [[nodiscard]] inline double getRemBm(const double age, const double mai) const {
             return getIncGwl(age, mai) - getIncBm(age, mai);
         }
 
-        [[nodiscard]] double getRemBmT(const double age, const double mai) const {
+        [[nodiscard]] inline double getRemBmT(const double age, const double mai) const {
             return getIncGwlT(age, mai) - getIncBmT(age, mai);
         }
 
-        [[nodiscard]] double getRemBmSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getRemBmSdNat(const double age, const double mai, const double sd) const {
             return getIncGwlSdNat(age, mai, sd) - getIncBmSdNat(age, mai, sd);
         }
 
-        [[nodiscard]] double getRemBmSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] inline double getRemBmSdTab(const double age, const double mai, const double sd) const {
             return getIncGwlSdTab(age, mai, sd) - getIncBmSdTab(age, mai, sd);
         }
 
+        [[nodiscard]] double
+        getMai(const TableMode mode, const double u, const double mai,
+               const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getMai(u, mai);
+                case TableMode::T:
+                    return getMaiT(u, mai);
+                case TableMode::SdNat:
+                    return getMaiSdNat(u, mai, sd);
+                case TableMode::SdTab:
+                    return getMaiSdTab(u, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         // Get Mean annual increment with specific rotation time
-        [[nodiscard]] double getMai(const double u, const double mai) const {
+        [[nodiscard]] inline double getMai(const double u, const double mai) const {
             return u > 0 ? getGwl(u, mai) / u : 0;
         }
 
-        [[nodiscard]] double getMaiT(const double u, const double mai) const {
+        [[nodiscard]] inline double getMaiT(const double u, const double mai) const {
             return u > 0 ? getGwlT(u, mai) / u : 0;
         }
 
-        [[nodiscard]] double getMaiSdNat(const double u, const double mai, const double sd) const {
+        [[nodiscard]] inline double getMaiSdNat(const double u, const double mai, const double sd) const {
             return u > 0 ? getGwlSdNat(u, mai, sd) / u : 0;
         }
 
-        [[nodiscard]] double getMaiSdTab(const double u, const double mai, const double sd) const {
+        [[nodiscard]] inline double getMaiSdTab(const double u, const double mai, const double sd) const {
             return u > 0 ? getGwlSdTab(u, mai, sd) / u : 0;
+        }
+
+        [[nodiscard]] double
+        getTOpt(const TableMode mode, const double mai, const OptRotTimes::Mode type,
+                const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getTOpt(mai, type);
+                case TableMode::T:
+                    return getTOptT(mai, type);
+                case TableMode::SdNat:
+                    return getTOptSdNat(mai, sd, type);
+                case TableMode::SdTab:
+                    return getTOptSdTab(mai, sd, type);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
         }
 
         //Get optimal rotation time
@@ -272,26 +462,45 @@ namespace g4m::increment {
         //2 … Highest possible age
         //3 … Maximum harvest at final cut
         //4 … Average Maximum harvest at final cut
-        [[nodiscard]] double getTOpt(const double mai, const ORT type) const {
+        [[nodiscard]] inline double getTOpt(const double mai, const OptRotTimes::Mode type) const {
             return ip(mai, optTime, type);
         }
 
-        [[nodiscard]] double getTOptT(const double mai, const ORT type) const {
+        [[nodiscard]] inline double getTOptT(const double mai, const OptRotTimes::Mode type) const {
             return ip(mai, optTimeT, type);
         }
 
-        [[nodiscard]] double getTOptSdNat(const double mai, const double sd, const ORT type) const {
+        [[nodiscard]] inline double
+        getTOptSdNat(const double mai, const double sd, const OptRotTimes::Mode type) const {
             return ip(mai, sd, optTimeSdNat, type, true);
         }
 
-        [[nodiscard]] double getTOptSdTab(const double mai, const double sd, const ORT type) const {
+        [[nodiscard]] inline double
+        getTOptSdTab(const double mai, const double sd, const OptRotTimes::Mode type) const {
             return ip(mai, sd, optTimeSdTab, type, false);
+        }
+
+        [[nodiscard]] double
+        getU(const TableMode mode, const double avgBm, const double mai,
+             const double sd = numeric_limits<double>::quiet_NaN()) const {
+            switch (mode) {
+                case TableMode::N:
+                    return getU(avgBm, mai);
+                case TableMode::T:
+                    return getUT(avgBm, mai);
+                case TableMode::SdNat:
+                    return getUSdNat(avgBm, mai, sd);
+                case TableMode::SdTab:
+                    return getUSdTab(avgBm, mai, sd);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
         }
 
         //Get rotation time out of mean bm
         [[nodiscard]] double getU(const double avgBm, const double mai) const {
             int tL = 0;
-            int tH = ceil(getTOpt(mai, ORT::MaxBm));
+            int tH = ceil(getTOpt(mai, OptRotTimes::Mode::MaxBm));
             double bmL = 0;
             double bmH = getAvgBm(tH, mai);
 
@@ -322,7 +531,7 @@ namespace g4m::increment {
 
         [[nodiscard]] double getUT(const double avgBm, const double mai) const {
             int tL = 0;
-            int tH = ceil(getTOptT(mai, ORT::MaxBm));
+            int tH = ceil(getTOptT(mai, OptRotTimes::Mode::MaxBm));
             double bmL = 0;
             double bmH = getAvgBmT(tH, mai);
 
@@ -358,7 +567,7 @@ namespace g4m::increment {
             if (sd > 0)
                 return getU(avgBm / min(1., sd), mai);
 
-            return getTOpt(mai, ORT::MaxBm);
+            return getTOpt(mai, OptRotTimes::Mode::MaxBm);
         }
 
         [[nodiscard]] double getUSdTab(const double avgBm, const double mai, const double sd) const {
@@ -369,10 +578,10 @@ namespace g4m::increment {
                 if (avgBm <= 0)
                     return 0;
 
-                return getTOptT(mai, ORT::MaxBm);
+                return getTOptT(mai, OptRotTimes::Mode::MaxBm);
             }
             int tL = 0;
-            int tH = ceil(getTOptSdTab(mai, sd, ORT::MaxBm));
+            int tH = ceil(getTOptSdTab(mai, sd, OptRotTimes::Mode::MaxBm));
             double bmL = 0;
             double bmH = getAvgBmSdTab(tH, mai, sd);
 
@@ -401,6 +610,19 @@ namespace g4m::increment {
             return t;
         }
 
+        [[nodiscard]] double getSd(const TableMode mode, const double age, const double mai, const double avgBm) const {
+            switch (mode) {
+                case TableMode::N:
+                case TableMode::SdNat:
+                    return getSdNat(age, mai, avgBm);
+                case TableMode::T:
+                case TableMode::SdTab:
+                    return getSdTab(age, mai, avgBm);
+                default:
+                    return numeric_limits<double>::quiet_NaN();
+            }
+        }
+
         // Get stocking degree with age, mai, biomass
         [[nodiscard]] double getSdNat(const double age, const double mai, const double avgBm) const {
             if (getBm(age, mai) <= 0)
@@ -424,7 +646,7 @@ namespace g4m::increment {
         }
 
         // Get average stocking degree with rotation time, mai, average biomass
-        [[nodiscard]] double getAvgSdNat(const double u, const double mai, const double avgBm) const {
+        [[nodiscard]] inline double getAvgSdNat(const double u, const double mai, const double avgBm) const {
             return clamp(avgBm / getAvgBm(u, mai), 0., 1.);
         }
 
@@ -452,18 +674,18 @@ namespace g4m::increment {
         }
 
         // Get time step width
-        [[nodiscard]] double getTimeframe() const noexcept {
+        [[nodiscard]] inline double getTimeframe() const noexcept {
             return timeframe <= 0 ? tStep : timeframe;
         }
 
         // Get the oldest age in the table
-        [[nodiscard]] double getTMax() const noexcept {
+        [[nodiscard]] inline double getTMax() const noexcept {
             return tHi;
         }
 
         // MG: get rotation when DBH > DBH0
         // This can also be stored in a table for faster access
-        [[nodiscard]] double getU_dbh(const double dbh0, const double mai) const {
+        [[nodiscard]] inline double getU_dbh(const double dbh0, const double mai) const {
             return u_param(dbh0, mai, dbh);
         }
 
@@ -514,14 +736,14 @@ namespace g4m::increment {
         vector<OptRotTimes> optTimeSdTab;
 
         // Interpolate rotation time between mai
-        [[nodiscard]] double ip(double mai, const span<const OptRotTimes> tab, const ORT type) const {
+        [[nodiscard]] double ip(double mai, const span<const OptRotTimes> tab, const OptRotTimes::Mode type) const {
             mai /= maiStep;
 
             auto mail = static_cast<size_t>(clamp(floor(mai), 0., static_cast<double>(nmai - 1)));
             auto maih = static_cast<size_t>(clamp(ceil(mai), 0., static_cast<double>(nmai - 1)));
 
-            int ul = tab[mail][type];
-            int uh = tab[maih][type];
+            int ul = tab[mail](type);
+            int uh = tab[maih](type);
 
             double t_mai = mail == maih ? 0 : (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
 
@@ -529,7 +751,7 @@ namespace g4m::increment {
         }
 
         // Interpolate rotation time between mai and stocking degree (sdNat: True..sdNat, false..sdTab)
-        [[nodiscard]] double ip(double mai, double sd, const span<const OptRotTimes> tab, const ORT type,
+        [[nodiscard]] double ip(double mai, double sd, const span<const OptRotTimes> tab, const OptRotTimes::Mode type,
                                 const bool sdNatFlag) const {
             mai = clamp(mai / maiStep, 0., static_cast<double>(nmai - 1));
             size_t maih = ceil(mai);
@@ -555,10 +777,10 @@ namespace g4m::increment {
                 sdl = 0;
                 sdh = 0;
             }  // MG: 7 July 2019
-            int mhsh = tab[maih + sdh * nmai][type];
-            int mhsl = tab[maih + sdl * nmai][type];
-            int mlsh = tab[mail + sdh * nmai][type];
-            int mlsl = tab[mail + sdl * nmai][type];
+            int mhsh = tab[maih + sdh * nmai](type);
+            int mhsl = tab[maih + sdl * nmai](type);
+            int mlsh = tab[mail + sdh * nmai](type);
+            int mlsl = tab[mail + sdl * nmai](type);
             //	MG: hot fix check
             double t_mai = mail == maih ? 0 : (mai - static_cast<double>(mail)) / static_cast<double>(maih - mail);
             double t0 = lerp(mlsl, mhsl, t_mai);

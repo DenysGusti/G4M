@@ -264,18 +264,18 @@ namespace g4m::init {
         [[nodiscard]] optional<double> initForestArea(double dfor) noexcept {
             if (forest >= dfor) {
                 forest -= dfor;
-                return {};
+                return nullopt;
             } else if (forest + oldGrowthForest_thirty >= dfor) {
                 dfor -= forest;
                 forest = 0;
                 oldGrowthForest_thirty -= dfor;
-                return {};
+                return nullopt;
             } else if (forest + oldGrowthForest_thirty + oldGrowthForest_ten >= dfor) {
                 dfor -= forest + oldGrowthForest_thirty;
                 forest = 0;
                 oldGrowthForest_thirty = 0;
                 oldGrowthForest_ten -= dfor;
-                return {};
+                return nullopt;
             } else {
                 dfor -= forest + oldGrowthForest_thirty + oldGrowthForest_ten;
                 forest = 0;

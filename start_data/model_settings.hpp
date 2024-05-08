@@ -6,6 +6,7 @@
 
 using namespace g4m::init;
 
+// separate file to break circular dependency!
 namespace g4m::StartData {
     Settings settings;
     CoefStruct coef;

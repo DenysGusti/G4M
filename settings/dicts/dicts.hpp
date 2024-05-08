@@ -17,8 +17,8 @@ namespace g4m::Dicts {
     const unordered_map<uint8_t, string> idCountryGLOBIOM = setIdCountryGLOBIOM();
     const unordered_map<string, uint8_t, StringHash, equal_to<> > countryGLOBIOMId = setCountryGLOBIOMId();
 
-    // non-const in order to use pointer in AgeStruct
-    unordered_map<Species, IncrementTab, EnumHasher> species = defineSpecies();
+    // used in AgeStruct
+    const unordered_map<Species, IncrementTab, EnumHasher> species = defineSpecies();
     // countries and species where the stumps can be harvested as compiled by Fulvio 06.06
     const set<pair<uint8_t, Species> > stumpHarvCountrySpecies = setCountrySpecies();  // [country, species]
 

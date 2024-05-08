@@ -56,8 +56,10 @@ namespace g4m::application::concrete {
             toAdjust.reserve(256);
             countriesNoFmCPol.reserve(256);
             doneList.reserve(256);
-            if (fmPol && !binFilesOnDisk && inputPriceC == 0)
+            if (fmPol && !binFilesOnDisk && inputPriceC == 0) {
+                scoped_lock<mutex> lock{zeroC_mutex};
                 signalZeroCToMainScenarios.emplace(suffix0, 0);
+            }
         }
 
         // start calculations
@@ -96,8 +98,10 @@ namespace g4m::application::concrete {
                 adjustManagedForest(year);
             }
 
-            if (fmPol && !binFilesOnDisk && inputPriceC == 0)
+            if (fmPol && !binFilesOnDisk && inputPriceC == 0) {
+                scoped_lock<mutex> lock{zeroC_mutex};
                 signalZeroCToMainScenarios.at(suffix0).release();
+            }
         }
 
     protected:
@@ -489,8 +493,9 @@ namespace g4m::application::concrete {
                         if (biomass > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
                             double biomassTmp = max(biomass, appDats[plot.asID].OBiomass0);
                             // rotation time to get current biomass (without thinning)
-                            biomassRot = species[plot.speciesType].getU(biomassTmp, appMaiForest(plot.x, plot.y));
-                            rotMaxBm = species[plot.speciesType].getTOpt(appMaiForest(plot.x, plot.y), ORT::MaxBm);
+                            biomassRot = species.at(plot.speciesType).getU(biomassTmp, appMaiForest(plot.x, plot.y));
+                            rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
+                                                                            OptRotTimes::Mode::MaxBm);
                         }
 
                         //  TO BE CHANGED to specific cleanedWoodUse10[...] / cleanedWoodUse30[...]
@@ -589,112 +594,112 @@ namespace g4m::application::concrete {
                 const double shareP = plot.strictProtected;  // The share of strictly protected forest. Usually, the area of strict protected forest does not change
                 const double shareNew = appDats[plot.asID].N.forestShare;
 
-                const auto [harvestO, bmH, damagedFireU, harvAreaO] =
+                SalvageLoggingRes slrU =
                         shareU > 0 ? appCohortsU[plot.asID].salvageLoggingAllAgents(damagedWind,
                                                                                     damagedFire,
                                                                                     damagedBiotic,
                                                                                     harvestableWind,
                                                                                     harvestableFire,
                                                                                     harvestableBiotic)
-                                   : array{0., 0., 0., 0.};
+                                   : SalvageLoggingRes{};
 
-                const auto [harvestO30, bmH30, damagedFire30, harvArea30] =
+                SalvageLoggingRes slrO30 =
                         share30 > 0 ? appCohorts30[plot.asID].salvageLoggingAllAgents(damagedWind,
                                                                                       damagedFire,
                                                                                       damagedBiotic,
                                                                                       harvestableWind,
                                                                                       harvestableFire,
                                                                                       harvestableBiotic)
-                                    : array{0., 0., 0., 0.};
+                                    : SalvageLoggingRes{};
 
-                const auto [harvestO10, bmH10, damagedFire10, harvArea10] =
+                SalvageLoggingRes slrO10 =
                         share10 > 0 ? appCohorts10[plot.asID].salvageLoggingAllAgents(damagedWind,
                                                                                       damagedFire,
                                                                                       damagedBiotic,
                                                                                       harvestableWind,
                                                                                       harvestableFire,
                                                                                       harvestableBiotic)
-                                    : array{0., 0., 0., 0.};
+                                    : SalvageLoggingRes{};
 
                 // ---- we don't account for the deadwood accumulation at the moment (to be improved) ---
-                const auto [harvestNew, bmH_new, damagedFireNew, harvAreaNew] =
+                SalvageLoggingRes slrN =
                         shareNew > 0 ? appCohortsN[plot.asID].salvageLoggingAllAgents(damagedWind,
                                                                                       damagedFire,
                                                                                       damagedBiotic,
                                                                                       harvestableWind,
                                                                                       harvestableFire,
                                                                                       harvestableBiotic)
-                                     : array{0., 0., 0., 0.};
+                                     : SalvageLoggingRes{};
 
                 // ---- we don't clean salvage in the primary forest and don't account for the deadwood accumulation at the moment (to be improved) ---
-                const auto [harvestP, bmHP, damagedFireP, harvAreaP] =
+                SalvageLoggingRes slrP =
                         shareNew > 0 ? appCohortsP[plot.asID].salvageLoggingAllAgents(damagedWind,
                                                                                       damagedFire,
                                                                                       damagedBiotic,
                                                                                       harvestableWind,
                                                                                       harvestableFire,
                                                                                       harvestableBiotic)
-                                     : array{0., 0., 0., 0.};
+                                     : SalvageLoggingRes{};
 
-                salvageLogging(plot.x, plot.y) =
-                        (harvestO * (shareU - appDats[plot.asID].deforestShare) + shareNew * harvestNew +
-                         harvestO30 * cleanedWoodUseCurrent30 * share30 +
-                         harvestO10 * cleanedWoodUseCurrent10 * share10) * plot.fTimber.data.at(2000) *
-                        appDats[plot.asID].landAreaHa;
+                salvageLogging(plot.x, plot.y) = (slrU.harvestedWood * (shareU - appDats[plot.asID].deforestShare) +
+                                                  shareNew * slrN.harvestedWood +
+                                                  slrO30.harvestedWood * cleanedWoodUseCurrent30 * share30 +
+                                                  slrO10.harvestedWood * cleanedWoodUseCurrent10 * share10) *
+                                                 plot.fTimber.data.at(2000) * appDats[plot.asID].landAreaHa;
 
-                if (damagedFireU + damagedFire30 + damagedFire10 + damagedFireNew + damagedFireP <= 0)
-                    residueHarvest[plot.country] += adjustResiduesDisturbed(plot, year,
-                                                                            harvestO, harvestNew, harvestO30,
-                                                                            bmH, bmH_new, bmH30,
-                                                                            harvAreaO, harvAreaNew, harvArea30);
+                if (slrU.damagedFire + slrO30.damagedFire + slrO10.damagedFire + slrN.damagedFire +
+                    slrP.damagedFire <= 0)
+                    residueHarvest[plot.country] += adjustResiduesDisturbed(plot, year, slrU, slrN, slrO30);
 
                 const auto [deadWoodPoolIn, litterPoolIn] =
-                        shareU > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohortsU[plot.asID],
-                                                                     harvestO, shareU, harvAreaO, bmH,
+                        shareU > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrU, shareU,
                                                                      appDats[plot.asID].U.extractedResidues,
                                                                      appDats[plot.asID].U.extractedStump)
                                    : pair{0., 0.};
 
                 const auto [deadWoodPoolIn_new, litterPoolIn_new] =
-                        shareNew > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohortsN[plot.asID],
-                                                                       harvestNew,
-                                                                       appDats[plot.asID].N.prevForestShare,
-                                                                       harvAreaNew, bmH_new,
+                        shareNew > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrN, appDats[plot.asID].N.prevForestShare,
                                                                        appDats[plot.asID].U.extractedResidues,
                                                                        appDats[plot.asID].U.extractedStump)
                                      : pair{0., 0.};
 
+                // because the whole structure is transferred to the function,
+                // we need to modify values here and restore them after
+                // TODO should be harvestO10 * cleanedWoodUseCurrent10?
+                double tmp_hwO10 = slrO10.harvestedWood;
+                slrO10.harvestedWood *= 1 - cleanedWoodUseCurrent10;
                 const auto [deadWoodPoolIn10, litterPoolIn10] =
-                        share10 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohorts10[plot.asID],
-                                                                      harvestO10 * (1 - cleanedWoodUseCurrent10),
-                                                                      share10, harvArea10, bmH10,
+                        share10 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrO10, share10,
                                                                       appDats[plot.asID].O10.extractedResidues,
                                                                       appDats[plot.asID].O10.extractedStump)
                                     : pair{0., 0.};
+                slrO10.harvestedWood = tmp_hwO10;
 
                 const auto [deadWoodPoolIn30, litterPoolIn30] =
-                        share30 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohorts30[plot.asID],
-                                                                      harvestO30, share30, harvArea30, bmH30,
+                        share30 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrO30, share30,
                                                                       appDats[plot.asID].O30.extractedResidues,
                                                                       appDats[plot.asID].O30.extractedStump)
                                     : pair{0., 0.};
 
+                // because the whole structure is transferred to the function,
+                // we need to modify values here and restore them after
+                double tmp_hwP = exchange(slrP.harvestedWood, 0);
                 const auto [deadWoodPoolInP, litterPoolInP] =
-                        shareP > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, appCohortsP[plot.asID], 0, shareP,
-                                                                     harvAreaP, bmHP, 0, 0)
+                        shareP > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrP, shareP, 0, 0)
                                    : pair{0., 0.};
+                slrP.harvestedWood = tmp_hwP;
 
-                appDats[plot.asID].U.burntDeadwood = min(damagedFireU, 0.9 * appDats[plot.asID].U.deadwood);
-                appDats[plot.asID].O30.burntDeadwood = min(damagedFire30, 0.9 * appDats[plot.asID].O30.deadwood);
-                appDats[plot.asID].O10.burntDeadwood = min(damagedFire10, 0.9 * appDats[plot.asID].O10.deadwood);
-                appDats[plot.asID].N.burntDeadwood = min(damagedFireNew, 0.9 * appDats[plot.asID].N.deadwood);
-                appDats[plot.asID].P.burntDeadwood = min(damagedFireP, 0.9 * appDats[plot.asID].P.deadwood);
+                appDats[plot.asID].U.burntDeadwood = min(slrU.damagedFire, 0.9 * appDats[plot.asID].U.deadwood);
+                appDats[plot.asID].O30.burntDeadwood = min(slrO30.damagedFire, 0.9 * appDats[plot.asID].O30.deadwood);
+                appDats[plot.asID].O10.burntDeadwood = min(slrO10.damagedFire, 0.9 * appDats[plot.asID].O10.deadwood);
+                appDats[plot.asID].N.burntDeadwood = min(slrN.damagedFire, 0.9 * appDats[plot.asID].N.deadwood);
+                appDats[plot.asID].P.burntDeadwood = min(slrP.damagedFire, 0.9 * appDats[plot.asID].P.deadwood);
 
-                appDats[plot.asID].U.burntLitter = min(damagedFireU, 0.9 * appDats[plot.asID].U.litter);
-                appDats[plot.asID].O30.burntLitter = min(damagedFire30, 0.9 * appDats[plot.asID].O30.litter);
-                appDats[plot.asID].O10.burntLitter = min(damagedFire10, 0.9 * appDats[plot.asID].O10.litter);
-                appDats[plot.asID].N.burntLitter = min(damagedFireNew, 0.9 * appDats[plot.asID].N.litter);
-                appDats[plot.asID].P.burntLitter = min(damagedFireP, 0.9 * appDats[plot.asID].P.litter);
+                appDats[plot.asID].U.burntLitter = min(slrU.damagedFire, 0.9 * appDats[plot.asID].U.litter);
+                appDats[plot.asID].O30.burntLitter = min(slrO30.damagedFire, 0.9 * appDats[plot.asID].O30.litter);
+                appDats[plot.asID].O10.burntLitter = min(slrO10.damagedFire, 0.9 * appDats[plot.asID].O10.litter);
+                appDats[plot.asID].N.burntLitter = min(slrN.damagedFire, 0.9 * appDats[plot.asID].N.litter);
+                appDats[plot.asID].P.burntLitter = min(slrP.damagedFire, 0.9 * appDats[plot.asID].P.litter);
 
                 appDats[plot.asID].U.deadwood += deadWoodPoolIn;
                 appDats[plot.asID].N.deadwood += deadWoodPoolIn_new;
@@ -721,20 +726,11 @@ namespace g4m::application::concrete {
         returns residueHarvestDist
          */
         [[nodiscard]] double adjustResiduesDisturbed(const DataStruct &plot, const uint16_t year,
-                                                     const double harvestO,
-                                                     const double harvestNew,
-                                                     const double harvest30,
-                                                     const double bmH,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
-                                                     const double bmHNew,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
-                                                     const double bmH30,       // MG: get total harvestable biomass including harvest losses for the set (old) forest tC/ha for final cut
-                                                     const double harvAreaO, const double harvAreaN,
-                                                     const double harvArea30) {
+                                                     const SalvageLoggingRes &slrU,
+                                                     const SalvageLoggingRes &slrN,
+                                                     const SalvageLoggingRes &slrO30) {
             if (year <= residueHarvYear || plot.protect || plot.residuesUseShare <= 0)
                 return 0;
-
-            double realAreaO = appCohortsU[plot.asID].getArea();
-            double realAreaN = appCohortsN[plot.asID].getArea();
-            double realArea30 = appCohorts30[plot.asID].getArea();
 
             const double OForestShareU = appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
             const double OForestShare30 = appDats[plot.asID].O30.forestShare;
@@ -753,14 +749,14 @@ namespace g4m::application::concrete {
 //            double harvRes_scN_notTaken = 0;  // all wood extracted from (new) cleaned forest that is not taken for wood production
 //            double harvRes_scO_notTaken = 0;  // all wood extracted from (old) cleaned forest that is not taken for wood production
 
-            if (harvAreaO > 0 && realAreaO > 0 && harvestO > 0 && bmH > 0)  // tC/ha
-                harvRes_fcO = harvestO * (plot.BEF(bmH * realAreaO / harvAreaO) - 2) + bmH;
+            if (slrU.allPositive())  // tC/ha
+                harvRes_fcO = slrU.getHarvestResiduesSalvageLogging(plot.BEF(slrU.getGrowingStockCut()));
 
-            if (harvAreaN > 0 && realAreaN > 0 && harvestNew > 0 && bmHNew > 0)  // tC/ha
-                harvRes_fcN = harvestNew * (plot.BEF(bmHNew * realAreaN / harvAreaN) - 2) + bmHNew;
+            if (slrN.allPositive())  // tC/ha
+                harvRes_fcN = slrN.getHarvestResiduesSalvageLogging(plot.BEF(slrN.getGrowingStockCut()));
 
-            if (harvArea30 > 0 && realArea30 > 0 && harvest30 > 0 && bmH30 > 0 && residueUse30 > 0)  // tC/ha
-                harvRes_fc30 = harvest30 * (plot.BEF(bmH30 * realArea30 / harvArea30) - 2) + bmH30;
+            if (slrO30.allPositive())  // tC/ha
+                harvRes_fc30 = slrO30.getHarvestResiduesSalvageLogging(plot.BEF(slrO30.getGrowingStockCut()));
 
             double stump = 0;       // stumps of old forest // tC/ha
             double stump_new = 0;   // stumps of new forest// tC/ha
@@ -772,32 +768,31 @@ namespace g4m::application::concrete {
 //            double stump_df30 = 0;
 
             // calculate amount of stumps + big roots for final felling, tC/ha
-            if (stumpHarvCountrySpecies.contains({plot.country, plot.speciesType})) {
+            if (stumpHarvCountrySpecies.contains({plot.country, plot.speciesType}) && plot.fTimber.data.at(2000) > 0) {
                 if (appThinningForest(plot.x, plot.y) > 0) {
-                    double hDBHOld = appCohortsU[plot.asID].getDBHSlashCut();
-                    double hHOld = appCohortsU[plot.asID].getHSlashCut();
-                    double hDBHNew = appCohortsN[plot.asID].getDBHSlashCut();
-                    double hHNew = appCohortsN[plot.asID].getHSlashCut();
+                    double hDBHOld = slrU.getDBHSlashCut();
+                    double hHOld = slrU.getHSlashCut();
+                    double hDBHNew = slrN.getDBHSlashCut();
+                    double hHNew = slrN.getHSlashCut();
 
-                    if (harvAreaO > 0 && realAreaO > 0) {
-                        double harvestGSOld = bmH / harvAreaO * realAreaO;
-                        stump = plot.DBHHToStump(hDBHOld, hHOld, harvestGSOld) * harvAreaO / realAreaO;
+                    if (slrU.positiveAreas() && hDBHOld > 0 && hHOld > 0) {
+                        double harvestGSOld = slrU.getGrowingStockCut();
+                        stump = plot.DBHHToStump(hDBHOld, hHOld, harvestGSOld) * slrU.getAreaRatio();
                     }
 
-                    if (harvAreaN > 0 && realAreaN > 0) {
-                        double harvestGSNew = bmHNew / harvAreaN * realAreaN;
-                        stump_new = plot.DBHHToStump(hDBHNew, hHNew, harvestGSNew) * harvAreaN / realAreaN;
+                    if (slrN.positiveAreas() && hDBHNew > 0 && hHNew > 0) {
+                        double harvestGSNew = slrN.getGrowingStockCut();
+                        stump_new = plot.DBHHToStump(hDBHNew, hHNew, harvestGSNew) * slrN.getAreaRatio();
                     }
                 }
 
                 if (appThinningForest30(plot.x, plot.y) > 0 && !appForest30Policy) {
-                    double hDBHOld30 = appCohorts30[plot.asID].getDBHSlashCut();
-                    double hHOld30 = appCohorts30[plot.asID].getHSlashCut();
+                    double hDBHOld30 = slrO30.getDBHSlashCut();
+                    double hHOld30 = slrO30.getHSlashCut();
 
-                    if (harvArea30 > 0 && realArea30 > 0 && plot.fTimber.data.at(2000) > 0 && hDBHOld30 > 0 &&
-                        hHOld30 > 0) {
-                        double harvestGSOld30 = bmH30 / harvArea30 * realArea30;
-                        stump30 = plot.DBHHToStump(hDBHOld30, hHOld30, harvestGSOld30) * harvArea30 / realArea30;
+                    if (slrO30.positiveAreas() && hDBHOld30 > 0 && hHOld30 > 0) {
+                        double harvestGSOld30 = slrO30.getGrowingStockCut();
+                        stump30 = plot.DBHHToStump(hDBHOld30, hHOld30, harvestGSOld30) * slrO30.getAreaRatio();
                     }
                 }
             }
@@ -827,11 +822,11 @@ namespace g4m::application::concrete {
         // Litter input (d <= 10cm) in the cell, tC/ha, in the old forest
         // return pair<deadWoodPoolIn, litterPoolIn>
         [[nodiscard]] static pair<double, double>
-        deadWoodPoolDisturbanceCalcFunc(const DataStruct &plot, const AgeStruct &cohort,
-                                        const double harvestedWood, // wood harvested in the production forest, m3/ha
+        deadWoodPoolDisturbanceCalcFunc(const DataStruct &plot, const SalvageLoggingRes &slr,
+                // wood harvested in the production forest, m3/ha
+                // pure harvested area
+                // total harvested stem biomass at final felling in the production forest and multifunction forest
                                         const double forestShare, // considered forest share in the cell
-                                        const double harvArea, // pure harvested area
-                                        const double bmH, // total harvested stem biomass at final felling in the production forest and multifunction forest
                                         const double extractedResidues, // share of extracted logging residues
                                         const double extractedStump) // share of extracted stump
         {
@@ -847,17 +842,17 @@ namespace g4m::application::concrete {
 //            double deadWoodStump_mort = 0;
 //            double litterStump_mort = 0;
 
-            double areaRatio = harvArea > 0 ? cohort.getArea() / harvArea : 0;
+            double areaRatio = slr.harvestArea > 0 ? slr.realArea / slr.harvestArea : 0;
 
-            double fcDBH = cohort.getDBHSlashCut();
-            double fcH = cohort.getHSlashCut();
-            double fcGS = bmH * areaRatio;
+            double fcDBH = slr.getDBHSlashCut();
+            double fcH = slr.getHSlashCut();
+            double fcGS = slr.bmH * areaRatio;
 
             double deadWoodStump_fc = areaRatio > 0 ? plot.DBHHToStump(fcDBH, fcH, fcGS) / areaRatio : 0;
 //            double deadWoodStump_th = 0;
 
             // tC/ha in the cell
-            double deadWoodBranches_fc = 0.3 * bmH * (plot.BEF(fcGS) - 1);
+            double deadWoodBranches_fc = 0.3 * slr.bmH * (plot.BEF(fcGS) - 1);
             double litterBranches_fc = deadWoodBranches_fc / 0.3 * 0.7;
 //            double litterBranches_th = 0;
 
@@ -865,7 +860,7 @@ namespace g4m::application::concrete {
 
             const double harvLossShare = 0.25;
 
-            double harvL = max(0., bmH - harvestedWood);
+            double harvL = max(0., slr.bmH - slr.harvestedWood);
             // deadwood from harvest losses in intensively managed old forest
             double deadwood_hRes_mng = (1 - harvLossShare) * harvL;
             // litter from harvest losses in intensively managed old forest
@@ -892,10 +887,10 @@ namespace g4m::application::concrete {
                     if (appMaiForest(plot.x, plot.y) > 0 && appDats[plot.asID].OForestShare > 0) {
 
                         if (appManagedForest(plot.x, plot.y) > 0) {
-                            double rotMAI = species[plot.speciesType].getTOptT(
-                                    appMaiForest(plot.x, plot.y), ORT::MAI);
-                            double rotMaxBmTh = species[plot.speciesType].getTOptT(
-                                    appMaiForest(plot.x, plot.y), ORT::MaxBm);
+                            double rotMAI = species.at(plot.speciesType).getTOptT(
+                                    appMaiForest(plot.x, plot.y), OptRotTimes::Mode::MAI);
+                            double rotMaxBmTh = species.at(plot.speciesType).getTOptT(
+                                    appMaiForest(plot.x, plot.y), OptRotTimes::Mode::MaxBm);
                             const auto [rotMaxNPV, maxNPV, harvestMaxNPV] =
                                     maxNPVRotation(plot, year, true, rotMAI, rotMaxBmTh);
 
@@ -912,8 +907,8 @@ namespace g4m::application::concrete {
                                 appCohorts30[plot.asID].setU(rotMaxNPV);
 
                         } else {  // if managed
-                            double rotMaxBm = species[plot.speciesType].getTOpt(appMaiForest(plot.x, plot.y),
-                                                                                ORT::MaxBm);
+                            double rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
+                                                                                   OptRotTimes::Mode::MaxBm);
                             double maxNPV = npvCalc(plot, appCohortsU[plot.asID].createSetU(rotMaxBm), year,
                                                     rotMaxBm, false).first;
                             maxNPVGrid(plot.x, plot.y) = maxNPV;
@@ -1231,7 +1226,7 @@ namespace g4m::application::concrete {
         npvCalc(const DataStruct &plot, AgeStruct cohortTmp, const uint16_t year, const double rotation,
                 const bool used, const double wpMult = 1, const bool zeroC = false) const {
             double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber(coef.bYear);
-            double rotMAI = species[plot.speciesType].getTOptT(maiV / plot.fTimber(year), ORT::MAI);
+            double rotMAI = species.at(plot.speciesType).getTOptT(maiV / plot.fTimber(year), OptRotTimes::Mode::MAI);
             double costsScaling = plot.priceIndex(year) / priceIndexAvgEU27;
             if (plot.country == 69)
                 costsScaling *= scaleCostsFactorEs;
@@ -1243,13 +1238,13 @@ namespace g4m::application::concrete {
             size_t n = bauScenarios.biomassBauScenarios.at(suffix0).size();
             auto maxYear = min(static_cast<uint16_t>(refYear + n * modTimeStep), coef.eYear);
             for (int j = 0; year + j + modTimeStep <= maxYear; j += modTimeStep) {
-                auto resTmp = cohortTmp.aging();
-                double realAreaO = clamp(cohortTmp.getArea(), 0., 1.);
+                CohortRes cohort_res = cohortTmp.aging(cohortTmp.getMai(), false);
+                double realAreaO = clamp(cohort_res.realArea, 0., 1.);  // cohortTmp.getArea()
                 double bm = realAreaO > 0 && !zeroC ? cohortTmp.getBm() / realAreaO : 0;
 
                 if (used) {
-                    harvestTmp = AgeStruct::cohortRes(realAreaO, resTmp)[0] * plot.fTimber(year);
-                    harvestedArea = cohortTmp.getArea(0ull);
+                    harvestTmp = cohort_res.getTotalWoodRemoval() * plot.fTimber(year);
+                    harvestedArea = cohort_res.finalCut.area; // cohortTmp.getArea(size_t{0})
                 }
 
                 double NPVOne = forNPV_fdc(plot, year + j, harvestedArea, harvestTmp, zeroC ? nan("") : bm, wpMult,
@@ -1417,19 +1412,19 @@ namespace g4m::application::concrete {
                                 if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0) {
 
-                                    biomassRotTh2 = species[plot.speciesType].getUSdTab(
+                                    biomassRotTh2 = species.at(plot.speciesType).getUSdTab(
                                             appDats[plot.asID].OBiomass0, appMaiForest(plot.x, plot.y),
                                             stockingDegree);     // rotation time to get current biomass (with thinning)
-                                    rotMAI = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                ORT::MAI);
-                                    rotMaxBmTh = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                    ORT::MaxBm);
+                                    rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                   OptRotTimes::Mode::MAI);
+                                    rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                       OptRotTimes::Mode::MaxBm);
                                 } else if (appDats[plot.asID].prevPlantPhytHaBmGr > 0) {
 
-                                    rotMAI = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                ORT::MAI);
-                                    rotMaxBmTh = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                    ORT::MaxBm);
+                                    rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                   OptRotTimes::Mode::MAI);
+                                    rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                       OptRotTimes::Mode::MaxBm);
                                     biomassRotTh2 = rotMaxBmTh;
                                 }
 
@@ -1590,8 +1585,8 @@ namespace g4m::application::concrete {
                                 double rotMaxBm = 0;
                                 if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
-                                    rotMaxBm = species[plot.speciesType].getTOpt(appMaiForest(plot.x, plot.y),
-                                                                                 ORT::MaxBm);
+                                    rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
+                                                                                    OptRotTimes::Mode::MaxBm);
 
                                 double rotation = max(rotMaxBm, appRotationForest(plot.x, plot.y));
 
@@ -1662,8 +1657,8 @@ namespace g4m::application::concrete {
                                 double rotMaxBm = 0;
                                 if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
-                                    rotMaxBm = species[plot.speciesType].getTOpt(appMaiForest(plot.x, plot.y),
-                                                                                 ORT::MaxBm);
+                                    rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
+                                                                                    OptRotTimes::Mode::MaxBm);
 
                                 double rotation = max(rotMaxBm, appRotationForest(plot.x, plot.y));
 
@@ -1787,8 +1782,8 @@ namespace g4m::application::concrete {
                                 double rotMAI = 0;
                                 if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
-                                    rotMAI = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                ORT::MAI);
+                                    rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                   OptRotTimes::Mode::MAI);
 
                                 if (appRotationForest(plot.x, plot.y) != rotMAI) {
                                     double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohortsU[plot.asID], year,
@@ -1834,8 +1829,8 @@ namespace g4m::application::concrete {
                                 double rotMaxBmTh = 0;
                                 if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
-                                    rotMaxBmTh = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                    ORT::MaxBm);
+                                    rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                       OptRotTimes::Mode::MaxBm);
 
                                 if (appRotationForest(plot.x, plot.y) < rotMaxBmTh) {
                                     double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohortsU[plot.asID], year,
@@ -2056,8 +2051,8 @@ namespace g4m::application::concrete {
                                 double rotMAI = 0;
                                 if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
-                                    rotMAI = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                ORT::MAI);
+                                    rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                   OptRotTimes::Mode::MAI);
 
                                 if (appRotationForest(plot.x, plot.y) != rotMAI) {
                                     double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohortsU[plot.asID], year,
@@ -2099,8 +2094,8 @@ namespace g4m::application::concrete {
                                 double rotMaxBmTh = 0;
                                 if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
-                                    rotMaxBmTh = species[plot.speciesType].getTOptT(appMaiForest(plot.x, plot.y),
-                                                                                    ORT::MaxBm);
+                                    rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                                       OptRotTimes::Mode::MaxBm);
 
                                 if (appRotationForest(plot.x, plot.y) < rotMaxBmTh) {
                                     double NPVTmp0 = CPol ? 0 : npvCalc(plot, appCohortsU[plot.asID], year,
@@ -2164,14 +2159,12 @@ namespace g4m::application::concrete {
                     if (appForest30Policy)
                         cleanedWoodUseCurrent30 *= cleanWoodUseShare30;
 
-                    auto cohortResAll = appDats[plot.asID].U.forestShare > 0 ? appCohortsU[plot.asID].cohortRes()
-                                                                             : CohortRes{};
-                    auto cohortResNew =
-                            appDats[plot.asID].N.forestShare > 0 ? appCohortsN[plot.asID].cohortRes()
-                                                                 : CohortRes{};
-                    auto cohortRes30 =
-                            appDats[plot.asID].O30.forestShare > 0 ? appCohorts30[plot.asID].cohortRes()
-                                                                   : CohortRes{};
+                    CohortRes cohortResAll =
+                            appDats[plot.asID].U.forestShare > 0 ? appCohortsU[plot.asID].cohortRes() : CohortRes{};
+                    CohortRes cohortResNew =
+                            appDats[plot.asID].N.forestShare > 0 ? appCohortsN[plot.asID].cohortRes() : CohortRes{};
+                    CohortRes cohortRes30 =
+                            appDats[plot.asID].O30.forestShare > 0 ? appCohorts30[plot.asID].cohortRes() : CohortRes{};
 
                     // harvRes_fcO = ((sawnW + restW) * (BEF(int(iter->SPECIESTYPE[byear]) - 1, (bmH / harvAreaO * realAreaO), iter->FTIMBER[byear]) - 1) + (bmH - (sawnW + restW)));
                     double harvRes_fcO = cohortResAll.if_fc() ? cohortResAll.getFinalCutWood() *
@@ -2205,20 +2198,20 @@ namespace g4m::application::concrete {
 
                     if (appThinningForest(plot.x, plot.y) < 0) {
                         tie(harvRes_scO, harvRes_scO_notTaken)
-                                = cohortResAll.harvResiduesSanitaryFellings(plot, cleanedWoodUseCurrent,
-                                                                            plot.BEF(
-                                                                                    appDats[plot.asID].U.prevStemBiomass));
+                                = cohortResAll.harvestResiduesSanitaryFellings(plot, cleanedWoodUseCurrent,
+                                                                               plot.BEF(
+                                                                                       appDats[plot.asID].U.prevStemBiomass));
                         tie(harvRes_scN, harvRes_scN_notTaken)
-                                = cohortResNew.harvResiduesSanitaryFellings(plot, cleanedWoodUseCurrent,
-                                                                            appDats[plot.asID].prevPlantPhytHaBmGrBef /
-                                                                            appDats[plot.asID].prevPlantPhytHaBmGr -
-                                                                            1);
+                                = cohortResNew.harvestResiduesSanitaryFellings(plot, cleanedWoodUseCurrent,
+                                                                               appDats[plot.asID].prevPlantPhytHaBmGrBef /
+                                                                               appDats[plot.asID].prevPlantPhytHaBmGr -
+                                                                               1);
                     }
                     if (appThinningForest30(plot.x, plot.y) < 0 && residueUse30 > 0)
                         tie(harvRes_sc30, harvRes_sc30_notTaken)
-                                = cohortResAll.harvResiduesSanitaryFellings(plot, cleanedWoodUseCurrent30,
-                                                                            plot.BEF(
-                                                                                    appDats[plot.asID].O30.prevStemBiomass));
+                                = cohortResAll.harvestResiduesSanitaryFellings(plot, cleanedWoodUseCurrent30,
+                                                                               plot.BEF(
+                                                                                       appDats[plot.asID].O30.prevStemBiomass));
 
                     double stump = 0;       // stumps of old forest, tC/ha
                     double stump_new = 0;   // stumps of new forest, tC/ha
@@ -2228,15 +2221,17 @@ namespace g4m::application::concrete {
                         if (appThinningForest(plot.x, plot.y) > 0) {
                             // calculate amount of stumps + big roots for final felling, tC/ha
                             if (cohortResAll.positiveAreas())
-                                stump = plot.DBHHToStump(cohortResAll.DBH, cohortResAll.H, cohortResAll.getHarvestGS());
+                                stump = plot.DBHHToStump(cohortResAll.finalCut.DBH, cohortResAll.finalCut.H,
+                                                         cohortResAll.getHarvestGS());
                             if (cohortResNew.positiveAreas())
-                                stump_new = plot.DBHHToStump(cohortResNew.DBH, cohortResNew.H,
+                                stump_new = plot.DBHHToStump(cohortResNew.finalCut.DBH, cohortResNew.finalCut.H,
                                                              cohortResNew.getHarvestGS());
                         }
                         if (appThinningForest30(plot.x, plot.y) > 0 && residueUse30 > 0) {
                             // calculate amount of stumps + big roots for final felling, tC/ha
                             if (cohortRes30.positiveAreas())
-                                stump30 = plot.DBHHToStump(cohortRes30.DBH, cohortRes30.H, cohortRes30.getHarvestGS());
+                                stump30 = plot.DBHHToStump(cohortRes30.finalCut.DBH, cohortRes30.finalCut.H,
+                                                           cohortRes30.getHarvestGS());
                         }
                     }
                     /*

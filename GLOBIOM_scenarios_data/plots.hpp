@@ -14,7 +14,6 @@ using namespace g4m::init;
 using namespace g4m::Dicts;
 using namespace g4m::Arrays;
 
-// TODO name, namespace?
 namespace g4m::GLOBIOM_scenarios_data {
     class Plots {
     public:
@@ -34,7 +33,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             auto get_HeaderName_YearFromHeaderColumn = [](const string &s) -> pair<string, optional<uint16_t> > {
                 size_t num_pos = s.find_first_of("012345789");
                 if (num_pos == string::npos)
-                    return {s, {}};
+                    return {s, nullopt};
                 return {s.substr(0, num_pos), stoi(s.substr(num_pos, s.length()))};
             };
 

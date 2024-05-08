@@ -33,6 +33,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             for (auto &row: bauData)
                 fp.read(reinterpret_cast<char *>(row.data()), static_cast<streamsize>(sizeof(double) * dimensionsNum));
 
+            INFO("Successfully read {} lines.", dimensionsNum);
             return bauData;
         }
 

@@ -13,6 +13,7 @@ using namespace std::numbers;
 using namespace g4m::misc::concrete;
 using namespace g4m::Constants;
 
+// TODO change namespace
 namespace g4m::increment {
     // Calculating costs for planting and managing forest stands for estimating land use change decisions.
     // Based on DIMA LUC model (Kindermann et al. 2006, 2006; Rokityanskiy et al. 2007)

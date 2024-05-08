@@ -91,6 +91,7 @@ namespace g4m::StartData {
     unordered_map<uint8_t, vector<HarvestResidues> > commonHarvestResiduesCountry;
 
     unordered_map<string, binary_semaphore, StringHash, equal_to<> > signalZeroCToMainScenarios;
+    mutex zeroC_mutex;   // to prevent data races to signalZeroCToMainScenarios
 }
 
 #endif

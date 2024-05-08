@@ -57,7 +57,6 @@ namespace g4m::logging::abstract {
 
     protected:
         MessageFormatter message_formatter;
-
         LogLevel filter = LogLevel::All;
 
         virtual void log(LogLevel level, string_view message, const source_location &source) = 0;

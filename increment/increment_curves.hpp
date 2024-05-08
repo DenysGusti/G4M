@@ -31,11 +31,11 @@ namespace g4m::increment {
         }
 
         // increment optimal rotation time
-        [[nodiscard]] double getTOpt() const noexcept {
+        [[nodiscard]] inline double getTOpt() const noexcept {
             return tOpt;
         }
 
-        [[nodiscard]] double getTcpMax() const noexcept {
+        [[nodiscard]] inline double getTcpMax() const noexcept {
             return tcpMax;
         }
 
@@ -146,19 +146,19 @@ namespace g4m::increment {
         double th13 = 0;
         double tcpMax = 0;
 
-        void calcK() noexcept {
+        inline void calcK() noexcept {
             k = min(0., coef.k[0] + coef.k[1] * exp(coef.k[2] * pow(mai, coef.k[3])));
         }
 
-        void calcTcpMax() noexcept {
+        inline void calcTcpMax() noexcept {
             tcpMax = k < 0 ? max(0., mai * tMax * exp(0.25 / k)) : 0;
         }
 
-        void calcTMax() noexcept {
+        inline void calcTMax() noexcept {
             tMax = max(0., coef.tMax[0] + coef.tMax[1] / (1 + exp(coef.tMax[2] + coef.tMax[3] * mai)));
         }
 
-        void calcTOpt() noexcept {
+        inline void calcTOpt() noexcept {
             tOpt = k < 0 ? max(0., tMax * exp(0.5 / k)) : 0;
         }
 

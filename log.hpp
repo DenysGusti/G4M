@@ -5,6 +5,9 @@
 #include <format>
 #include <filesystem>
 
+#define NDEBUG
+#include <cassert>
+
 #include "logging/concrete/simple_file_logger.hpp"
 #include "logging/concrete/async_file_logger.hpp"
 
@@ -34,7 +37,8 @@ namespace g4m::Log {
         // s_Logger->setFilter(~(LogLevel::Debug | LogLevel::Warn));
     }
 
-    inline ALogger &GetLogger() noexcept {
+    inline ALogger &GetLogger() {
+        assert(s_Logger != nullptr);
         return *s_Logger;
     }
 }

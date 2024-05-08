@@ -339,10 +339,12 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         void correctAndConvertCO2Prices() noexcept {
+            const double molar_ratio = 44. / 12.;  // M(CO2) / M(C)
+            const double coef = deflator * molar_ratio;
             for (auto &[scenario, datamap]: CO2PriceScenarios)
                 for (auto &[id, ipol]: datamap)
                     for (auto &[year, CO2Price]: ipol.data)
-                        CO2Price = CO2Price < 0.011 ? 0 : CO2Price * deflator * 44. / 12.;  // M(CO2) / M(C)
+                        CO2Price = CO2Price < 0.011 ? 0 : CO2Price * coef;
         }
 
         void printData() const noexcept {

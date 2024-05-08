@@ -24,7 +24,7 @@ namespace g4m::Constants {
     // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
     const string suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_";
 
-    constexpr bool debugWithoutBigFiles = true;
+    constexpr bool debugWithoutBigFiles = false;
 
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
 

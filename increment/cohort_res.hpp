@@ -2,18 +2,17 @@
 #define G4M_EUROPE_DG_COHORT_RES_HPP
 
 #include "../settings/constants.hpp"
-#include "v.hpp"
+#include "FM_result.hpp"
 #include "../init/data_struct.hpp"
 
 using namespace g4m::Constants;
 using namespace g4m::init;
 
 namespace g4m::increment {
+    // Calculate total harvestable stem wood for forest tC/ha (final cut + thinning) and
+    // total wood (including harvest losses) at final felling and thinning
     struct CohortRes {
-        double harvestArea = 0;     // tC/ha
         double realArea = 0;        // tC/ha
-        double DBH = 0;           // average DBH of trees in age classes that are clear-cut
-        double H = 0;             // average height of trees in age classes that are clear-cut
         // MG: get harvestable sawn-wood for the forest tC/ha for final cut
         double sawnWood = 0;
         // MG: get harvestable rest-wood for the forest tC/ha for final cut
@@ -27,24 +26,27 @@ namespace g4m::increment {
         // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
         double bmTh = 0;
 
+        FMResult thinning;
+        FMResult finalCut;  // harvestArea = area
+
         CohortRes() = default;
 
-        CohortRes(const double realArea_, const pair<V, V> &res, const double DBH_, const double H_)
-                : harvestArea{res.second.area}, realArea{realArea_}, DBH{DBH_}, H{H_} {
+        CohortRes(const double realArea_, const FMResult &thinning_, const FMResult &finalCut_)
+                : realArea{realArea_}, thinning{thinning_}, finalCut{finalCut_} {
             if (realArea <= 0)
                 return;
 
             double reciprocalRealArea = 1. / realArea;
-            double areaRatio = harvestArea * reciprocalRealArea;  // harvestArea / realArea
+            double areaRatio = finalCut.area * reciprocalRealArea;  // harvestArea / realArea
             double reciprocalModTimeStep = 1. / modTimeStep;
 
-            sawnWood = res.second.sawnWood * areaRatio;
-            restWood = res.second.restWood * areaRatio;
-            sawnThWood = res.first.sawnWood * reciprocalRealArea;
-            restThWood = res.first.restWood * reciprocalRealArea;
-            bmH = res.second.bm * areaRatio;
+            sawnWood = finalCut.sawnWood * areaRatio;
+            restWood = finalCut.restWood * areaRatio;
+            sawnThWood = thinning.sawnWood * reciprocalRealArea;
+            restThWood = thinning.restWood * reciprocalRealArea;
+            bmH = finalCut.bm * areaRatio;
             // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
-            bmTh = res.first.bm * reciprocalRealArea;
+            bmTh = thinning.bm * reciprocalRealArea;
             // harvestW, bmH, bmTh
 
             sawnWood *= reciprocalModTimeStep;
@@ -56,54 +58,54 @@ namespace g4m::increment {
         }
 
         // sawnWood + restWood + sawnThWood + restThWood
-        [[nodiscard]] double getTotalWoodRemoval() const noexcept {
+        [[nodiscard]] inline double getTotalWoodRemoval() const noexcept {
             return sawnWood + restWood + sawnThWood + restThWood;
         }
 
         // bmH + bmTh
-        [[nodiscard]] double getTotalHarvestedBiomass() const noexcept {
+        [[nodiscard]] inline double getTotalHarvestedBiomass() const noexcept {
             return bmH + bmTh;
         }
 
         // totalHarvestedBiomass - totalWoodRemoval
-        [[nodiscard]] double getHarvestLosses() const noexcept {
+        [[nodiscard]] inline double getHarvestLosses() const noexcept {
             return getTotalHarvestedBiomass() - getTotalWoodRemoval();
         }
 
         // sawnWood + restWood
-        [[nodiscard]] double getFinalCutWood() const noexcept {
+        [[nodiscard]] inline double getFinalCutWood() const noexcept {
             return sawnWood + restWood;
         }
 
         // sawnThWood + restThWood
-        [[nodiscard]] double getThinnedWood() const noexcept {
+        [[nodiscard]] inline double getThinnedWood() const noexcept {
             return sawnThWood + restThWood;
         }
 
-        [[nodiscard]] bool positiveAreas() const noexcept {
-            return harvestArea > 0 && realArea > 0;
+        [[nodiscard]] inline bool positiveAreas() const noexcept {
+            return finalCut.area > 0 && realArea > 0;
         }
 
         // harvestArea > 0 && getFinalCutWood() > 0 && bmH > 0
         // tC/ha
-        [[nodiscard]] bool if_fc() const noexcept {
+        [[nodiscard]] inline bool if_fc() const noexcept {
             return positiveAreas() && getFinalCutWood() > 0 && bmH > 0;
         }
 
         // realArea > 0 && getThinnedWood() > 0 && bmTh > 0
         // tC/ha
-        [[nodiscard]] bool if_th() const noexcept {
+        [[nodiscard]] inline bool if_th() const noexcept {
             return realArea > 0 && getThinnedWood() > 0 && bmTh > 0;
         }
 
         // harvestArea / realArea
-        [[nodiscard]] double getAreaRatio() const noexcept {
-            return harvestArea / realArea;
+        [[nodiscard]] inline double getAreaRatio() const noexcept {
+            return finalCut.area / realArea;
         }
 
         // bmH * (realArea / harvestArea)
-        [[nodiscard]] double getHarvestGS() const noexcept {
-            return bmH * realArea / harvestArea;
+        [[nodiscard]] inline double getHarvestGS() const noexcept {
+            return bmH * realArea / finalCut.area;
         }
 
         /*
@@ -116,8 +118,8 @@ namespace g4m::increment {
         */
 
         [[nodiscard]] pair<double, double>
-        harvResiduesSanitaryFellings(const DataStruct &plot, const double cleanedWoodUseShare,
-                                     const double biomassExpansionThinning) const {
+        harvestResiduesSanitaryFellings(const DataStruct &plot, const double cleanedWoodUseShare,
+                                        const double biomassExpansionThinning) const {
             if (realArea <= 0)
                 return {0, 0};
 
@@ -133,7 +135,7 @@ namespace g4m::increment {
             double harvRes_sc_notTaken = lost_th;
 
             // Added 28 July 2017: self dying trees that are not used as logs
-            if (harvestArea > 0) {
+            if (finalCut.area > 0) {
                 harvRes_sc += lost_fc + lost_fc_d;
                 harvRes_sc_notTaken += lost_fc;
             }

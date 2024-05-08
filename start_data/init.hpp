@@ -141,7 +141,10 @@ namespace g4m::StartData {
         // start calculations
         initGlobiomLandAndManagedForest();
         initLoop();
-        initZeroProdArea();
+        if (zeroProdAreaInit)
+            initZeroProdArea();
+        else
+            INFO("initZeroProdArea is turned off");
 
 //        plots.printPlots();
 //        nuts2.printNuts2Id();

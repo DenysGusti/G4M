@@ -17,7 +17,6 @@ using namespace g4m::Constants;
 using namespace g4m::Arrays;
 using namespace g4m::Dicts;
 
-// TODO name, namespace?
 namespace g4m::GLOBIOM_scenarios_data {
     class NUTS2 {
     public:

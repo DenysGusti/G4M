@@ -29,9 +29,7 @@ namespace g4m::parameters {
         // returns hlv, hle
         // 1-harvesting losses thinning (Vornutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
         // 1-harvesting losses final felling (Endnutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
-        static pair<FFIpol < double>, FFIpol<double> >
-
-        setupHarvestLosses(const uint8_t countryId) noexcept {
+        static pair<FFIpol<double>, FFIpol<double> > setupHarvestLosses(const uint8_t countryId) noexcept {
             Ipol<double> fun_hlv;       // 1-Ernteverluste Vornutzung
             Ipol<double> fun_hle;       // 1-Ernteverluste Endnutzung
 
@@ -103,7 +101,7 @@ namespace g4m::parameters {
             decisions = Decisions{
                     .diameterDovMin = 3,
                     .stemBiomassDovMin = 5,
-                    .thinShareDovMin = 0.0000000000000000000001, // 0.001, // TODO Find  correct parameter!
+                    .thinShareDovMin = 1e-7, // 0.001, // TODO find correct parameter!
                     .diameterDoeMin = 15,
                     .stemBiomassDoeMin = 10
             };

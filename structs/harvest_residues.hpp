@@ -91,6 +91,7 @@ namespace g4m::structs {
             }
         }
 
+        // change to mdspan in the future
         [[nodiscard]] double
         lerpERUS(const array<array<double, 4>, numberOfCountries> &emissionsResUseSust, uint16_t year) const noexcept {
             /*

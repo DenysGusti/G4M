@@ -1,28 +1,35 @@
 #ifndef G4M_EUROPE_DG_OPT_ROT_TIMES_HPP
 #define G4M_EUROPE_DG_OPT_ROT_TIMES_HPP
 
-#include "ort.hpp"
-
 namespace g4m::increment {
     // Optimal rotation time
     struct OptRotTimes {
+        // Get optimal rotation time (getTOpt and getTOptT)
+        enum class Mode : uint8_t {
+            MAI,       // Highest average increment
+            MaxBm,     // Maximum average biomass
+            MaxAge,    // Highest possible age
+            HarvFin,   // Maximum harvest at final cut
+            HarvAve    // Average Maximum harvest at final cut
+        };
+
         int maxInc = 0;       // Highest average increment
         int maxBm = 0;        // Maximum average Biomass
         int maxHarv = 0;      // Maximum harvest at final cut
         int maxAvgHarv = 0;   // Average Maximum harvest at final cut
         int maxAge = 0;       // Highest possible age
 
-        int operator[](const ORT type) const noexcept {
+        [[nodiscard]] int operator()(const Mode type) const noexcept {
             switch (type) {
-                case ORT::MAI:
+                case Mode::MAI:
                     return maxInc;
-                case ORT::MaxBm:
+                case Mode::MaxBm:
                     return maxBm;
-                case ORT::MaxAge:
+                case Mode::MaxAge:
                     return maxAge;
-                case ORT::HarvFin:
+                case Mode::HarvFin:
                     return maxHarv;
-                case ORT::HarvAve:
+                case Mode::HarvAve:
                     return maxAvgHarv;
                 default:
                     return numeric_limits<int>::max();
