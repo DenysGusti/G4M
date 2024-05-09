@@ -20,7 +20,7 @@
 #include "canopy_layer.hpp"
 #include "shelter_wood_timer.hpp"
 #include "increment_tab.hpp"
-#include "settings/constants.hpp"
+#include "../settings/constants.hpp"
 #include "../parameters/decisions.hpp"
 
 using namespace std;

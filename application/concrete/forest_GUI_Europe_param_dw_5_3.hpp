@@ -357,7 +357,8 @@ namespace g4m::application::concrete {
                 }
             }
 
-            forest30GeneralFM();
+            if (!appForest30Policy)  // TODO write separate loop for no forest10 policy
+                forest30GeneralFM();
 
             if (fmPol && year > refYear && inputPriceC != 0) {
                 // populate list of countries where it's impossible to match demanded wood production in current year
@@ -1123,20 +1124,20 @@ namespace g4m::application::concrete {
                 printHarvestDiagnostics(woodHarvestDetailed, harvDiff, year);
             }
 
-            forest30GeneralFM();
+            if (!appForest30Policy)  // TODO write separate loop for no forest10 policy
+                forest30GeneralFM();
             return woodHarvest;
         }
 
         // TEMPORAL SHORTCUT FOR forest10 and forest30 when there are no the forest10 and forest30 policies
         void forest30GeneralFM() {
-            if (!appForest30Policy)  // write separate loop for no forest10 policy
-                for (const auto &plot: appPlots) {
-                    appCohorts30[plot.asID].setU(appRotationForest(plot.x, plot.y));
-                    double SD = appThinningForest(plot.x, plot.y);
-                    appThinningForest30(plot.x, plot.y) = SD;
-                    appCohorts30[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
-                    appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
-                }
+            for (const auto &plot: appPlots) {
+                appCohorts30[plot.asID].setU(appRotationForest(plot.x, plot.y));
+                double SD = appThinningForest(plot.x, plot.y);
+                appThinningForest30(plot.x, plot.y) = SD;
+                appCohorts30[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
+                appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
+            }
         }
 
         // Calculate rotation that maximizes NPV

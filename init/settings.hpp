@@ -38,7 +38,7 @@ namespace g4m::init {
             ifstream file{filesystem::path{file_name}};
             if (!file.is_open()) {
                 FATAL("Cannot read {}", file_name);
-                throw runtime_error{"Cannot read setting file"};
+                throw runtime_error{"Cannot read settings file"};
             }
 
             string line;
@@ -62,6 +62,10 @@ namespace g4m::init {
 
             for (int line_num = 0; file;) {
                 getline(file, line);
+
+                if (!line.empty() && line.back() == '\r')   // remove carriage return for linux
+                    line.pop_back();
+
                 if (line.empty() || line[0] == '#')
                     continue;
 

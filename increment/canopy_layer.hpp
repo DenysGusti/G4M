@@ -365,19 +365,23 @@ namespace g4m::increment {
                 ERROR("cohortShift: currentMaxSize ({}) <= 1!", currentMaxSize);
                 return;
             }
+            // change back to ranges later
             if (dat.size() + 1 <= currentMaxSize) {
                 initNewAgeClasses(1, sd, avgMai);
-                ranges::shift_right(dat, 1);  // shift right 1
+                shift_right(dat.begin(), dat.end(), 1);
+                // ranges::shift_right(dat, 1);  // shift right 1
                 dat[0] = AgeClass{};
                 return;
             }
             if (dat.back().area == 0) {
-                ranges::shift_right(dat, 1);  // shift right 1
+                shift_right(dat.begin(), dat.end(), 1);
+                // ranges::shift_right(dat, 1);  // shift right 1
                 dat[0] = AgeClass{};
                 return;
             }
             dat.back() = dat.back().getWeightedAgeClass(dat.end()[-2]);
-            ranges::shift_right(dat | rv::take(dat.size() - 1), 1);  // shift right 1 dat except last element
+            shift_right(dat.begin(), dat.end() - 1, 1);
+            // ranges::shift_right(dat | rv::take(dat.size() - 1), 1);  // shift right 1 dat except last element
             dat[0] = AgeClass{};
         }
 

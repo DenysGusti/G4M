@@ -92,12 +92,16 @@ namespace g4m::init {
         }
 
         void update1YearBackward() noexcept {
-            ranges::shift_left(grid, 1);
+            // change back to ranges later
+            shift_left(grid.begin(), grid.end(), 1);
+            // ranges::shift_left(grid, 1);
             grid.back().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
         }
 
         void update1YearForward() noexcept {
-            ranges::shift_right(grid, 1);
+            // change back to ranges later
+            shift_right(grid.begin(), grid.end(), 1);
+            // ranges::shift_right(grid, 1);
             grid.front().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
         }
 

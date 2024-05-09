@@ -82,7 +82,7 @@ namespace g4m::init {
 
             if (!fp.is_open()) {
                 FATAL("Cannot read {}", fileName);
-                throw runtime_error{"Cannot read setting file"};
+                throw runtime_error{"Cannot read coefficients file"};
             }
 
             vector<string> s_args;

@@ -85,6 +85,9 @@ namespace g4m::Constants {
     constexpr double npvLoss = 0.25;    // 0.03 CHECK for SLOVENIA; share of NPV loss that we allow when adjusting RT 11.05.2023
 
     constexpr bool disturbanceSwitch = true;    // Switch simulation of the disturbance event in CZ
+
+    // Adjusting (increasing) FM sink by disturbance management in "unmanaged" forests
+    constexpr bool adjustFMSink = true; // switch ON adjusting of Rotation to better match the UNFCCC FM emissions
 }
 
 #endif
