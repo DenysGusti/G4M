@@ -446,12 +446,14 @@ namespace g4m::application::concrete {
 
                 INFO("-------------------------------");
                 if (year > residueHarvYear) {
-                    for (const auto i: countriesList)
-                        if (dms.woodDemand.at(i)(year) > 0) {
-                            double residuesDemand = dms.residuesDemand.at(i)(year);
-                            double residuesDiff = residuesDemand > 0 ? abs(residueHarvest[i] / residuesDemand - 1) : 0;
+                    for (const auto country: countriesList)
+                        if (dms.woodDemand.at(country)(year) > 0) {
+                            double residuesDemand = dms.residuesDemand.at(country)(year);
+                            double residuesDiff =
+                                    residuesDemand > 0 ? abs(residueHarvest[country] / residuesDemand - 1) : 0;
                             TRACE("{}: residuesDiff = {}\tresiduesDemand = {}\tresiduesHarvest = {}\tharvestResiduesSoilEmissions = {}",
-                                  i, residuesDiff, residuesDemand, residueHarvest[i], harvestResiduesSoilEmissions[i]);
+                                  country, residuesDiff, residuesDemand, residueHarvest[country],
+                                  harvestResiduesSoilEmissions[country]);
                         }
                 }
 
@@ -1050,15 +1052,15 @@ namespace g4m::application::concrete {
             constexpr int precision = 6;
 
             // https://docs.python.org/3/library/string.html
-            for (const auto i: countriesList) {
+            for (const auto country: countriesList) {
                 TRACE("i = {0:3}\tharvDiff = {1:{8}.{9}f}\twoodDemand = {2:{8}.{9}f}\twoodHarvestTotal = {3:{8}.{9}f}\tUN = {4:{8}.{9}f}\tO10 = {5:{8}.{9}f}\tO30 = {6:{8}.{9}f}\tsalvageLogging = {7:{8}.{9}f}",
-                      i, harvDiff[i], dms.woodDemand.at(i)(year),
-                      woodHarvestDetailed[0][i], woodHarvestDetailed[1][i], woodHarvestDetailed[2][i],
-                      woodHarvestDetailed[3][i], woodHarvestDetailed[4][i], width, precision);
+                      country, harvDiff[country], dms.woodDemand.at(country)(year),
+                      woodHarvestDetailed[0][country], woodHarvestDetailed[1][country], woodHarvestDetailed[2][country],
+                      woodHarvestDetailed[3][country], woodHarvestDetailed[4][country], width, precision);
 //                TRACE("harvestCalcPrev = {}\t\tprevUN = {}\t\tprevO10 = {}\t\tprevO30 = {}",
-//                      countriesWoodHarvestM3Year.getVal(i, year - 1), countriesWoodHarvestUNM3Year.getVal(i, year - 1),
-//                      countriesWoodHarvest10M3Year.getVal(i, year - 1),
-//                      countriesWoodHarvest30M3Year.getVal(i, year - 1));
+//                      countriesWoodHarvestM3Year.getVal(country, year - 1), countriesWoodHarvestUNM3Year.getVal(country, year - 1),
+//                      countriesWoodHarvest10M3Year.getVal(country, year - 1),
+//                      countriesWoodHarvest30M3Year.getVal(country, year - 1));
             }
         }
 
@@ -2012,10 +2014,10 @@ namespace g4m::application::concrete {
         getHarvDiff(const uint16_t year, const span<const double> woodHarvest, const bool toAdjustOnly) const {
             array<double, numberOfCountries> harvDiff{};
 
-            for (const auto i: countriesList)
-                if ((!toAdjustOnly || toAdjust.contains(i) && !countriesNoFmCPol.contains(i)) &&
-                    dms.woodDemand.at(i)(year) > 0)
-                    harvDiff[i] = abs(woodHarvest[i] / dms.woodDemand.at(i)(year) - 1);
+            for (const auto country: countriesList)
+                if ((!toAdjustOnly || toAdjust.contains(country) && !countriesNoFmCPol.contains(country)) &&
+                    dms.woodDemand.at(country)(year) > 0)
+                    harvDiff[country] = abs(woodHarvest[country] / dms.woodDemand.at(country)(year) - 1);
 
             return harvDiff;
         }
