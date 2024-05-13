@@ -49,10 +49,10 @@ namespace g4m::StartData {
         NUTS2_future.get();
 
         future<void> MAI_future = async(launch::async, [] {
-            if (!debugWithoutBigFiles) {
+            if constexpr (!debugWithoutBigFiles) {
                 Log::Init("MAI");
                 simuIdScenarios.readMAIClimate(plots.plotsXY_SimuID);
-                if (!scaleMAIClimate)
+                if constexpr (!scaleMAIClimate)
                     simuIdScenarios.scaleMAIClimate2020();
                 else
                     INFO("scaleMAIClimate is turned off");
@@ -60,7 +60,7 @@ namespace g4m::StartData {
         });
 
         future<void> globiom_land_future = async(launch::async, [] {
-            if (!debugWithoutBigFiles) {
+            if constexpr (!debugWithoutBigFiles) {
                 Log::Init("globiom_land");
                 simuIdScenarios.readGlobiomLandCalibrate(plots.plotsSimuID);
                 simuIdScenarios.readGlobiomLand(plots.plotsSimuID);
@@ -68,7 +68,7 @@ namespace g4m::StartData {
         });
 
         future<void> globiom_land_country_future = async(launch::async, [] {
-            if (!debugWithoutBigFiles) {
+            if constexpr (!debugWithoutBigFiles) {
                 Log::Init("globiom_land_country");
                 countryLandArea = datamapScenarios.readGlobiomLandCountryCalibrate_calcCountryLandArea();
                 datamapScenarios.readGlobiomLandCountry();
@@ -76,11 +76,11 @@ namespace g4m::StartData {
         });
 
         future<void> disturbances_future = async(launch::async, [] {
-            if (!debugWithoutBigFiles) {
+            if constexpr (!debugWithoutBigFiles) {
                 Log::Init("disturbances");
                 simuIdScenarios.readDisturbances(plots.plotsXY_SimuID);
                 simuIdScenarios.add2020Disturbances();
-                if (scaleDisturbance2020)
+                if constexpr (scaleDisturbance2020)
                     simuIdScenarios.scaleDisturbances2020();
                 else
                     INFO("scaleDisturbance2020 is turned off");
@@ -88,7 +88,7 @@ namespace g4m::StartData {
         });
 
         future<void> disturbances_extreme_future = async(launch::async, [] {
-            if (!debugWithoutBigFiles) {
+            if constexpr (!debugWithoutBigFiles) {
                 Log::Init("disturbances_extreme");
                 simuIdScenarios.readDisturbancesExtreme(plots.plotsXY_SimuID);
             }
@@ -96,7 +96,7 @@ namespace g4m::StartData {
 
         future<void> biomass_bau_future = async(launch::async, [] {
             Log::Init("biomass_bau");
-            if (fmPol && binFilesOnDisk) {
+            if constexpr (fmPol && binFilesOnDisk) {
                 bauScenarios.readBiomassBau();
             } else
                 INFO("biomass_bau reading is turned off");
@@ -104,7 +104,7 @@ namespace g4m::StartData {
 
         future<void> NPV_bau_future = async(launch::async, [] {
             Log::Init("NPV_bau");
-            if (fmPol && binFilesOnDisk) {
+            if constexpr (fmPol && binFilesOnDisk) {
                 bauScenarios.readNPVBau();
             } else
                 INFO("NPV_bau reading is turned off");
@@ -141,7 +141,7 @@ namespace g4m::StartData {
         // start calculations
         initGlobiomLandAndManagedForest();
         initLoop();
-        if (zeroProdAreaInit)
+        if constexpr (zeroProdAreaInit)
             initZeroProdArea();
         else
             INFO("initZeroProdArea is turned off");

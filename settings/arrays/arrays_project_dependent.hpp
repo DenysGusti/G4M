@@ -11,7 +11,7 @@ using namespace std;
 using namespace g4m::Constants;
 
 namespace g4m::Arrays {
-    // country specific harvest losses NEW Country Codes!!!! Shifted by -1 to start array from 0
+    // country specific harvest losses NEW Country Codes!!!! Array starts from 1
     // Source: Forest Resources of Europe; CIS; North America; Australia; Japan and New Zealand: Main Report 2000
     // Estimated by Hannes Bottcher??
     consteval array<double, numberOfCountries> initCountryLosses() noexcept {
@@ -120,49 +120,49 @@ namespace g4m::Arrays {
 
     // Forest management CO2 sink (only CO2, only biomass) reported by the countries, GgCO2
     // Net stock changes biomass FL-FL (from CRF table 5.A), average for 1990-2000, GgCO2/year ?
-    // New country code!!! shifted by -1
+    // New country code!!!
     consteval array<double, numberOfCountries> initFM_sink_stat() noexcept {
         array<double, numberOfCountries> FM_sink_stat{};
-        FM_sink_stat[15] = 39242;
-        FM_sink_stat[16] = 15001;
-        FM_sink_stat[19] = 33870;
-        FM_sink_stat[23] = 2175;
-        FM_sink_stat[27] = 13607;
-        FM_sink_stat[38] = 48346;
-        FM_sink_stat[96] = 8707;
-        FM_sink_stat[56] = 8731;
-        FM_sink_stat[60] = 939;
-        FM_sink_stat[68] = 6424;
-        FM_sink_stat[70] = 25384;
-        FM_sink_stat[73] = 52784;
-        FM_sink_stat[57] = 62429;
-        FM_sink_stat[86] = 1788;
-        FM_sink_stat[98] = 4032;
-        FM_sink_stat[105] = 3;
-        FM_sink_stat[102] = 604;
-        FM_sink_stat[107] = 24658;
-        FM_sink_stat[110] = 80579;
-        FM_sink_stat[129] = 22899;
-        FM_sink_stat[124] = 19;
-        FM_sink_stat[127] = 13654;
-        FM_sink_stat[128] = 296;
-        FM_sink_stat[132] = 0;
-        FM_sink_stat[160] = 2420;
-        FM_sink_stat[164] = 23387;
-        FM_sink_stat[161] = 9402;
-        FM_sink_stat[173] = 24987;
-        FM_sink_stat[176] = 3630;
-        FM_sink_stat[182] = 38417;
-        FM_sink_stat[183] = 235445;
-        FM_sink_stat[201] = 2000;
-        FM_sink_stat[202] = 9522;
-        FM_sink_stat[67] = 39167;
-        FM_sink_stat[203] = 37819;
-        FM_sink_stat[40] = 2420;
-        FM_sink_stat[218] = 44338;
-        FM_sink_stat[223] = 58968;
-        FM_sink_stat[77] = 7652;
-        FM_sink_stat[226] = 434294;
+        FM_sink_stat[16] = 39242;
+        FM_sink_stat[17] = 15001;
+        FM_sink_stat[20] = 33870;
+        FM_sink_stat[24] = 2175;
+        FM_sink_stat[28] = 13607;
+        FM_sink_stat[39] = 48346;
+        FM_sink_stat[41] = 2420;
+        FM_sink_stat[57] = 8731;
+        FM_sink_stat[58] = 62429;
+        FM_sink_stat[61] = 939;
+        FM_sink_stat[68] = 39167;
+        FM_sink_stat[69] = 6424;
+        FM_sink_stat[71] = 25384;
+        FM_sink_stat[74] = 52784;
+        FM_sink_stat[78] = 7652;
+        FM_sink_stat[87] = 1788;
+        FM_sink_stat[97] = 8707;
+        FM_sink_stat[99] = 4032;
+        FM_sink_stat[103] = 604;
+        FM_sink_stat[106] = 3;
+        FM_sink_stat[108] = 24658;
+        FM_sink_stat[111] = 80579;
+        FM_sink_stat[125] = 19;
+        FM_sink_stat[128] = 13654;
+        FM_sink_stat[129] = 296;
+        FM_sink_stat[130] = 22899;
+        FM_sink_stat[133] = 0;
+        FM_sink_stat[161] = 2420;
+        FM_sink_stat[162] = 9402;
+        FM_sink_stat[165] = 23387;
+        FM_sink_stat[174] = 24987;
+        FM_sink_stat[177] = 3630;
+        FM_sink_stat[183] = 38417;
+        FM_sink_stat[184] = 235445;
+        FM_sink_stat[202] = 2000;
+        FM_sink_stat[203] = 9522;
+        FM_sink_stat[204] = 37819;
+        FM_sink_stat[219] = 44338;
+        FM_sink_stat[224] = 58968;
+        FM_sink_stat[227] = 434294;
         return FM_sink_stat;
     }
 

@@ -62,6 +62,13 @@ namespace g4m::application::concrete {
             }
         }
 
+        ~Forest_GUI_Europe_param_dw_5_3() {
+            if (fmPol && !binFilesOnDisk && inputPriceC == 0) {
+                scoped_lock<mutex> lock{zeroC_mutex};
+                signalZeroCToMainScenarios.at(suffix0).release();
+            }
+        }
+
         // start calculations
         void Run() override {
             INFO("Application {} is running", appName);
@@ -96,11 +103,6 @@ namespace g4m::application::concrete {
 
                 INFO("Adjusting FM...");
                 adjustManagedForest(year);
-            }
-
-            if (fmPol && !binFilesOnDisk && inputPriceC == 0) {
-                scoped_lock<mutex> lock{zeroC_mutex};
-                signalZeroCToMainScenarios.at(suffix0).release();
             }
         }
 
@@ -401,19 +403,32 @@ namespace g4m::application::concrete {
 
                     for (int i = 1; maxDiff > 0.01 && fm_hurdle > -1'000'000 && i <= 100; ++i) {
                         if (diffMaxDiff <= 0.001) {
-                            if (fm_hurdle < 2 && fm_hurdle > 0) fm_hurdle += 0.2;
-                            else if (fm_hurdle < 10 && fm_hurdle >= 2) fm_hurdle += 1;
-                            else if (fm_hurdle < 100 && fm_hurdle >= 10) fm_hurdle += 10;
-                            else if (fm_hurdle < 1'000 && fm_hurdle >= 100) fm_hurdle += 100;
-                            else if (fm_hurdle < 100'000 && fm_hurdle >= 1'000) fm_hurdle += 50'000;
-                            else if (fm_hurdle < 1'000'000 && fm_hurdle >= 100'000) fm_hurdle += 500'000;
-                            else if (fm_hurdle < 10'000'000 && fm_hurdle >= 1'000'000) fm_hurdle += 5'000'000;
-                            else if (fm_hurdle < 100'000'000 && fm_hurdle >= 10'000'000) fm_hurdle += 50'000'000;
-                            else if (fm_hurdle < 1'000'000'000 && fm_hurdle >= 100'000'000) fm_hurdle += 500'000'000;
-                            else if (fm_hurdle >= 1'000'000'000) fm_hurdle = -1;    // Try for Ireland
-                            else if (fm_hurdle >= -1 && fm_hurdle < 0) fm_hurdle = -2;
-                            else if (fm_hurdle >= -2 && fm_hurdle < 0) fm_hurdle = -10;
-                            else if (fm_hurdle >= -100'000 && fm_hurdle < 0) fm_hurdle = -1'000'000;
+                            if (fm_hurdle < 2 && fm_hurdle > 0)
+                                fm_hurdle += 0.2;
+                            else if (fm_hurdle < 10 && fm_hurdle >= 2)
+                                fm_hurdle += 1;
+                            else if (fm_hurdle < 100 && fm_hurdle >= 10)
+                                fm_hurdle += 10;
+                            else if (fm_hurdle < 1'000 && fm_hurdle >= 100)
+                                fm_hurdle += 100;
+                            else if (fm_hurdle < 100'000 && fm_hurdle >= 1'000)
+                                fm_hurdle += 50'000;
+                            else if (fm_hurdle < 1'000'000 && fm_hurdle >= 100'000)
+                                fm_hurdle += 500'000;
+                            else if (fm_hurdle < 10'000'000 && fm_hurdle >= 1'000'000)
+                                fm_hurdle += 5'000'000;
+                            else if (fm_hurdle < 100'000'000 && fm_hurdle >= 10'000'000)
+                                fm_hurdle += 50'000'000;
+                            else if (fm_hurdle < 1'000'000'000 && fm_hurdle >= 100'000'000)
+                                fm_hurdle += 500'000'000;
+                            else if (fm_hurdle >= 1'000'000'000)
+                                fm_hurdle = -1;    // Try for Ireland
+                            else if (fm_hurdle >= -1 && fm_hurdle < 0)
+                                fm_hurdle = -2;
+                            else if (fm_hurdle >= -2 && fm_hurdle < 0)
+                                fm_hurdle = -10;
+                            else if (fm_hurdle >= -100'000 && fm_hurdle < 0)
+                                fm_hurdle = -1'000'000;
                         }
                         auto _ = fmCPol(fm_hurdle, year, true);
 
@@ -465,6 +480,21 @@ namespace g4m::application::concrete {
                             double NPVTmp = npvCalc(plot, appCohortsU[plot.asID], year,
                                                     appRotationForest(plot.x, plot.y), used).first;
                         }
+
+                if (adjustFMSink && year == coef.bYear + 1) {
+                    array<double, 4> FMs_diff2 = {1000, 0, 0, 0};
+                    // change back to ranges later
+                    for (int count = 0; (FMs_diff2[0] != FMs_diff2[1] || FMs_diff2[1] != FMs_diff2[2] ||
+                                         FMs_diff2[2] != FMs_diff2[3]) && FMs_diff2[0] > 100 && count < 150; ++count) {
+                        shift_right(FMs_diff2.begin(), FMs_diff2.end(), 1);
+                        // ranges::shift_right(FMs_diff2, 1);  // shift right 1
+                        FMs_diff2[0] = adjustFMSinkFunc();
+                        DEBUG("count = {}\t", count, FMs_diff2[0]);
+                        for (size_t i = 0; i < FMs_diff2.size(); ++i)
+                            DEBUG("FMs_diff[{}] = {:e}", i, FMs_diff2[i]);
+                    }
+                    forest30GeneralFM();
+                }
             }
         }
 
@@ -2595,6 +2625,116 @@ namespace g4m::application::concrete {
                 countriesResExtSoilEm_MtCO2Year.setVal(country, year, harvestResiduesSoilEmissions[country] * 1e-6);
             }
             return harvestResiduesSoilEmissions;
+        }
+
+        // returns FMs_diff2
+        double adjustFMSinkFunc() {
+            // TODO check results' correctness
+            const double adjustToleranceFM = 0.01;
+            const uint16_t adjustEndYear = 2020;
+            array<double, numberOfCountries> FMs{};
+            const double dRotation = 5;
+
+            // TODO for debug only
+            const auto &tmp_array = FM_sink_stat;
+
+            vector<double> OForestShares(appPlots.size());
+            for (const auto &plot: appPlots)
+                // or appDats[plot.asID].OForestShare - plot.oldGrowthForest_ten - plot.strictProtected
+                OForestShares[plot.asID] = plot.oldGrowthForest_thirty + plot.forest;
+
+            vector<double> bmBEF0s(appPlots.size());
+            vector<double> FM_init(appPlots.size());
+            for (const auto &plot: appPlots)
+                if (plot.managed_UNFCCC) {
+                    AgeStruct cohortTmp = appCohortsU[plot.asID];
+                    const double bm0 = cohortTmp.getBm();
+                    const double bmBEF0 = bm0 * plot.BEF(bm0);
+
+                    int count = 0;
+                    for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
+                        auto _ = cohortTmp.aging(cohortTmp.getMai(), false);
+
+                    const double bm = cohortTmp.getBm();
+                    const double FM_tmp =
+                            (bm * plot.BEF(bm) - bmBEF0) * OForestShares[plot.asID] * appDats[plot.asID].landAreaHa *
+                            molar_ratio * 0.001 / count;
+                    bmBEF0s[plot.asID] = bmBEF0;
+                    FM_init[plot.asID] = FM_tmp;
+                }
+
+            for (const auto &plot: appPlots)
+                if (plot.managed_UNFCCC)
+                    FMs[plot.country] += FM_init[plot.asID];
+
+            for (const auto &plot: appPlots)
+                if (plot.managed_UNFCCC && appThinningForest(plot.x, plot.y) > 0) {
+                    if (FMs[plot.country] < (1 - adjustToleranceFM) * FM_sink_stat[plot.country]) {
+                        double biomassRot = 0;
+                        double rotMaxBm = 0;
+
+                        if (OForestShares[plot.asID] > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
+                            biomassRot = species.at(plot.speciesType).getU(appDats[plot.asID].OBiomass0,
+                                                                           appMaiForest(plot.x, plot.y));
+                            rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
+                                                                            OptRotTimes::Mode::MaxBm);
+                        }
+
+                        double rotation = appRotationForest(plot.x, plot.y);
+                        if (rotation < rotMaxBm) {
+                            rotation = min(rotation + dRotation, rotMaxBm);
+                            appCohortsU[plot.asID].setU(rotation);
+                            AgeStruct cohortTmp = appCohortsU[plot.asID];
+
+                            const double bm0 = cohortTmp.getBm();
+
+                            int count = 0;
+                            for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
+                                auto _ = cohortTmp.aging(cohortTmp.getMai(), false);
+
+                            const double bm = cohortTmp.getBm();
+                            const double FM_tmp = (bm * plot.BEF(bm) - bmBEF0s[plot.asID]) * OForestShares[plot.asID] *
+                                                  appDats[plot.asID].landAreaHa * molar_ratio * 0.001 / count;
+                            const double dFM = FM_tmp - FM_init[plot.asID];
+                            FMs[plot.country] += dFM;
+                        }
+
+                    } else if (FMs[plot.country] > (1 + adjustToleranceFM) * FM_sink_stat[plot.country]) {
+                        double biomassRot = 0;
+                        double rotMAI = 0;
+
+                        if (OForestShares[plot.asID] > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
+                            biomassRot = species.at(plot.speciesType).getU(appDats[plot.asID].OBiomass0,
+                                                                           appMaiForest(plot.x, plot.y));
+                            rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                           OptRotTimes::Mode::MAI);
+                        }
+
+                        double rotation = appRotationForest(plot.x, plot.y);
+                        if (rotation > rotMAI) {
+                            rotation = max(rotation - dRotation, rotMAI);
+                            appCohortsU[plot.asID].setU(rotation);
+                            AgeStruct cohortTmp = appCohortsU[plot.asID];
+
+                            const double bm0 = cohortTmp.getBm();
+
+                            int count = 0;
+                            for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
+                                auto _ = cohortTmp.aging(cohortTmp.getMai(), false);
+
+                            const double bm = cohortTmp.getBm();
+                            const double FM_tmp = (bm * plot.BEF(bm) - bmBEF0s[plot.asID]) * OForestShares[plot.asID] *
+                                                  appDats[plot.asID].landAreaHa * molar_ratio * 0.001 / count;
+                            const double dFM = FM_tmp - FM_init[plot.asID];
+                            FMs[plot.country] += dFM;
+                        }
+                    }
+                }
+
+            double FMs_diff2 = 0;
+            for (const auto country: countriesList) // test only some countries
+                FMs_diff2 += pow(FMs[country] - FM_sink_stat[country], 2);
+            return FMs_diff2;
         }
     };
 }

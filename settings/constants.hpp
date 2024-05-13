@@ -24,7 +24,7 @@ namespace g4m::Constants {
     // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
     const string suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_";
 
-    constexpr bool debugWithoutBigFiles = false;
+    constexpr bool debugWithoutBigFiles = true;
 
     constexpr bool scaleMAIClimate = true;      // Scaling the MAI climate shifters to the 2020 value (i.e., MAIShifter_year = MAIShifter_year/MAIShifter_2000, so the 2000 value = 1);
 
@@ -38,6 +38,7 @@ namespace g4m::Constants {
     constexpr double sdMaxCoef = 1; // maximum stocking degree multiplier: sdMax = SD * sdMaxCoef
 
     constexpr double deflator = 0.8807;  // Deflator to convert 2000 USD prices to 1995 USD prices
+    constexpr double molar_ratio = 44. / 12.;  // M(CO2) / M(C)
 
     // policies before forPolicyYearBioclima
     constexpr bool commonForest10Policy = false;  // Policy on protecting 10% of EU forests (BIOCLIMA)

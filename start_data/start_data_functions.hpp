@@ -35,14 +35,12 @@ namespace g4m::StartData {
 
     void calcAvgFM_sink_stat() noexcept {
         for (size_t i = 0; i < fmEmission_unfccc_CRF.size(); ++i) {
-            int count = 0;
             double fmSinkSumTmp = 0;
-            for (size_t j = 0; j < min(adjustLength, fmEmission_unfccc_CRF[0].size()) &&
-                               coef.bYear - 1990 + j < fmEmission_unfccc_CRF[0].size(); ++j) {
-                fmSinkSumTmp += fmEmission_unfccc_CRF[i][coef.bYear - 1990 + j] * -1;
-                ++count;
-            }
-            FM_sink_stat[eu28OrderCode[i] - 1] = count > 0 ? fmSinkSumTmp * 1'000 / count : 0; // GgCO2/year
+            int count = 0;
+            for (; count < min(adjustLength, fmEmission_unfccc_CRF[0].size()) &&
+                               coef.bYear - 1990 + count < fmEmission_unfccc_CRF[0].size(); ++count)
+                fmSinkSumTmp -= fmEmission_unfccc_CRF[i][coef.bYear - 1990 + count];
+            FM_sink_stat[eu28OrderCode[i]] = count > 0 ? fmSinkSumTmp * 1'000 / count : 0; // GgCO2/year
         }
     }
 
