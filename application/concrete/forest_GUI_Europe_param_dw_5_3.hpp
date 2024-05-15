@@ -2631,14 +2631,10 @@ namespace g4m::application::concrete {
 
         // returns FMs_diff2
         double adjustFMSinkFunc() {
-            // TODO check results' correctness
             const double adjustToleranceFM = 0.01;
             const uint16_t adjustEndYear = 2020;
             array<double, numberOfCountries> FMs{};
             const double dRotation = 5;
-
-            // TODO for debug only
-            const auto &tmp_array = FM_sink_stat;
 
             vector<double> OForestShares(appPlots.size());
             for (const auto &plot: appPlots)
@@ -2685,7 +2681,12 @@ namespace g4m::application::concrete {
                         double rotation = appRotationForest(plot.x, plot.y);
                         if (rotation < rotMaxBm) {
                             rotation = min(rotation + dRotation, rotMaxBm);
+
                             appCohortsU[plot.asID].setU(rotation);
+                            appCohortsN[plot.asID].setU(rotation);
+                            appRotationForest(plot.x, plot.y) = rotation;
+                            rotationForestNew(plot.x, plot.y) = rotation;
+
                             AgeStruct cohortTmp = appCohortsU[plot.asID];
 
                             const double bm0 = cohortTmp.getBm();
