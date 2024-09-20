@@ -3,7 +3,7 @@
 
 #include <cmath>
 #include <unordered_set>
-#include <vector>
+#include <array>
 #include <span>
 #include <string>
 #include <filesystem>
@@ -114,13 +114,12 @@ namespace g4m::init {
                 f << '\t' << j;
             f << '\n';
 
-            for (size_t i = 0; i < values.size(); ++i)
-                if (countriesList.contains(i)) {
-                    f << i;
-                    for (int j = firstYear; j <= lastYear; j += step)
-                        f << '\t' << (statTypeValues ? values[i](j) : getAvg(i, j));
-                    f << '\n';
-                }
+            for (const auto country: countriesList) {
+                f << country;
+                for (int year = firstYear; year <= lastYear; year += step)
+                    f << '\t' << (statTypeValues ? values[country](year) : getAvg(country, year));
+                f << '\n';
+            }
 
             INFO("Successfully written to: {}", fileName);
         }
@@ -140,8 +139,10 @@ namespace g4m::init {
         }
 
     private:
-        vector<Ipol < double> > values{ numberOfCountries };
-        vector<Ipol < double> > count{ numberOfCountries };
+        array<Ipol < double>, numberOfCountries >
+        values;
+        array<Ipol < double>, numberOfCountries >
+        count;
     };
 
 }

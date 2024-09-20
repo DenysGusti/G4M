@@ -165,7 +165,7 @@ namespace g4m::increment {
         }
 
         // get forest area by age (consider age class size)
-        [[nodiscard]] inline double getArea(double age) const noexcept {
+        [[nodiscard]] inline double getArea(const double age) const noexcept {
             return canopyLayer.getAreaByAge(age);
         }
 
@@ -323,28 +323,8 @@ namespace g4m::increment {
 
         // .first = thinning, .second = harvest
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] CohortRes aging(const double mai_, const bool shelterWood) {
-            FMResult retThin, retHarvest;
-            mai = mai_;
-            qMai.pop_front();
-            qMai.push_back(mai);
-            calcAvgMai();
-            setRotationTime();
-            setMinRot();
-            if (objOfProd == 1 || objOfProd == 2) { // fulfill an amount of harvest
-                retThin = thinAndGrowStaticWrapper();
-                const bool sustainable = objOfProd == 2;
-                retHarvest = finalCutAmountWrapper(minSw - retThin.sawnWood, minRw - retThin.restWood,
-                                                   minHarv - retThin.getWood(), true, sustainable);
-            } else if (!shelterWood) { // we have a rotation time to fulfill
-                retHarvest = finalCutAreaWrapper(area * timeStep / u, true, true); // do final cut
-                retThin = thinAndGrowStaticWrapper();
-            } else if (shelterWood) { //We have a rotation time to fulfill
-                retHarvest = finalCutShelterWood(area * timeStep / u, -1, -1, -1, true, true); // do final cut
-                retThin = thinAndGrowShelterWood();
-            }
-            reforest(retHarvest.area);
-            return {area, retThin, retHarvest};
+        [[nodiscard]] inline CohortRes aging() {
+            return agingDetailed(mai, false);
         }
 
         [[nodiscard]] inline double getMaxAge() const noexcept {
@@ -469,7 +449,7 @@ namespace g4m::increment {
 
             const vector<AgeClass> &dat = canopyLayer.getDat();
             // ssize() to avoid underflow
-            for (ptrdiff_t i = ssize(dat) - 1; i > endYear && ret.bm < targetDamaged; --i)
+            for (ptrdiff_t i = ssize(dat) - 1; i > endYear && ret.biomass < targetDamaged; --i)
                 if (dat[i].area > 0 && dat[i].bm > 0) {
                     double age = static_cast<double>(i) * timeStep;
                     //  The Stands get half increment of the next growing period
@@ -492,14 +472,14 @@ namespace g4m::increment {
                         double sawnWood = harvestedWood * sws->ip(dbhHBm[0]);
                         double hArea = 0;  // clear-cut area in current age class
 
-                        if (ret.bm + totalWood < targetDamaged) {  // Take all age class
+                        if (ret.biomass + totalWood < targetDamaged) {  // Take all age class
                             ret.area += dat[i].area;
                             area -= dat[i].area;
                             hArea = dat[i].area;
                             canopyLayer.setAreaToAgeClassIdx(i, 0);
                         } else {  // Take a share of age class
                             harvestShare = 0;
-                            double tmp_arg = targetDamaged - ret.bm;
+                            double tmp_arg = targetDamaged - ret.biomass;
                             if (tmp_arg > 0 && totalWood > 0) {
                                 tmp_arg /= totalWood;
                                 harvestShare = max(harvestShare, tmp_arg);
@@ -518,7 +498,7 @@ namespace g4m::increment {
                         hWoodArea += tmp_arg;
 
                         // total amount of damaged stem-wood wood including the burnt biomass and potential harvest losses
-                        ret.bm += totalWood * harvestShare;
+                        ret.biomass += totalWood * harvestShare;
                         ret.sawnWood += sawnWood * harvestShare;  // harvested sawn wood from the slash
                         // harvested rest-wood from the slash
                         ret.restWood += (harvestedWood - sawnWood) * harvestShare;
@@ -538,7 +518,7 @@ namespace g4m::increment {
                 ret.sawnWood /= ret.area;
                 ret.restWood /= ret.area;
                 ret.harvestCosts /= ret.area;
-                ret.bm /= ret.area;
+                ret.biomass /= ret.area;
             }
             reforest(ret.area); // we reforest the damaged forest here
             // area_disturbDamaged += ret.area;
@@ -548,7 +528,7 @@ namespace g4m::increment {
 
         // returns harvestW, bmH, bmTh, performs aging and doesn't modify the cohort
         [[nodiscard]] CohortRes cohortRes() const {
-            return AgeStruct{*this}.aging(mai, false);
+            return AgeStruct{*this}.aging();
         }
 
         // Create copy and set U inline for the sake of encapsulation
@@ -695,6 +675,36 @@ namespace g4m::increment {
             }
         }
 
+        // .first = thinning, .second = harvest
+        // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
+        [[nodiscard]] CohortRes agingDetailed(const double mai_, const bool shelterWood) {
+            FMResult retThin, retHarvest;
+            mai = mai_;
+            qMai.pop_front();
+            qMai.push_back(mai);
+            calcAvgMai();
+            setRotationTime();
+            setMinRot();
+            if (u == 0) {
+                FATAL("agingDetailed: rotation time is 0!");
+                throw runtime_error{"agingDetailed: rotation time is 0!"};
+            }
+            if (objOfProd == 1 || objOfProd == 2) { // fulfill an amount of harvest
+                retThin = thinAndGrowStaticWrapper();
+                const bool sustainable = objOfProd == 2;
+                retHarvest = finalCutAmountWrapper(minSw - retThin.sawnWood, minRw - retThin.restWood,
+                                                   minHarv - retThin.getWood(), true, sustainable);
+            } else if (!shelterWood) { // we have a rotation time to fulfill
+                retHarvest = finalCutAreaWrapper(area * timeStep / u, true, true); // do final cut
+                retThin = thinAndGrowStaticWrapper();
+            } else if (shelterWood) { //We have a rotation time to fulfill
+                retHarvest = finalCutShelterWood(area * timeStep / u, -1, -1, -1, true, true); // do final cut
+                retThin = thinAndGrowShelterWood();
+            }
+            reforest(retHarvest.area);
+            return {area, retThin, retHarvest};
+        }
+
         [[nodiscard]] FMResult finalCutShelterWood(const double area_, const double minSw_, const double minRw_,
                                                    const double minHarv_, const bool eco, const bool sustainable) {
             FMResult ret;
@@ -754,7 +764,7 @@ namespace g4m::increment {
                                 timerSW.emplace_back(area_tmp, static_cast<int>(i), timeTo2Cut);
                             areaShelterCut_total += areaShelterCut;
 
-                            ret.bm += totalWood;
+                            ret.biomass += totalWood;
                             double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
@@ -792,7 +802,7 @@ namespace g4m::increment {
                                 area -= dat[i].area * harvestShare;
                                 canopyLayer.setAreaToAgeClassIdx(i, dat[i].area * (1 - harvestShare));
                             }
-                            ret.bm += totalWood * harvestShare;
+                            ret.biomass += totalWood * harvestShare;
                             ret.sawnWood += sawnWood * harvestShare;
                             ret.restWood += (harvestedWood - sawnWood) * harvestShare;
                             ret.harvestCosts += totalWood * coe->ip(dbhBm) * harvestShare;
@@ -822,7 +832,7 @@ namespace g4m::increment {
                             double totalWood = area2Cut * dbhBm[1];
                             area -= area2Cut;
                             canopyLayer.setAreaToAgeClassIdx(age_idx, dat[age_idx].area - area2Cut);
-                            ret.bm += totalWood;
+                            ret.biomass += totalWood;
                             double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                             double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                             ret.sawnWood += sawnWood;
@@ -839,7 +849,7 @@ namespace g4m::increment {
                 ret.sawnWood /= ret.area;
                 ret.restWood /= ret.area;
                 ret.harvestCosts /= ret.area;
-                ret.bm /= ret.area;
+                ret.biomass /= ret.area;
             }
             return ret;
         }

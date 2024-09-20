@@ -428,7 +428,7 @@ namespace g4m::Dicts {
                                       -0.01068, 0.24754, -1.81373,                       // d1
                                       1.0945, 0.0999, -1.6033,                           // d2
                                       1.6,                                               // dmul
-                                      0.95},                                              // iCrit
+                                      0.95},                                             // iCrit
                                 5,       // maiMax
                                 0.25,    // maiStep
                                 600,     // tMax
@@ -436,8 +436,8 @@ namespace g4m::Dicts {
                                 0.25,    // sdNatStep
                                 1.5,     // sdTabMax
                                 0.25,    // sdTabStep
-                                1
-        );      // timeframe
+                                1        // timeframe
+        );
         // Pinus halepensis [4]
         fun_species.try_emplace(Species::PinusHalepensis,
                                 array{-0.3, -0.306, -2.052, 1.673, 150., 130., 1.898, -1.141, 0.92, 0.07, -4.25, 6.168,

@@ -92,17 +92,23 @@ namespace g4m::init {
         }
 
         void update1YearBackward() noexcept {
-            // change back to ranges later
-            shift_left(grid.begin(), grid.end(), 1);
-            // ranges::shift_left(grid, 1);
-            grid.back().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
+            if (grid.size() > 1) {
+                // change back to ranges later
+                shift_left(grid.begin(), grid.end(), 1);
+                // ranges::shift_left(grid, 1);
+                grid.back() = grid.end()[-2];
+            }
+            // grid.back().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
         }
 
         void update1YearForward() noexcept {
-            // change back to ranges later
-            shift_right(grid.begin(), grid.end(), 1);
-            // ranges::shift_right(grid, 1);
-            grid.front().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
+            if (grid.size() > 1) {
+                // change back to ranges later
+                shift_right(grid.begin(), grid.end(), 1);
+                // ranges::shift_right(grid, 1);
+                grid.front() = grid[1];
+            }
+            // grid.front().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
         }
 
         void resizeGrid(const size_t VR) noexcept requires is_floating_point_v<T> {
@@ -216,7 +222,7 @@ namespace g4m::init {
             accessGridGuard(x, y, year);
 
             auto country_code = gridCountries[x - topLeft.x][y - topLeft.y];
-            T max_value = NODATA_VALUE;
+            T max_value = grid[year][x - topLeft.x][y - topLeft.y];
 
             auto x_left = max(ptrdiff_t{0}, static_cast<ptrdiff_t>(x - topLeft.x) - static_cast<ptrdiff_t>(horNeigh));
             auto x_right = min(x - topLeft.x + horNeigh, grid[year].size() - 1);
@@ -237,7 +243,7 @@ namespace g4m::init {
             accessGridGuard(x, y, year);
 
             auto country_code = gridCountries[x - topLeft.x][y - topLeft.y];
-            T min_value = NODATA_VALUE;
+            T min_value = grid[year][x - topLeft.x][y - topLeft.y];
 
             auto x_left = max(ptrdiff_t{0}, static_cast<ptrdiff_t>(x - topLeft.x) - static_cast<ptrdiff_t>(horNeigh));
             auto x_right = min(x - topLeft.x + horNeigh, grid[year].size() - 1);

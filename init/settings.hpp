@@ -15,7 +15,6 @@
 using namespace std;
 
 namespace g4m::init {
-
     struct Settings {
         string coefPath;
         string inputPath;
@@ -37,7 +36,7 @@ namespace g4m::init {
         void readSettings(const string_view file_name) {
             ifstream file{filesystem::path{file_name}};
             if (!file.is_open()) {
-                FATAL("Cannot read {}", file_name);
+                FATAL("Cannot read {} in directory {}", file_name, fs::current_path().string());
                 throw runtime_error{"Cannot read settings file"};
             }
 

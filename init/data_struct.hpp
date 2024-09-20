@@ -9,11 +9,11 @@
 #include "../misc/concrete/ipol.hpp"
 #include "../settings/constants.hpp"
 #include "species.hpp"
+#include "vegetation_type.hpp"
 
 using namespace g4m::misc::concrete;
 
 namespace g4m::init {
-
     struct DataStruct {
         uint32_t x = 0;
         uint32_t y = 0;
@@ -28,7 +28,7 @@ namespace g4m::init {
         Species speciesType = Species::NoTree;
 
         int8_t mngmType = 0;
-        uint8_t potVeg = 0;
+        VegetationType potVeg = VegetationType::NoType;
 
         bool managedFlag = false;
         bool managed_UNFCCC = false;  // Flag: true: the cell is counted as managed land for the UNFCCC reporting
@@ -43,7 +43,7 @@ namespace g4m::init {
         double CBelowHa = 0;
         double CDeadHa = 0;
         double CLitterHa = 0;
-        double SOCHa = 0;
+        double SOCHa = 0;   // soil organic carbon per ha
         double managedShare = 0;
         double residuesUseShare = 0;
         double residuesUseCosts = 0;
@@ -57,33 +57,37 @@ namespace g4m::init {
         double natLnd_correction = 0;
         double grLnd_protect = 0;  // Natural vegetation and heathland protected under Nature2000 or to be protected! EU27 only!
         double corruption = 0;
+        double fTimber = 0;
+        double priceIndex = 0;
+        double slashBurn = 0;
+        double fracLongProd = 0;
+        double decHerb = 0;
+        double decWood = 0;
+        double decSOC = 0;
+        double harvestCosts = 0;
 
         Ipol<double> NPP;
         Ipol<double> popDens;
         Ipol<double> sPopDens; // MG: added because it's used in forest_calculations
-        Ipol<double> priceIndex;
         Ipol<double> R;
         Ipol<double> GDP;
         Ipol<double> builtUp;
         Ipol<double> crop;
-        Ipol<double> fracLongProd;
-        Ipol<double> slashBurn;
-        Ipol<double> decHerb;
-        Ipol<double> decWood;
-        Ipol<double> decSOC;
-        Ipol<double> fTimber;
         Ipol<double> MAIE;
         Ipol<double> MAIN;
         Ipol<double> road;
         Ipol<double> GLOBIOM_reserved;
         Ipol<double> afforMax;
-        Ipol<double> harvestCosts;
 
         DataStruct() = default;
 
         DataStruct(const span<pair<string, optional<uint16_t> > > header,
                    const span<const double> line_cells) {
             buildFromCSVLine(header, line_cells);
+        }
+
+        [[nodiscard]] pair<double, double> getInputCoordinates() const noexcept {
+            return {(x + 0.5) * gridStep - 180, (y + 0.5) * gridStep - 90};
         }
 
         void buildFromCSVLine(const span<pair<string, optional<uint16_t> > > header,
@@ -131,7 +135,7 @@ namespace g4m::init {
                     else if (name == "MNGMTYPE")
                         mngmType = static_cast<int8_t>(cell);
                     else if (name == "POTVEG")
-                        potVeg = static_cast<uint8_t>(cell);
+                        potVeg = static_cast<VegetationType>(cell);
                     else if (name == "SPECIESTYPE")
                         speciesType = static_cast<Species>(cell);
                         // floating point vars
@@ -181,13 +185,25 @@ namespace g4m::init {
                         grLnd_protect = cell;
                     else if (name == "CORRUPTION")
                         corruption = cell;
+                    else if (name == "FTIMBER")
+                        fTimber = cell;
+                    else if (name == "PRICEINDEX")
+                        priceIndex = cell;
+                    else if (name == "FRACLONGPROD")
+                        fracLongProd = cell;
+                    else if (name == "SLASHBURN")
+                        slashBurn = cell;
+                    else if (name == "DECHERB")
+                        decHerb = cell;
+                    else if (name == "DECWOOD")
+                        decWood = cell;
+                    else if (name == "DECSOC")
+                        decSOC = cell;
+                    else if (name == "HARVESTCOSTS")
+                        harvestCosts = cell;
                         // Ipol vars with default key 2000
                     else if (name == "R")
                         R.data[2000] = cell;
-                    else if (name == "PRICEINDEX")
-                        priceIndex.data[2000] = cell;
-                    else if (name == "FTIMBER")
-                        fTimber.data[2000] = cell;
                     else if (name == "MAIE")
                         MAIE.data[2000] = cell;
                     else if (name == "MAIN")
@@ -196,18 +212,6 @@ namespace g4m::init {
                         NPP.data[2000] = cell;
                     else if (name == "ROAD")
                         road.data[2000] = cell;
-                    else if (name == "FRACLONGPROD")
-                        fracLongProd.data[2000] = cell;
-                    else if (name == "SLASHBURN")
-                        slashBurn.data[2000] = cell;
-                    else if (name == "DECHERB")
-                        decHerb.data[2000] = cell;
-                    else if (name == "DECWOOD")
-                        decWood.data[2000] = cell;
-                    else if (name == "DECSOC")
-                        decSOC.data[2000] = cell;
-                    else if (name == "HARVESTCOSTS")
-                        harvestCosts.data[2000] = cell;
                     else if (name == "AFFORMAX")
                         afforMax.data[2000] = cell;
                     else
@@ -218,21 +222,30 @@ namespace g4m::init {
 
         [[nodiscard]] string str() const noexcept {
             string format_integral = format(
-                    "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\nspeciesType = {}\nmngmType = {}\npotVeg = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\nprotect = {}\n",
+                    "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\n"
+                    "speciesType = {}\nmngmType = {}\npotVeg = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n"
+                    "protect = {}\n",
                     x, y, simuID, country, int{IIASA_region}, int{polesReg}, int{countryRegMix},
-                    speciesName.at(speciesType), int{mngmType}, int{potVeg}, managedFlag, managed_UNFCCC, protect);
+                    speciesName.at(speciesType), int{mngmType}, vegetationTypeName.at(potVeg), managedFlag,
+                    managed_UNFCCC, protect);
             string format_floating_point = format(
-                    "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\nCBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\nresiduesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\noldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\nGL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\ncorruption = {}\n",
+                    "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\n"
+                    "CBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\n"
+                    "residuesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\n"
+                    "oldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\n"
+                    "GL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\ncorruption = {}\nfTimber = {}\n"
+                    "priceIndex = {}\nfracLongProd = {}\nslashBurn = {}\ndecHerb = {}\ndecWood = {}\ndecSOC = {}\n"
+                    "harvestCosts = {}\n",
                     landArea, forest, forLoss, agrSuit, sAgrSuit, CAboveHa, CBelowHa, CDeadHa, CLitterHa, SOCHa,
                     managedShare, residuesUseShare, residuesUseCosts, deadWood, oldGrowthForest_ten,
                     oldGrowthForest_thirty, strictProtected, forestAll, forest_correction, GL_correction,
-                    natLnd_correction, grLnd_protect, corruption);
+                    natLnd_correction, grLnd_protect, corruption, fTimber, priceIndex, fracLongProd, slashBurn, decHerb,
+                    decWood, decSOC, harvestCosts);
             string format_ipol = format(
-                    "NPP:\n{}\npopDens:\n{}\nsPopDens\n{}\npriceIndex:\n{}\nR:\n{}\nGDP:\n{}\nbuiltUp:\n{}\ncrop:\n{}\nfracLongProd:\n{}\nslashBurn:\n{}\ndecHerb:\n{}\ndecWood:\n{}\ndecSOC:\n{}\nfTimber:\n{}\nMAIE:\n{}\nMAIN:\n{}\nroad:\n{}\nGLOBIOM_reserved:\n{}\nafforMax:\n{}\nharvestCosts:\n{}\n",
-                    NPP.str(), popDens.str(), sPopDens.str(), priceIndex.str(), R.str(), GDP.str(), builtUp.str(),
-                    crop.str(), fracLongProd.str(), slashBurn.str(), decHerb.str(), decWood.str(), decSOC.str(),
-                    fTimber.str(), MAIE.str(), MAIN.str(), road.str(), GLOBIOM_reserved.str(), afforMax.str(),
-                    harvestCosts.str());
+                    "NPP:\n{}\npopDens:\n{}\nsPopDens\n{}\nR:\n{}\nGDP:\n{}\nbuiltUp:\n{}\ncrop:\n{}\nMAIE:\n{}\n"
+                    "MAIN:\n{}\nroad:\n{}\nGLOBIOM_reserved:\n{}\nafforMax:\n{}\n",
+                    NPP.str(), popDens.str(), sPopDens.str(), R.str(), GDP.str(), builtUp.str(),
+                    crop.str(), MAIE.str(), MAIN.str(), road.str(), GLOBIOM_reserved.str(), afforMax.str());
             return format_integral + format_floating_point + format_ipol;
         }
 
@@ -258,7 +271,7 @@ namespace g4m::init {
         void forestsArrangement() noexcept {
             forest = max(0., forest - oldGrowthForest_thirty);  // Now it's just a "usual" old forest
             oldGrowthForest_thirty -= oldGrowthForest_ten;  // forest10 includes primary forest
-            oldGrowthForest_ten -= forest; // Now forest10 is just additional to the primary forest to be protected
+            oldGrowthForest_ten -= strictProtected; // Now forest10 is just additional to the primary forest to be protected
         }
 
         [[nodiscard]] optional<double> initForestArea(double dfor) noexcept {
@@ -295,8 +308,8 @@ namespace g4m::init {
             return forest + oldGrowthForest_ten + oldGrowthForest_thirty + strictProtected;
         }
 
-        [[nodiscard]] double getMaxAffor() const {
-            return 1 - GLOBIOM_reserved.data.at(2000);
+        [[nodiscard]] double getMaxForestShare(const uint16_t year) const {
+            return 1 - GLOBIOM_reserved(year);
         }
 
         /*
@@ -309,44 +322,34 @@ namespace g4m::init {
         BEF functions are used to estimate total above-ground biomass (including leaves) [m3/ha] from growing stock data [m3/ha]
         Brown S. (1997) Estimating Biomass and Biomass Change of Tropical Forests: a Primer. (FAO Forestry Paper - 134, FAO 1997)
 
-        const double tC_m3 = 4 changed to fTimber.data.at(2000)
+        const double tC_m3 = 4 changed to fTimber
         */
         [[nodiscard]] double BEF(const double growingStockC) const {
-            double growingStock = growingStockC * fTimber.data.at(2000);
-            double bef = 1;
+            double growingStock = growingStockC * fTimber;
 
             if (growingStock <= 0)
-                return bef;
+                return 1;
 
             switch (speciesType) {
                 case Species::Fir:
-                    bef = clamp(1.069 + 1.919 * pow(growingStock, -0.524), 1.1, 3.5);
-                    break;
+                    return clamp(1.069 + 1.919 * pow(growingStock, -0.524), 1.1, 3.5);
                 case Species::Spruce:
-                    bef = clamp(1.204 + 0.903 * exp(-0.009 * growingStock), 1.1, 4.);
-                    break;
+                    return clamp(1.204 + 0.903 * exp(-0.009 * growingStock), 1.1, 4.);
                 case Species::Pine:
                 case Species::PinusHalepensis:
-                    bef = clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
-                    break;
+                    return clamp(0.949 + 3.791 * pow(growingStock, -0.501), 1.1, 6.);
                 case Species::Birch:
-                    bef = clamp(1.105 + 9.793 / growingStock, 1.1, 1.6);
-                    break;
+                    return clamp(1.105 + 9.793 / growingStock, 1.1, 1.6);
                 case Species::Beech:
-                    bef = clamp(1.197 + 0.386 * exp(-0.009 * growingStock), 1.1, 3.5);
-                    break;
+                    return clamp(1.197 + 0.386 * exp(-0.009 * growingStock), 1.1, 3.5);
                 case Species::Oak:
-                    bef = clamp(1.202 + 0.422 * exp(-0.013 * growingStock), 1.1, 3.5);
-                    break;
+                    return clamp(1.202 + 0.422 * exp(-0.013 * growingStock), 1.1, 3.5);
                 case Species::Larch:
-                    bef = clamp(1.023 + 2.058 * pow(growingStock, -0.508), 1.1, 3.5);
-                    break;
+                    return clamp(1.023 + 2.058 * pow(growingStock, -0.508), 1.1, 3.5);
                 default:
                     ERROR("Unknown speciesType: {}", static_cast<int>(speciesType));
-                    bef = nan("");
+                    return nan("");
             }
-
-            return bef;
         }
 
         /*
@@ -372,10 +375,10 @@ namespace g4m::init {
         stump + coarse root biomass is in tC/tree
         original functions are multiplied by (0.5 * 1.0e-3) to convert to carbon and ton
 
-        fTimber changed to fTimber.data.at(2000)
+        fTimber changed to fTimber
         */
         [[nodiscard]] double DBHHToStump(const double dbh, const double h, double felledTreesStem) const {
-            if (dbh <= 0 || h <= 0 || felledTreesStem <= 0 || fTimber.data.at(2000) <= 0)
+            if (dbh <= 0 || h <= 0 || felledTreesStem <= 0 || fTimber <= 0)
                 return 0;
 
             double str = 0;
@@ -386,7 +389,7 @@ namespace g4m::init {
                     // volume of stem of one tree
                     double V = pow(dbh, 1.942) * pow(h, 0.9836) * 4.52e-5;
                     // weight of one tree stem
-                    double treeStem = V / fTimber.data.at(2000);
+                    double treeStem = V / fTimber;
                     // number of felled trees per cell if felledTreesStem is per cell
                     double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
@@ -467,7 +470,7 @@ namespace g4m::init {
                     double V = -0.0011638 * h - 0.03088 +
                                dbh * (dbh * (-4.8614e-5 - 3.8178e-6 * dbh + 4.0597e-5 * h) + 0.004676261);
                     // weight of one tree stem
-                    double treeStem = V / fTimber.data.at(2000);
+                    double treeStem = V / fTimber;
                     // number of felled trees per cell if felledTreesStem is per cell
                     double treesNumber = felledTreesStem / treeStem;
                     // stump + roots tC per felled trees
@@ -481,6 +484,38 @@ namespace g4m::init {
             }
 
             return str;
+        }
+
+        [[nodiscard]] double afforestationSoilInputCoef() const noexcept {
+            switch (potVeg) {
+                case VegetationType::TemperateNeedleleafEvergreenForest:
+                case VegetationType::BorealEvergreenForest:
+                    return 0.04;
+                case VegetationType::MixedForest:
+                    return 0.2;
+                default:
+                    return 0.35;
+            }
+        }
+
+        // below-ground phytomass of planted forest = 18% for tropical, 22% for temperate and 25% for boreal of above-ground phytomass
+        [[nodiscard]] double coefBL() const noexcept {
+            switch (potVeg) {
+                case VegetationType::TropicalEvergreenForest:
+                case VegetationType::TropicalDeciduousForest:
+                    return 0.18;
+                    // commented because value is default
+//                case VegetationType::TemperateBroadleafEvergreenForest:
+//                case VegetationType::TemperateNeedleleafEvergreenForest:
+//                case VegetationType::TemperateDeciduousForest:
+//                case VegetationType::MixedForest:
+//                    return 0.22;
+                case VegetationType::BorealEvergreenForest:
+                case VegetationType::BorealDeciduousForest:
+                    return 0.25;
+                default:
+                    return 0.22;
+            }
         }
     };
 }

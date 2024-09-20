@@ -339,7 +339,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         void correctAndConvertCO2Prices() noexcept {
-            const double coef = deflator * molar_ratio;
+            const double coef = deflator * molarRatio;
             for (auto &[scenario, datamap]: CO2PriceScenarios)
                 for (auto &[id, ipol]: datamap)
                     for (auto &[year, CO2Price]: ipol.data)

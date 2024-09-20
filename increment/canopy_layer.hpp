@@ -253,7 +253,7 @@ namespace g4m::increment {
         }
 
         // for dat0: sd = -1, mai = (1 - slShare) * mai
-        void reforest(const double area_, const double sd, const double mai) noexcept {
+        void reforest(const double area_, const double sd, const double mai) {
             if (dat.size() <= 1) {
                 ERROR("reforest: forest was not created, reforesting is not possible or forest is too small!");
                 return;
@@ -312,7 +312,7 @@ namespace g4m::increment {
                     dbhBm[0] = max(0., dat[i].d + id);
                     dbhBm[1] = max(0., dat[i].bm + dbm);
                     double totalWood = dat[i].area * (1 - mul) * dbhBm[1];
-                    ret.bm += totalWood;
+                    ret.biomass += totalWood;
                     double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                     double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                     ret.sawnWood += sawnWood;
@@ -326,7 +326,7 @@ namespace g4m::increment {
                 ret.sawnWood *= reciprocalArea;
                 ret.restWood *= reciprocalArea;
                 ret.harvestCosts *= reciprocalArea;
-                ret.bm *= reciprocalArea;
+                ret.biomass *= reciprocalArea;
             } // MG: now per ha of deforested land
             return ret;
         }
@@ -334,7 +334,7 @@ namespace g4m::increment {
         // returns {sd, iGwl, bm, id}
         // for dat0: sdMax = slShare * sdMax < 0, for dat: sdMax = -1
         [[nodiscard]] array<double, 4> incStatic(const size_t ageClassIdx_, const double sdMax_, const double mai_,
-                                                 const double avgMai_, const double newForestSD_) const noexcept {
+                                                 const double avgMai_, const double newForestSD_) const {
             if (dat.empty()) {
                 ERROR("incStatic: forest was not created!");
                 return {};
@@ -497,7 +497,7 @@ namespace g4m::increment {
                         double harvestedWood = totalWood * hlv->ip(dbhBmSh[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBmSh[0]);
                         ret.area += dat[i].area;
-                        ret.bm += totalWood;
+                        ret.biomass += totalWood;
                         ret.sawnWood += sawnWood;
                         ret.restWood += harvestedWood - sawnWood;
                         ret.harvestCosts += totalWood * cov->ip(dbhBmSh);
@@ -511,15 +511,15 @@ namespace g4m::increment {
                     } else {  // No thinning
                         dat[i].bm += iGwl;
                         double bmMax = it->getBm(age + timeStep, avgMai);
-                        double tmp_arg = (bmMax - dat[i].bm) * dat[i].area;
-                        if (bmMax > dat[i].bm) {
+                        double tmp_arg = (dat[i].bm - bmMax) * dat[i].area;
+                        if (bmMax < dat[i].bm) {
                             if (dat[i].d + id * 0.5 > 10) {
                                 ret.deadwood += tmp_arg;
                                 area_dw += dat[i].area;
                                 ret.mortDeadwoodDBH += dat[i].d * tmp_arg;
                                 ret.mortDeadwoodH += dat[i].h * tmp_arg;
                                 mortDwBm += tmp_arg;  // MG: estimation of BM weighted average d and h of dead trees (deadwood) that are not thinned
-                            } else if (dat[i].d + id * 0.5 <= 10) {
+                            } else {
                                 ret.litter += tmp_arg;
                                 area_lt += dat[i].area;
                                 ret.mortLitterDBH += dat[i].d * tmp_arg;
@@ -613,7 +613,7 @@ namespace g4m::increment {
                         fcDBHTmp += dat[i].d * tmp_arg;
                         fcHTmp += dat[i].h * tmp_arg;
                         hWoodArea += tmp_arg;
-                        ret.bm += totalWood;
+                        ret.biomass += totalWood;
                         double harvestedWood = totalWood * hle->ip(dbhBm[0]);
                         double sawnWood = harvestedWood * sws->ip(dbhBm[0]);
                         ret.sawnWood += sawnWood;
@@ -630,7 +630,7 @@ namespace g4m::increment {
                 ret.sawnWood *= reciprocalArea;
                 ret.restWood *= reciprocalArea;
                 ret.harvestCosts *= reciprocalArea;
-                ret.bm *= reciprocalArea;
+                ret.biomass *= reciprocalArea;
             }
             return ret;
         }
@@ -697,7 +697,7 @@ namespace g4m::increment {
                             ret.area += area_to_harvest;
                             dat[i].area -= area_to_harvest;  // no check because 0 <= harvestShare <= 1
                         }
-                        ret.bm += totalWood * harvestShare;
+                        ret.biomass += totalWood * harvestShare;
                         ret.sawnWood += sawnWood * harvestShare;
                         ret.restWood += (harvestedWood - sawnWood) * harvestShare;
                         ret.harvestCosts += totalWood * coe->ip(dbhBm) * harvestShare;
@@ -712,7 +712,7 @@ namespace g4m::increment {
                 ret.sawnWood *= reciprocalArea;
                 ret.restWood *= reciprocalArea;
                 ret.harvestCosts *= reciprocalArea;
-                ret.bm *= reciprocalArea;
+                ret.biomass *= reciprocalArea;
             }
             return ret;
         }
@@ -769,7 +769,7 @@ namespace g4m::increment {
         }
 
         // former initCohort with resizing, increases number of age classes and initializes them
-        void initNewAgeClasses(const size_t numberOfNewAgeClasses, const double sd_, const double avgMai_) noexcept {
+        void initNewAgeClasses(const size_t numberOfNewAgeClasses, const double sd_, const double avgMai_) {
             size_t oldSize = dat.size();
             size_t newSize = oldSize + numberOfNewAgeClasses;
             if (newSize > incrementTableSize) {
@@ -798,7 +798,7 @@ namespace g4m::increment {
         }
 
         [[nodiscard]] double incCommon(const size_t i, const double sd, const double iGwl, const double sdMax,
-                                       const double mai) const noexcept {
+                                       const double mai) const {
             double sdTarget = abs(sdMax);
             double bmInc = 0;
             double age = static_cast<double>(i + 1) * timeStep;

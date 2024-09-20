@@ -2,14 +2,11 @@
 #define G4M_EUROPE_DG_SPECIES_HPP
 
 #include <string>
-#include <array>
 #include <unordered_map>
 
 #include "../helper/enum_hasher.hpp"
-#include "../increment/increment_tab.hpp"
 
 using namespace std;
-using namespace g4m::increment;
 using namespace g4m::helper;
 
 namespace g4m::init {
@@ -45,7 +42,7 @@ namespace g4m::init {
             {Species::Birch,           "Birch"},
             {Species::Beech,           "Beech"},
             {Species::Oak,             "Oak"},
-            {Species::Larch,           "Larch"},
+            {Species::Larch,           "Larch"}
     };
 }
 

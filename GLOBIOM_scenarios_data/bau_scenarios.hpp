@@ -49,7 +49,6 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         unordered_map<string, vector<vector<double> >, StringHash, equal_to<> > biomassBauScenarios;
-        unordered_map<string, vector<vector<double> >, StringHash, equal_to<> > NPVBauScenarios;
 
         void readBiomassBau() {
             string bauName = "biomass_bau" + suffix;
@@ -57,15 +56,6 @@ namespace g4m::GLOBIOM_scenarios_data {
             string scenario =
                     file_path.stem().string().substr(bauName.size()) | rv::transform(::toupper) | ranges::to<string>();
             const auto bau_vec = readBau(file_path.filename().string(), "biomass_bau");
-            biomassBauScenarios[scenario] = bau_vec;
-        }
-
-        void readNPVBau() {
-            string bauName = "NPVbau" + suffix;
-            const auto file_path = locateBauFile(bauName);
-            string scenario =
-                    file_path.stem().string().substr(bauName.size()) | rv::transform(::toupper) | ranges::to<string>();
-            const auto bau_vec = readBau(file_path.filename().string(), "NPVbau");
             biomassBauScenarios[scenario] = bau_vec;
         }
     };

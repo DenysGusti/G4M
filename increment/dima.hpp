@@ -35,7 +35,7 @@ namespace g4m::increment {
 
         // Net present Value of Agriculture (Eq.5)
         [[nodiscard]] double agrVal() const noexcept {
-            double priceLevel = priceLandMin0 * priceIndex(year) / priceIndex0;
+            double priceLevel = priceLandMin0 * priceIndex / priceIndex0;
             //Importance of Population density
             // double popImp = (log(priceLandMax0(year)) - log(priceLandMin0(year))) / (2 * log(10));
             double popImp = log(priceLandMax0 / priceLandMin0) * 0.5 * log10e;
@@ -46,7 +46,7 @@ namespace g4m::increment {
 
         // Value of amenity
         [[nodiscard]] double amenVal() const noexcept {
-            double priceLevel = priceLandMin0 * priceIndex(year) / priceIndex0;
+            double priceLevel = priceLandMin0 * priceIndex / priceIndex0;
             // Importance of Population density
             // double popImp = (log(priceLandMax0(year)) - log(priceLandMin0(year))) / (2 * log(10));
             double popImp = log(priceLandMax0 / priceLandMin0) * 0.5 * log10e;
@@ -103,7 +103,7 @@ namespace g4m::increment {
         // MG: Attention: agrVal changed! Only 2000 value is estimated here
         // MG: Net present Value of Agriculture in the year 2000
         [[nodiscard]] double agrVal2000() const noexcept {
-            double priceLevel = priceLandMin0 * priceIndex(2000) / priceIndex0;
+            double priceLevel = priceLandMin0 * priceIndex / priceIndex0;
             // Importance of Population density
             double popImp = log(priceLandMax0 / priceLandMin0) * 0.5 * log10e;
             // Importance of the Suitable for Agriculture
@@ -117,14 +117,14 @@ namespace g4m::increment {
         // return plantingCosts0(year) * priceIndex(year) / priceIndex0(year);
         [[nodiscard]] double plantingCosts() const noexcept {
             double plantRate = clamp((vIncr() - 3) / 6, 0., 1.);
-            return plantRate * plantingCosts0 * priceIndex(year) / priceIndex0;
+            return plantRate * plantingCosts0 * priceIndex / priceIndex0;
         }
 
         DIMA(const uint16_t aYear,
              const Ipol<double> &aNpp,              // npp [kg-C/m2/year]
              const Ipol<double> &aSPopDens,         // Standardised (1-10) population density
              const double aSAgrSuit,         // Standardised (1-10) agricultural suitability
-             const Ipol<double> &aPriceIndex,       // Price index
+             const double aPriceIndex,       // Price index
              const double aPriceIndex0,      // Price index ref Country
              const Ipol<double> &aR,                // discount rate
              const double aPriceC,           // carbon price [$/tC]
@@ -135,9 +135,9 @@ namespace g4m::increment {
              const double aMinRotInter,      // Minimal rotation interval [years]
              const double aDecLongProd,      // Decay rate for long-lived prod
              const double aDecShortProd,     // Decay rate for short-lived pro
-             const Ipol<double> &aFracLongProd,     // Fraction of carbon stored in long-term products
+             const double aFracLongProd,     // Fraction of carbon stored in long-term products
              const double aBaseline,         // Fraction of carbon subtracted due to baseline considerations
-             const Ipol<double> &aFTimber,          // Commercial timber volume per ton of carbon [m3/tC]
+             const double aFTimber,          // Commercial timber volume per ton of carbon [m3/tC]
              const double aPriceTimberMax0,  // Maximal timber price in reference country [$/m3]
              const double aPriceTimberMin0,  // Minimal timber price in reference country {$/m3]
              const double aFCUptake,         // Factor of carbon uptake from npp
@@ -161,7 +161,7 @@ namespace g4m::increment {
             double sfor = (1 - forest) * 9 + 1;
             double c4 = priceTimberMax0 - priceTimberMin0 / 99;
             double c3 = priceTimberMin0 - c4;
-            return (c3 + c4 * sPopDens(year) * sfor) * priceIndex(year) / priceIndex0;
+            return (c3 + c4 * sPopDens(year) * sfor) * priceIndex / priceIndex0;
         }
 
         // MG: Timber price external
@@ -171,7 +171,7 @@ namespace g4m::increment {
             double sfor = (1 - forest) * 9 + 1;
             double c4 = (priceTimberMax0 - priceTimberMin0) / 99;
             double c3 = priceTimberMin0 - c4;
-            return (c3 + c4 * sPopDens(2000) * sfor) * priceIndex(2000) / priceIndex0 * woodPriceCorr(year) /
+            return (c3 + c4 * sPopDens(2000) * sfor) * priceIndex / priceIndex0 * woodPriceCorr(year) /
                    woodPriceCorr0;
         }
 
@@ -182,7 +182,7 @@ namespace g4m::increment {
             double sfor = (1 - forest) * 9 + 1;
             double c4 = (priceTimberMax0 - priceTimberMin0) / 99;
             double c3 = priceTimberMin0 - c4;
-            return ((c3 + c4 * sPopDens(year) * sfor) * priceIndex(year) / priceIndex0 * woodPriceCorr(year) /
+            return ((c3 + c4 * sPopDens(year) * sfor) * priceIndex / priceIndex0 * woodPriceCorr(year) /
                     woodPriceCorr0);
         }
 
@@ -212,7 +212,7 @@ namespace g4m::increment {
 
         // Harvestable wood-volume increment (m3/ha/year)
         [[nodiscard]] double vIncr() const noexcept {
-            return CUptake() * fTimber(year);
+            return CUptake() * fTimber;
         }
 
     private:
@@ -227,16 +227,16 @@ namespace g4m::increment {
         double sAgrSuit;                // Standardised Agricultural Suitability
         Ipol<double> sPopDens;          // Standardised Population Density (1-10)
         Ipol<double> npp;               // netto primary production
-        Ipol<double> priceIndex;        // Price Index
+        double priceIndex;        // Price Index
         double priceIndex0;             // Price Index of reference country
         double priceC;                  // Carbon Price
         double priceLandMin0;           // Minimum Land price in ref country
         double priceLandMax0;           // Maximum Land price in ref country
         double decLongProd;             // Decay rate for long-lived products
         double decShortProd;            // Decay rate for short-lived products
-        Ipol<double> fracLongProd;      // Fraction of carbon stored in long-term products
+        double fracLongProd;      // Fraction of carbon stored in long-term products
         double baseline;                // Fraction of carbon subtracted due to baseline considerations
-        Ipol<double> fTimber;           // Commercial timber volume per ton of carbon (m3/tC)
+        double fTimber;                 // Commercial timber volume per ton of carbon (m3/tC)
         double priceTimberMax0;         // Maximal timber price in reference country
         double priceTimberMin0;         // Minimal timber price in reference country
         double fCUptake;                // Factor of carbon uptake from npp
@@ -246,8 +246,8 @@ namespace g4m::increment {
         // Fraction of carbon costs during harvest
         // Depends on fraction of short and long term products
         [[nodiscard]] double beta() const noexcept {
-            return 1 - decLongProd / (decLongProd + r(year)) * fracLongProd(year) -
-                   decShortProd / (decShortProd + r(year)) * (1 - fracLongProd(year));
+            return 1 - decLongProd / (decLongProd + r(year)) * fracLongProd -
+                   decShortProd / (decShortProd + r(year)) * (1 - fracLongProd);
         }
 
         // Carbon benefit (Eq. 3)

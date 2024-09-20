@@ -8,7 +8,7 @@ namespace g4m::increment {
         double sawnWood = 0;        // Sawn-wood [tC/Ha]
         double restWood = 0;        // Rest-wood [tC/Ha]
         double harvestCosts = 0;    // Costs [Costs/Ha]
-        double bm = 0;              // Total cut biomass including harvesting losses [tC/Ha]
+        double biomass = 0;         // Total cut biomass including harvesting losses [tC/Ha]
         // For final harvest the values are per hectare, for thinning they are total
         double H = 0;               // MG: average height of trees in age classes that are thinned, clear-cut or slash-logged
         double DBH = 0;             // MG: average DBH of trees in age classes that are thinned, clear-cut or slash-logged
@@ -35,8 +35,8 @@ namespace g4m::increment {
         }
 
         // bm * area
-        [[nodiscard]] inline double getHarvestedBmForest() const noexcept {
-            return bm * area;
+        [[nodiscard]] inline double getHarvestedBiomassForest() const noexcept {
+            return biomass * area;
         }
 
         // H * area

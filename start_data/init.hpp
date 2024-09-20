@@ -102,14 +102,6 @@ namespace g4m::StartData {
                 INFO("biomass_bau reading is turned off");
         });
 
-        future<void> NPV_bau_future = async(launch::async, [] {
-            Log::Init("NPV_bau");
-            if constexpr (fmPol && binFilesOnDisk) {
-                bauScenarios.readNPVBau();
-            } else
-                INFO("NPV_bau reading is turned off");
-        });
-
         future<void> age_struct_data_future = async(launch::async, [] {
             Log::Init("age_struct_data");
             asd.readAgeStructData();
@@ -135,7 +127,6 @@ namespace g4m::StartData {
         globiom_land_future.get();
         MAI_future.get();
         biomass_bau_future.get();
-        NPV_bau_future.get();
         age_struct_data_future.get();
 
         // start calculations

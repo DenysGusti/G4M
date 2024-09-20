@@ -2,6 +2,7 @@
 #define G4M_EUROPE_DG_DEBUGGING_HPP
 
 #include <iostream>
+#include <print>
 
 #if PR_DEBUG == 1
 #define LOG_DEBUG(...) do { cout << format(__VA_ARGS__) << '\n'; } while(false)
@@ -23,9 +24,8 @@ namespace g4m::diagnostics {
         }
 
         void printMemoryUsage() const noexcept {
-            cout << "Memory Usage: " << currentUsage() << " bytes\n"
-                 << "Total Allocated: " << TotalAllocated << " bytes\n"
-                 << "Total Freed: " << TotalFreed << " bytes\n";
+            println("Memory Usage: {} bytes\nTotal Allocated: {} bytes\nTotal Freed: {} bytes",
+                    currentUsage(), TotalAllocated, TotalFreed);
         }
     };
 

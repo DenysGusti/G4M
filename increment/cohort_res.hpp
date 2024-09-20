@@ -18,13 +18,13 @@ namespace g4m::increment {
         // MG: get harvestable rest-wood for the forest tC/ha for final cut
         double restWood = 0;
         // MG: get harvestable sawn-wood for the forest tC/ha for thinning
-        double sawnThWood = 0;
+        double sawnThinningWood = 0;
         // MG: get harvestable rest-wood for the forest tC/ha for thinning
-        double restThWood = 0;
+        double restThinningWood = 0;
         // MG: get total harvestable biomass including harvest losses for the forest tC/ha for final cut
-        double bmH = 0;
+        double biomassHarvest = 0;
         // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
-        double bmTh = 0;
+        double biomassThinning = 0;
 
         FMResult thinning;
         FMResult finalCut;  // harvestArea = area
@@ -42,29 +42,29 @@ namespace g4m::increment {
 
             sawnWood = finalCut.sawnWood * areaRatio;
             restWood = finalCut.restWood * areaRatio;
-            sawnThWood = thinning.sawnWood * reciprocalRealArea;
-            restThWood = thinning.restWood * reciprocalRealArea;
-            bmH = finalCut.bm * areaRatio;
+            sawnThinningWood = thinning.sawnWood * reciprocalRealArea;
+            restThinningWood = thinning.restWood * reciprocalRealArea;
+            biomassHarvest = finalCut.biomass * areaRatio;
             // MG: get total harvestable biomass including harvest losses for the forest tC/ha for thinning
-            bmTh = thinning.bm * reciprocalRealArea;
+            biomassThinning = thinning.biomass * reciprocalRealArea;
             // harvestW, bmH, bmTh
 
             sawnWood *= reciprocalModTimeStep;
             restWood *= reciprocalModTimeStep;
-            sawnThWood *= reciprocalModTimeStep;
-            restThWood *= reciprocalModTimeStep;
-            bmH *= reciprocalModTimeStep;
-            bmTh *= reciprocalModTimeStep;
+            sawnThinningWood *= reciprocalModTimeStep;
+            restThinningWood *= reciprocalModTimeStep;
+            biomassHarvest *= reciprocalModTimeStep;
+            biomassThinning *= reciprocalModTimeStep;
         }
 
-        // sawnWood + restWood + sawnThWood + restThWood
+        // sawnWood + restWood + sawnThinningWood + restThinningWood
         [[nodiscard]] inline double getTotalWoodRemoval() const noexcept {
-            return sawnWood + restWood + sawnThWood + restThWood;
+            return sawnWood + restWood + sawnThinningWood + restThinningWood;
         }
 
-        // bmH + bmTh
+        // biomassHarvest + biomassThinning
         [[nodiscard]] inline double getTotalHarvestedBiomass() const noexcept {
-            return bmH + bmTh;
+            return biomassHarvest + biomassThinning;
         }
 
         // totalHarvestedBiomass - totalWoodRemoval
@@ -77,25 +77,35 @@ namespace g4m::increment {
             return sawnWood + restWood;
         }
 
-        // sawnThWood + restThWood
+        // sawnThinningWood + restThinningWood
         [[nodiscard]] inline double getThinnedWood() const noexcept {
-            return sawnThWood + restThWood;
+            return sawnThinningWood + restThinningWood;
+        }
+
+        // biomassHarvest - (sawnWood + restWood)
+        [[nodiscard]] inline double getFinalCutHarvestLosses() const noexcept {
+            return biomassHarvest - getFinalCutWood();
+        }
+
+        // biomassThinning - (sawnThinningWood + restThinningWood)
+        [[nodiscard]] inline double getThinningHarvestLosses() const noexcept {
+            return biomassThinning - getThinnedWood();
         }
 
         [[nodiscard]] inline bool positiveAreas() const noexcept {
             return finalCut.area > 0 && realArea > 0;
         }
 
-        // harvestArea > 0 && getFinalCutWood() > 0 && bmH > 0
+        // positiveAreas() && getFinalCutWood() > 0 && biomassHarvest > 0
         // tC/ha
         [[nodiscard]] inline bool if_fc() const noexcept {
-            return positiveAreas() && getFinalCutWood() > 0 && bmH > 0;
+            return positiveAreas() && getFinalCutWood() > 0 && biomassHarvest > 0;
         }
 
-        // realArea > 0 && getThinnedWood() > 0 && bmTh > 0
+        // realArea > 0 && getThinnedWood() > 0 && biomassThinning > 0
         // tC/ha
         [[nodiscard]] inline bool if_th() const noexcept {
-            return realArea > 0 && getThinnedWood() > 0 && bmTh > 0;
+            return realArea > 0 && getThinnedWood() > 0 && biomassThinning > 0;
         }
 
         // harvestArea / realArea
@@ -103,9 +113,19 @@ namespace g4m::increment {
             return finalCut.area / realArea;
         }
 
-        // bmH * (realArea / harvestArea)
-        [[nodiscard]] inline double getHarvestGS() const noexcept {
-            return bmH * realArea / finalCut.area;
+        // biomassHarvest * (realArea / harvestArea)
+        [[nodiscard]] inline double getHarvestGrowingStock() const noexcept {
+            return biomassHarvest * realArea / finalCut.area;
+        }
+
+        // getFinalCutWood() * (BEF - 2) + biomassHarvest
+        [[nodiscard]] inline double getHarvestResiduesFinalCut(const double BEF) const noexcept {
+            return getFinalCutWood() * (BEF - 2) + biomassHarvest;
+        }
+
+        // getThinnedWood() * (BEF - 2) + biomassThinning
+        [[nodiscard]] inline double getHarvestResiduesThinning(const double BEF) const noexcept {
+            return getThinnedWood() * (BEF - 2) + biomassThinning;
         }
 
         /*
@@ -118,17 +138,17 @@ namespace g4m::increment {
         */
 
         [[nodiscard]] pair<double, double>
-        harvestResiduesSanitaryFellings(const DataStruct &plot, const double cleanedWoodUseShare,
+        harvestResiduesSanitaryFellings(const double BEF, const double cleanedWoodUseShare,
                                         const double biomassExpansionThinning) const {
             if (realArea <= 0)
                 return {0, 0};
 
             // we take residues only from the places where do we take the logs
-            double lost_fc = getFinalCutWood() * plot.BEF(getHarvestGS());
-            double lost_fc_d = bmH - 2 * getFinalCutWood();
+            double lost_fc = getFinalCutWood() * BEF;
+            double lost_fc_d = biomassHarvest - 2 * getFinalCutWood();
 
             double lost_th = getThinnedWood() * biomassExpansionThinning;
-            double lost_th_d = bmTh - 2 * getThinnedWood();
+            double lost_th_d = biomassThinning - 2 * getThinnedWood();
 
             // Added 28 July 2017: self thinned trees that are not used as logs
             double harvRes_sc = lost_th + lost_th_d;

@@ -928,7 +928,7 @@ namespace g4m::increment {
                                 ip(t0 + timeframe, cmai_d * maiStep, height) - height[ct - 1 + cmai * nt];
                     double incDbhMaxDens = dbh[ct + cmai * nt] - dbh[ct - 1 + cmai * nt];
                     double incDbhMaxDensY = incDbhMaxDens;
-                    if (timeframe <= 0.)
+                    if (timeframe <= 0)
                         incDbh[ct - 1 + cmai * nt] = incDbhMaxDens;
                     else {
                         incDbhMaxDensY = ip(t0 + timeframe, cmai_d * maiStep, dbh) - dbh[ct - 1 + cmai * nt];

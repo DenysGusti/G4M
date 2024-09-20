@@ -9,7 +9,7 @@ namespace g4m::increment {
 
         double realArea = 0;
         double harvestedWood = 0;  // harvest
-        double bmH = 0;
+        double biomassHarvest = 0;
         double damagedFire = 0;
         double harvestArea = 0;
         FMResult wind;
@@ -26,9 +26,9 @@ namespace g4m::increment {
             double reciprocalRealArea = 1. / realArea;
             harvestedWood = (wind.getTotalSalvageWoodRemoval() + fire.getTotalSalvageWoodRemoval() +
                              biotic.getTotalSalvageWoodRemoval()) * reciprocalRealArea;
-            bmH = (wind.getHarvestedBmForest() + fire.getHarvestedBmForest() * burntReduction +
-                   biotic.getHarvestedBmForest()) * reciprocalRealArea;
-            damagedFire = fire.getHarvestedBmForest() * reciprocalRealArea;
+            biomassHarvest = (wind.getHarvestedBiomassForest() + fire.getHarvestedBiomassForest() * burntReduction +
+                   biotic.getHarvestedBiomassForest()) * reciprocalRealArea;
+            damagedFire = fire.getHarvestedBiomassForest() * reciprocalRealArea;
             harvestArea = wind.area + fire.area + biotic.area;
             // TODO modTimeStep != 1
         }
@@ -43,19 +43,19 @@ namespace g4m::increment {
             return (wind.getHArea() + fire.getHArea() + biotic.getHArea()) / harvestArea;
         }
 
-        // harvestArea > 0 && realArea > 0 && harvest > 0 && bmH > 0
+        // harvestArea > 0 && realArea > 0 && harvestedWood > 0 && biomassHarvest > 0
         [[nodiscard]] inline bool allPositive() const noexcept {
-            return harvestArea > 0 && realArea > 0 && harvestedWood > 0 && bmH > 0;  // tC/ha
+            return harvestArea > 0 && realArea > 0 && harvestedWood > 0 && biomassHarvest > 0;  // tC/ha
         }
 
-        // bmH * realArea / harvestArea
+        // biomassHarvest * realArea / harvestArea
         [[nodiscard]] inline double getGrowingStockCut() const noexcept {
-            return bmH * realArea / harvestArea;
+            return biomassHarvest * realArea / harvestArea;
         }
 
-        // harvest * (BEF - 2) + bmH
+        // harvestedWood * (BEF - 2) + biomassHarvest
         [[nodiscard]] inline double getHarvestResiduesSalvageLogging(const double BEF) const noexcept {
-            return harvestedWood * (BEF - 2) + bmH;
+            return harvestedWood * (BEF - 2) + biomassHarvest;
         }
 
         [[nodiscard]] inline bool positiveAreas() const noexcept {

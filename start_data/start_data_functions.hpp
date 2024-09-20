@@ -38,7 +38,7 @@ namespace g4m::StartData {
             double fmSinkSumTmp = 0;
             int count = 0;
             for (; count < min(adjustLength, fmEmission_unfccc_CRF[0].size()) &&
-                               coef.bYear - 1990 + count < fmEmission_unfccc_CRF[0].size(); ++count)
+                   coef.bYear - 1990 + count < fmEmission_unfccc_CRF[0].size(); ++count)
                 fmSinkSumTmp -= fmEmission_unfccc_CRF[i][coef.bYear - 1990 + count];
             FM_sink_stat[eu28OrderCode[i]] = count > 0 ? fmSinkSumTmp * 1'000 / count : 0; // GgCO2/year
         }
@@ -50,7 +50,7 @@ namespace g4m::StartData {
             double forestShare0 = max(0., plot.forest);
             plot.forestsArrangement();
             commonOForestShGrid.country(plot.x, plot.y) = plot.country;
-            double maxAffor = plot.getMaxAffor();
+            double maxAffor = plot.getMaxForestShare(2000);
 
             if (forestShare0 > maxAffor) {
                 optional<double> opt_dfor = plot.initForestArea(forestShare0 - maxAffor);
@@ -81,7 +81,7 @@ namespace g4m::StartData {
                 plot.managedFlag = false;
 
             commonMaiForest(plot.x, plot.y) = MAI;
-            double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
+            double harvMAI = MAI * plot.fTimber * (1 - coef.harvLoos);
 
             if (plot.CAboveHa > 0 && commonMaiForest(plot.x, plot.y) > 0) {
                 if (plot.speciesType == Species::NoTree) {
@@ -110,11 +110,10 @@ namespace g4m::StartData {
                 rotation = max(biomassRotTh + 1, rotMAI);
 
                 double pDefIncome =
-                        plot.CAboveHa * (decision.priceTimber() * plot.fTimber(coef.bYear) * (1 - coef.harvLoos));
+                        plot.CAboveHa * (decision.priceTimber() * plot.fTimber * (1 - coef.harvLoos));
                 // Immediate Pay if deforested (Slash and Burn)
                 double sDefIncome = pDefIncome;
-                double defIncome =
-                        pDefIncome * (1 - plot.slashBurn(coef.bYear)) + sDefIncome * plot.slashBurn(coef.bYear);
+                double defIncome = lerp(pDefIncome, sDefIncome, plot.slashBurn);
 
                 if (plot.managedFlag) {
                     commonThinningForest(plot.x, plot.y) = 1;
@@ -251,7 +250,7 @@ namespace g4m::StartData {
 
             if (plot.forest + plot.oldGrowthForest_thirty > 0 && mai_tmp > 0) {
                 if (asd.ageStructData.contains(plot.country) && thinning_tmp > 0 && (forFlag || forFlag30) &&
-                    plot.potVeg < 10) {
+                    static_cast<uint8_t>(plot.potVeg) < 10) {
 
 //                    DEBUG("before createNormalForest");
 //                    for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
@@ -339,7 +338,7 @@ namespace g4m::StartData {
 //                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
 //                            DEBUG("dat[{}] = [{}]", i, el.str());
 
-                        auto _ = cohort.aging(cohort.getMai(), false);
+                        auto _ = cohort.aging();
 
 //                        DEBUG("after aging");
 //                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
@@ -445,8 +444,8 @@ namespace g4m::StartData {
             AgeStruct &newCohort = commonCohortsN.back();
             newCohort.createNormalForest(rotation, 0, thinning_tmp);
 
-            commonDats.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohort10.getBm(),
-                                    cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
+            commonDats.emplace_back(plot, coef.bYear, commonRotationForest(plot.x, plot.y), abBiomass0,
+                                    cohort10.getBm(), cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
 
             commonHarvestResiduesCountry[plot.country].emplace_back(plot);
         }
@@ -491,7 +490,7 @@ namespace g4m::StartData {
                               commonOForestShGrid(plot.x, plot.y) -
                               plot.strictProtected,  // forestShare0 - forest available for wood supply initially
                               datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country), rotMAI,
-                              MAI * plot.fTimber.data.at(2000) * (1 - coef.harvLoos)};  // harvMAI
+                              MAI * plot.fTimber * (1 - coef.harvLoos)};  // harvMAI
 
                 double thinning = -1;
                 double rotation = 1;
@@ -573,7 +572,7 @@ namespace g4m::StartData {
                         rotation = clamp(biomassRotTh2 + 1, rotMAI, rotMaxBmTh);
                     }
 
-                    double harvMAI = MAI * plot.fTimber(coef.bYear) * (1 - coef.harvLoos);
+                    double harvMAI = MAI * plot.fTimber * (1 - coef.harvLoos);
                     // area of forest available for wood supply
                     double forestArea0 = plot.landArea * 100 * (plot.forest + plot.oldGrowthForest_thirty);
                     woodPotHarvest[plot.country - 1] += harvMAI * forestArea0;

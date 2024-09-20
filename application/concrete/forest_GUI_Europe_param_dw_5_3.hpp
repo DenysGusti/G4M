@@ -7,6 +7,7 @@
 #include <set>
 #include <unordered_set>
 #include <numbers>
+#include <functional>
 
 #include "../../log.hpp"
 #include "../../diagnostics/debugging.hpp"
@@ -25,6 +26,7 @@
 
 #include "../../GLOBIOM_scenarios_data/datamaps/datamaps.hpp"
 #include "../../GLOBIOM_scenarios_data/simu_ids/simu_ids.hpp"
+#include "../../GLOBIOM_scenarios_data/result_files.hpp"
 
 using namespace std;
 
@@ -40,12 +42,11 @@ using namespace g4m::Dicts;
 using namespace g4m::GLOBIOM_scenarios_data;
 
 namespace g4m::application::concrete {
-
     class Forest_GUI_Europe_param_dw_5_3 : public Application {
     public:
         explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args_)
                 : Application{args_}, dms{datamapScenarios, full_scenario, inputPriceC},
-                  sis{simuIdScenarios, full_scenario, c_scenario[1]} {
+                  sis{simuIdScenarios, full_scenario, c_scenario[1]}, rf{settings.outputPath, local_suffix} {
             // TODO initialize earlier
             Log::Init(appName);
             INFO("Scenario to read in & GL: {}", full_scenario);
@@ -56,17 +57,22 @@ namespace g4m::application::concrete {
             toAdjust.reserve(256);
             countriesNoFmCPol.reserve(256);
             doneList.reserve(256);
-            if (fmPol && !binFilesOnDisk && inputPriceC == 0) {
-                scoped_lock<mutex> lock{zeroC_mutex};
-                signalZeroCToMainScenarios.emplace(suffix0, 0);
-            }
+
+            if constexpr (fmPol && !binFilesOnDisk)
+                if (inputPriceC == 0) {
+                    scoped_lock<mutex> lock{zeroC_mutex};
+                    signalZeroCToMainScenarios.emplace(suffix0, 0);
+                }
         }
 
-        ~Forest_GUI_Europe_param_dw_5_3() {
-            if (fmPol && !binFilesOnDisk && inputPriceC == 0) {
-                scoped_lock<mutex> lock{zeroC_mutex};
-                signalZeroCToMainScenarios.at(suffix0).release();
-            }
+        ~Forest_GUI_Europe_param_dw_5_3() override {
+            if constexpr (fmPol && !binFilesOnDisk)
+                if (inputPriceC == 0) {
+                    scoped_lock<mutex> lock{zeroC_mutex};
+                    signalZeroCToMainScenarios.at(suffix0).release();
+                }
+
+            rf.saveFiles();     // in destructor to output something if exception was thrown
         }
 
         // start calculations
@@ -75,7 +81,6 @@ namespace g4m::application::concrete {
             // loop by years
             for (uint16_t year = coef.bYear; year <= coef.eYear; ++year) {
                 INFO("Processing year {}", year);
-                uint16_t age = year - coef.bYear;
 
                 if (year == forPolicyYearBioClima) {
                     appForest10Policy = commonForest10PolicyKey;
@@ -88,9 +93,8 @@ namespace g4m::application::concrete {
                     for (const auto &plot: appPlots) {
                         // Max mean annual increment (tC/ha) of Existing forest (with uniform age structure and managed with rotation length maximizing MAI)
                         // Max mean annual increment of New forest (with uniform age structure and managed with rotation length maximizing MAI)
-                        double MAI = max(0.,
-                                         appDats[plot.asID].forestShare0 > 0 ?
-                                                 MAI = plot.MAIE(year) : MAI = plot.MAIN(year));
+                        double MAI = max(0., appDats[plot.asID].forestShareOld(0) > 0 ? MAI = plot.MAIE(year)
+                                                                                      : MAI = plot.MAIN(year));
 
                         appMaiForest(plot.x, plot.y) = MAI;
 
@@ -103,7 +107,36 @@ namespace g4m::application::concrete {
 
                 INFO("Adjusting FM...");
                 adjustManagedForest(year);
+
+                for (int country = 0; country < numberOfCountries; ++country) {
+                    countriesNForestCover1990.setVal(country, year, 0);
+                    countriesOForestCover.setVal(country, year, 0);
+                }
+                // processing data from all plots
+                rf.biomassBau.emplace_back();
+                auto &tmpBm = rf.biomassBau.back();
+                tmpBm.reserve(appPlots.size());
+
+                INFO("Starting cell calculations...");
+                for (const auto &plot: appPlots) {
+                    calc(plot, year);
+                    const Dat &cell = appDats[plot.asID];
+
+                    if (!cell.checkLastForestShares()) {
+                        FATAL("Negative forest share in year = {}, asID = {}, country = {}", year, plot.asID,
+                              plot.country);
+                        throw runtime_error{"Negative forest share!"};
+                    }
+                    if constexpr (fmPol && !binFilesOnDisk)
+                        if (inputPriceC == 0 && year > refYear) {
+                            tmpBm.push_back(cell.U.stemBiomass.back());
+                        }
+                    appOForestShGrid.update1YearForward();
+                }
             }
+            for (const auto &plot: appPlots)
+                rf.cellInfoBuffer += appDats[plot.asID].csv(
+                        format("{},{},{}", plot.asID, plot.simuID, plot.country));
         }
 
     protected:
@@ -123,6 +156,7 @@ namespace g4m::application::concrete {
 
         Datamaps dms;
         SimuIds sis;
+        ResultFiles rf;
 
         // wood from outside forests in Belgium to cover the inconsistency between FAOSTAT removals and Forest Europe increment and felling
         Ipol<double> woodSupplement;
@@ -169,18 +203,164 @@ namespace g4m::application::concrete {
         CountryData countryRegMaxHarvest;
         CountryData countryRegWoodProd;
         CountryData countryRegWoodHarvestDfM3Year;
+        CountryData countryRegWoodHarvestM3Year;
+        CountryData countryRegWoodHarvestFmM3Year;
+
+        CountryData countryFMCPolMaxNPV;
+        CountryData countryFMCPolCurrNPV;
+
+        CountryData countryRotation;
+        CountryData countryRotationUsed;
+        CountryData countryRotationUnused;
 
         CountryData countriesResiduesExtract_m3;        // sustainably extracted harvest residuals, m3
         CountryData countriesResiduesDemand_m3;         // harvest residues demand recalculated to m3
         CountryData countriesResExtSoilEm_MtCO2Year;    // soil loss emissions due to sustainably extracted harvest residuals, MtCO2/year
 
-        CountryData countryFMCPolMaxNPV;
-        CountryData countryFMCPolCurrNPV;
-
         CountryData countriesWoodHarvestM3Year;
         CountryData countriesWoodHarvestUNM3Year;   // Harvest from usual old and new forests plus deforested wood
         CountryData countriesWoodHarvest10M3Year;   // Harvest from 10% forest
         CountryData countriesWoodHarvest30M3Year;   // Harvest from 30% forest
+        CountryData countriesWoodHarvestPlusM3Year;
+        CountryData countriesWoodHarvestFmM3Year;
+        CountryData countriesWoodHarvestDfM3Year;
+
+        CountryData countriesNForestCover1990;
+        CountryData countriesNForestCover;
+        CountryData countriesOForestCover;
+
+        CountryData countriesAfforestationHaYear1990;
+        CountryData countriesAfforestationHaYear;
+        CountryData countriesAfforestationAccumulationHa;
+
+        CountryData countriesNForestTotalC;
+        CountryData countriesNForestStemC;
+        CountryData countriesNForestAbC;
+        CountryData countriesAfforestationCYear;
+        CountryData countriesAfforestationCYear_ab;
+        CountryData countriesAfforestationCYear_bl;
+        CountryData countriesAfforestationCYear_biomass;
+        CountryData countriesAfforestationCYear_dom;
+        CountryData countriesAfforestationCYear_soil;
+        CountryData countriesAfforestationCYear_soil_altern;
+        CountryData countriesAfforestationCover20;
+        CountryData countriesAfforestationTotalC20;
+        CountryData countriesAfforestationCYear_biomass20;
+        CountryData countriesAfforestationCYear_biomass20os;
+        CountryData countriesAfforestationCYear_biomass20o;
+        CountryData countriesAfforestationCYear_biomass20b;
+        CountryData countriesAfforestationCYear_biomassGL;
+        CountryData countriesAfforestationCYear_dom20b;
+        CountryData countriesAfforestationCYear_soil20b;
+
+        CountryData countriesOForestCoverU;
+        CountryData countriesOForestCover10;
+        CountryData countriesOForestCover30;
+        CountryData countriesOForestCoverP;
+
+        CountryData countriesOForestCoverFAWSOld;
+
+        CountryData countriesDeforestationHaYear;
+        CountryData countriesOForest_stem_C;
+        CountryData countriesOForest_ab_C;
+        CountryData countriesOForest10_ab_C;
+        CountryData countriesOForest30_ab_C;
+        CountryData countriesOForestP_ab_C;
+
+        CountryData countriesOForestC_biomass;
+        CountryData countriesDeforestationCYear;
+        CountryData countriesDeforestationCYear_ab;
+        CountryData countriesDeforestationCYear_bl;
+        CountryData countriesDeforestationCYear_biomass;
+        CountryData countriesDeforestationCYear_dom;
+        CountryData countriesDeforestationCYear_soil;
+        CountryData countriesDeforestationCYear_soil_altern;
+
+        CountryData countriesWoodHarvestFc_oldM3Year;
+        CountryData countriesWoodHarvestTh_oldM3Year;
+        CountryData countriesWoodHarvestLostFc_oldM3Year;
+        CountryData countriesWoodHarvestLostTh_oldM3Year;
+        CountryData countriesWoodHarvestSc_oldM3Year;
+
+        CountryData countriesWoodHarvestSalvage_oldM3Year;
+        CountryData countriesWoodHarvestFc_newM3Year;
+        CountryData countriesWoodHarvestTh_newM3Year;
+        CountryData countriesWoodHarvestSc_newM3Year;
+        CountryData countriesHarvLossesYear;
+        CountryData countriesHarvLossesOldYear;
+        CountryData countriesHarvLossesOldFcYear;
+        CountryData countriesHarvLossesOldThYear;
+        CountryData countriesFellingsNAIYear;
+
+        CountryData countriesManagedCount;
+        CountryData countriesManagedForHa;
+        CountryData countriesManagedForOldHa;
+        CountryData countriesManagedNewHa;
+        CountryData countriesGCAI_mng;
+        CountryData countriesNCAI_mng;
+        CountryData countriesGCAI_new_mng;
+        CountryData countriesNCAI_new_mng;
+
+        CountryData countriesMAI;
+        CountryData countriesCAI;
+        CountryData countriesCAI_FAWS_old;
+        CountryData countriesCAI_FAWS_all;
+        CountryData countriesCAI_ALL_old;
+        CountryData countriesCAI_ALL_all;
+        CountryData countriesCAI_new;
+        CountryData countriesNAI_old;
+        CountryData countriesGCAI;
+        CountryData countriesNCAI;
+        CountryData countriesGCAI_new;
+        CountryData countriesNCAI_new;
+        CountryData countriesFM;
+        CountryData countriesFMbm;
+        CountryData countriesFMbmFAWS_old;
+
+        CountryData countriesProfit;
+        CountryData countriesOForestCoverUNFCCC;
+        CountryData countriesFMbmUNFCCC;
+
+        CountryData countriesWoodHarvBroadleafFc_oldM3Year;
+        CountryData countriesWoodHarvBroadleafTh_oldM3Year;
+        CountryData countriesWoodHarvBroadleafSc_oldM3Year;
+
+        CountryData countriesWoodHarvBroadleafFc_newM3Year;
+        CountryData countriesWoodHarvBroadleafTh_newM3Year;
+        CountryData countriesWoodHarvBroadleafSc_newM3Year;
+
+        CountryData countriesAreaUsedBroadleaf_oldHa;
+        CountryData countriesAreaUsedBroadleaf_newdHa;
+        CountryData countriesAreaHarvBroadleafFc_oldHaYear;
+        CountryData countriesAreaHarvBroadleafFc_newHaYear;
+        CountryData countriesAreaScBroadleaf_oldHa;
+        CountryData countriesAreaScBroadleaf_newHa;
+
+        CountryData countriesWoodHarvConiferFc_oldM3Year;
+        CountryData countriesWoodHarvConiferTh_oldM3Year;
+        CountryData countriesWoodHarvConiferSc_oldM3Year;
+
+        CountryData countriesWoodHarvConiferFc_newM3Year;
+        CountryData countriesWoodHarvConiferTh_newM3Year;
+        CountryData countriesWoodHarvConiferSc_newM3Year;
+
+        CountryData countriesAreaUsedConifer_oldHa;
+        CountryData countriesAreaUsedConifer_newdHa;
+        CountryData countriesAreaHarvConiferFc_oldHaYear;
+        CountryData countriesAreaHarvConiferFc_newHaYear;
+        CountryData countriesAreaScConifer_oldHa;
+        CountryData countriesAreaScConifer_newHa;
+
+        CountryData countriesDeadwood_old_tCha;
+        CountryData countriesDeadwood_new_tCha;
+        CountryData countriesLitter_old_tCha;
+        CountryData countriesLitter_new_tCha;
+        CountryData countriesDeadwoodEm_old_mtco2year;
+        CountryData countriesDeadwoodEm_new_mtco2year;
+        CountryData countriesLitterEm_old_mtco2year;
+        CountryData countriesLitterEm_new_mtco2year;
+
+        DataGrid<double> forestryValueDPrevGrid{resLatitude};
 
         void correctBelgium() noexcept {
             woodSupplement = dms.woodDemand.at(20);
@@ -200,17 +380,13 @@ namespace g4m::application::concrete {
             }
 
             for (auto &plot: appPlots) {
-                double maie = plot.MAIE.data.at(2000);
-                double main = plot.MAIN.data.at(2000);
-                double npp = plot.NPP.data.at(2000);
+                const double maie = plot.MAIE.data.at(2000);
+                const double main = plot.MAIN.data.at(2000);
+                const double npp = plot.NPP.data.at(2000);
 
                 plot.MAIE.data[2020] = maie;
                 plot.MAIN.data[2020] = main;
                 plot.NPP.data[2020] = npp;
-
-                plot.decHerb.data[2020] = plot.decHerb.data.at(2000);
-                plot.decWood.data[2020] = plot.decWood.data.at(2000);
-                plot.decSOC.data[2020] = plot.decSOC.data.at(2000);
 
                 if (sis.maiClimateShifters.contains(plot.simuID))
                     for (const auto [year, value]: sis.maiClimateShifters.at(plot.simuID).data)
@@ -227,51 +403,51 @@ namespace g4m::application::concrete {
             // file_globiom_LC_correction is not implemented
             double sumGrLnd_protect = 0;
 
-            for (auto &plot: appPlots)
-                if (!plot.protect) {
+            for (auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect))) {
+                // we leave the previous values if in current dataset this cell is absent
+                if (!sis.GLOBIOM_AfforMax[plot.simuID].data.empty())
+                    for (const auto &[year, value]: sis.GLOBIOM_AfforMax[plot.simuID].data)
+                        if (year > 2000)
+                            plot.afforMax.data[year] = max(0., value + plot.natLnd_correction);
 
-                    // we leave the previous values if in current dataset this cell is absent
-                    if (!sis.GLOBIOM_AfforMax[plot.simuID].data.empty())
-                        for (const auto &[year, value]: sis.GLOBIOM_AfforMax[plot.simuID].data)
-                            if (year > 2000)
-                                plot.afforMax.data[year] = max(0., value + plot.natLnd_correction);
+                // we leave the previous values if in current dataset this cell is absent
+                if (!sis.GLOBIOM_Land[plot.simuID].data.empty())
+                    for (const auto &[year, value]: sis.GLOBIOM_Land[plot.simuID].data)
+                        // dfor correction was ahead of time and value of GLOBIOM_reserved is probably negative
+                        // max(0, value + plot.GL_correction) =>
+                        // max(plot.GLOBIOM_reserved.data[year],
+                        // value + plot.GL_correction + plot.GLOBIOM_reserved.data[year])
+                        // plot.GLOBIOM_reserved.data[year] exists only if (opt_dfor)
+                        plot.GLOBIOM_reserved.data[year] = max(plot.GLOBIOM_reserved.data[year],
+                                                               value + plot.GL_correction +
+                                                               plot.GLOBIOM_reserved.data[year]);
 
-                    // we leave the previous values if in current dataset this cell is absent
-                    if (!sis.GLOBIOM_Land[plot.simuID].data.empty())
-                        for (const auto &[year, value]: sis.GLOBIOM_Land[plot.simuID].data)
-                            // dfor correction was ahead of time and value of GLOBIOM_reserved is probably negative
-                            // max(0, value + plot.GL_correction) =>
-                            // max(plot.GLOBIOM_reserved.data[year],
-                            // value + plot.GL_correction + plot.GLOBIOM_reserved.data[year])
-                            // plot.GLOBIOM_reserved.data[year] exists only if (opt_dfor)
-                            plot.GLOBIOM_reserved.data[year] = max(plot.GLOBIOM_reserved.data[year],
-                                                                   value + plot.GL_correction +
-                                                                   plot.GLOBIOM_reserved.data[year]);
+                else if (!dms.GLOBIOM_LandCountry[plot.country].data.empty() &&
+                         !dms.GLOBIOM_AfforMaxCountry[plot.country].data.empty()) {
 
-                    else if (!dms.GLOBIOM_LandCountry[plot.country].data.empty() &&
-                             !dms.GLOBIOM_AfforMaxCountry[plot.country].data.empty()) {
-
-                        if (protectedNatLnd && plot.grLnd_protect > 0) {
+                    if constexpr (protectedNatLnd)
+                        if (plot.grLnd_protect > 0) {
                             plot.afforMax.data[2000] = max(0., plot.afforMax.data.at(2000) + plot.grLnd_protect);
                             sumGrLnd_protect += plot.grLnd_protect;
                         }
 
-                        for (auto &[year, GL]: plot.GLOBIOM_reserved.data)
-                            if (year > 2000 && GL > 0) {
-                                double &natLnd = plot.afforMax.data[year];  // no interpolation, I suppose data is already there
-                                double dGL = (dms.GLOBIOM_LandCountry[plot.country].data.at(year) -
-                                              dms.GLOBIOM_LandCountry[plot.country](year - modTimeStep)) /
-                                             countryLandArea[plot.country];
-                                dGL = clamp(dGL, -GL, natLnd);
-                                // reference variables
-                                GL = max(0., GL + dGL);
-                                natLnd = max(0., natLnd - dGL);
-                            }
-                    }
+                    for (auto &[year, GL]: plot.GLOBIOM_reserved.data)
+                        if (year > 2000 && GL > 0) {
+                            double &natLnd = plot.afforMax.data[year];  // no interpolation, I suppose data is already there
+                            double dGL = (dms.GLOBIOM_LandCountry[plot.country].data.at(year) -
+                                          dms.GLOBIOM_LandCountry[plot.country](year - modTimeStep)) /
+                                         countryLandArea[plot.country];
+                            dGL = clamp(dGL, -GL, natLnd);
+                            // reference variables
+                            GL = max(0., GL + dGL);
+                            natLnd = max(0., natLnd - dGL);
+                        }
                 }
+            }
 
-            if (protectedNatLnd && sumGrLnd_protect <= 0)
-                ERROR("GRLND_PROTECT is 0. Check spatial input data (plots)!!!");
+            if constexpr (protectedNatLnd)
+                if (sumGrLnd_protect <= 0)
+                    ERROR("GRLND_PROTECT is 0. Check spatial input data (plots) and if flag debugWithoutBigFiles is disabled!!!");
         }
 
         // apply corruption and populate country CO2Price if inputPriceC > 0
@@ -304,23 +480,22 @@ namespace g4m::application::concrete {
             toAdjust = countriesList;
 
             if (year == coef.bYear)
-                for (const auto &plot: appPlots)
-                    if (!plot.protect) {
-                        thinningForestNew(plot.x, plot.y) = appCohortsN[plot.asID].getStockingDegree();
-                        rotationForestNew(plot.x, plot.y) = appCohortsN[plot.asID].getU();
+                for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect))) {
+                    thinningForestNew(plot.x, plot.y) = appCohortsN[plot.asID].getStockingDegree();
+                    rotationForestNew(plot.x, plot.y) = appCohortsN[plot.asID].getU();
 
-                        double rotation = appRotationForest(plot.x, plot.y);
-                        double SD = appThinningForest(plot.x, plot.y);
+                    double rotation = appRotationForest(plot.x, plot.y);
+                    double SD = appThinningForest(plot.x, plot.y);
 
-                        appThinningForest30(plot.x, plot.y) = SD;
-                        appCohorts30[plot.asID].setU(rotation);
-                        appCohorts30[plot.asID].setStockingDegree(SD * sdMinCoef);
-                        appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
-                    }
+                    appThinningForest30(plot.x, plot.y) = SD;
+                    appCohorts30[plot.asID].setU(rotation);
+                    appCohorts30[plot.asID].setStockingDegree(SD * sdMinCoef);
+                    appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
+                }
 
             if (year == coef.bYear + 1)
-                for (const auto &plot: appPlots)
-                    if (!plot.protect && appThinningForest(plot.x, plot.y) < 0)
+                for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                    if (appThinningForest(plot.x, plot.y) < 0)
                         appUnmanaged(plot.x, plot.y) = 1;
 
             // Apply the forest 10% and forest 30% policies
@@ -382,7 +557,6 @@ namespace g4m::application::concrete {
                 array<double, numberOfCountries> harvDiff = getHarvDiff(year, woodHarvest, true);
                 array<double, numberOfCountries> maxDiff0 = harvDiff;
 
-                // TODO continue logic
                 doneList.clear();
                 for (uint8_t maxDiffCountry = 0;
                      doneList.size() < countriesList.size(); doneList.insert(maxDiffCountry)) {
@@ -459,14 +633,13 @@ namespace g4m::application::concrete {
 
                 INFO("-----NPV post control-----");
                 if (NPV_postControl)
-                    for (const auto &plot: appPlots)
-                        if (!plot.protect) {
-                            bool used = appThinningForest(plot.x, plot.y) > 0;
-                            double NPVTmp = npvCalc(plot, appCohortsU[plot.asID], year,
-                                                    appRotationForest(plot.x, plot.y), used).first;
-                            countryFMCPolMaxNPV.inc(plot.country, year, maxNPVGrid(plot.x, plot.y));
-                            countryFMCPolCurrNPV.inc(plot.country, year, NPVTmp);
-                        }
+                    for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect))) {
+                        bool used = appThinningForest(plot.x, plot.y) > 0;
+                        double NPVTmp = npvCalc(plot, appCohortsU[plot.asID], year,
+                                                appRotationForest(plot.x, plot.y), used).first;
+                        countryFMCPolMaxNPV.inc(plot.country, year, maxNPVGrid(plot.x, plot.y));
+                        countryFMCPolCurrNPV.inc(plot.country, year, NPVTmp);
+                    }
             } else {
                 // 0 - path
                 array<double, numberOfCountries> woodHarvest = fmCPol(1, year, false);
@@ -475,28 +648,30 @@ namespace g4m::application::concrete {
                 array<double, numberOfCountries> harvestResiduesSoilEmissions = adjustResidues(year, residueHarvest);
 
                 INFO("-----NPV post control-----");
-                if (fmPol && year > refYear && NPV_postControl_0)
-                    for (const auto &plot: appPlots)
-                        if (!plot.protect) {
+                if constexpr (fmPol)
+                    if (year > refYear && NPV_postControl_0)
+                        for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect))) {
                             bool used = appThinningForest(plot.x, plot.y) > 0;
                             double NPVTmp = npvCalc(plot, appCohortsU[plot.asID], year,
                                                     appRotationForest(plot.x, plot.y), used).first;
                         }
 
-                if (adjustFMSink && year == coef.bYear + 1) {
-                    array<double, 4> FMs_diff2 = {1000, 0, 0, 0};
-                    // change back to ranges later
-                    for (int count = 0; (FMs_diff2[0] != FMs_diff2[1] || FMs_diff2[1] != FMs_diff2[2] ||
-                                         FMs_diff2[2] != FMs_diff2[3]) && FMs_diff2[0] > 100 && count < 150; ++count) {
-                        shift_right(FMs_diff2.begin(), FMs_diff2.end(), 1);
-                        // ranges::shift_right(FMs_diff2, 1);  // shift right 1
-                        FMs_diff2[0] = adjustFMSinkFunc();
-                        DEBUG("count = {}\t", count, FMs_diff2[0]);
-                        for (size_t i = 0; i < FMs_diff2.size(); ++i)
-                            DEBUG("FMs_diff[{}] = {:e}", i, FMs_diff2[i]);
+                if constexpr (adjustFMSink)
+                    if (year == coef.bYear + 1) {
+                        array<double, 4> FMs_diff2 = {1000, 0, 0, 0};
+                        // change back to ranges later
+                        for (int count = 0;
+                             (FMs_diff2[0] != FMs_diff2[1] || FMs_diff2[1] != FMs_diff2[2] ||
+                              FMs_diff2[2] != FMs_diff2[3]) && FMs_diff2[0] > 100 && count < 150; ++count) {
+                            shift_right(FMs_diff2.begin(), FMs_diff2.end(), 1);
+                            // ranges::shift_right(FMs_diff2, 1);  // shift right 1
+                            FMs_diff2[0] = adjustFMSinkFunc();
+                            DEBUG("count = {}\t", count, FMs_diff2[0]);
+                            for (size_t i = 0; i < FMs_diff2.size(); ++i)
+                                DEBUG("FMs_diff[{}] = {:e}", i, FMs_diff2[i]);
+                        }
+                        forest30GeneralFM();
                     }
-                    forest30GeneralFM();
-                }
             }
         }
 
@@ -508,68 +683,63 @@ namespace g4m::application::concrete {
                 return;
             }
 
-            for (const auto &plot: appPlots)
-                if (!plot.protect) {
-                    double forestShareConcerned = forestConcerned == 10 ?
-                                                  appDats[plot.asID].O10.forestShare
-                                                                        : appDats[plot.asID].O30.forestShare;
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect))) {
+                const Dat &cell = appDats[plot.asID];
+                double forestShareConcerned =
+                        forestConcerned == 10 ? cell.O10.forestShare.back() : cell.O30.forestShare.back();
 
-                    if (forestShareConcerned > 0) {
-                        double SD = cohortVec[plot.asID].getStockingDegree();
-                        double biomassRot = 0;
-                        double rotMaxBm = 0;
+                if (forestShareConcerned > 0) {
+                    double SD = cohortVec[plot.asID].getStockingDegree();
+                    double biomassRot = 0;
+                    double rotMaxBm = 0;
 
-                        double biomass = forestConcerned == 10 ?
-                                         appDats[plot.asID].O10.prevStemBiomass
-                                                               : appDats[plot.asID].O30.prevStemBiomass;
+                    double biomass =
+                            forestConcerned == 10 ? cell.O10.stemBiomass.back() : cell.O30.stemBiomass.back();
 
-                        if (biomass > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
-                            double biomassTmp = max(biomass, appDats[plot.asID].OBiomass0);
-                            // rotation time to get current biomass (without thinning)
-                            biomassRot = species.at(plot.speciesType).getU(biomassTmp, appMaiForest(plot.x, plot.y));
-                            rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
-                                                                            OptRotTimes::Mode::MaxBm);
+                    if (biomass > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
+                        double biomassTmp = max(biomass, cell.U.stemBiomass[0]);
+                        // rotation time to get current biomass (without thinning)
+                        biomassRot = species.at(plot.speciesType).getU(biomassTmp, appMaiForest(plot.x, plot.y));
+                        rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
+                                                                        OptRotTimes::Mode::MaxBm);
+                    }
+
+                    //  TO BE CHANGED to specific cleanedWoodUse10[...] / cleanedWoodUse30[...]
+                    const auto [_, cleanedWoodUseCurrent10, cleanedWoodUseCurrent30, baseValue] =
+                            getCleanedWoodUseCurrent(plot);
+                    double cleanedWoodUseNew =
+                            forestConcerned == 10 ? cleanedWoodUseCurrent10 : cleanedWoodUseCurrent30;
+
+                    if (biomass > 0 && appMaiForest(plot.x, plot.y) > 0 && SD != 0) {
+                        double harvestTmp = appHarvestGrid(plot.x, plot.y);
+                        double harvestO = cohortVec[plot.asID].cohortRes().getTotalWoodRemoval();
+                        double lostHarvestTmp =
+                                baseValue * harvestO * forestShareConcerned * cell.landAreaHa * plot.fTimber;
+                        appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp - lostHarvestTmp);
+
+                        if (SD < 0) {
+                            if (cohortVec[plot.asID].getU() < biomassRot)
+                                cohortVec[plot.asID].setU(biomassRot);
+                        } else {
+                            cohortVec[plot.asID].setU(rotMaxBm);
+                            cohortVec[plot.asID].setStockingDegree(-1);
+
+                            forestConcerned == 10 ?
+                                    appThinningForest10(plot.x, plot.y) = -1 : appThinningForest30(plot.x,
+                                                                                                   plot.y) = -1;
                         }
 
-                        //  TO BE CHANGED to specific cleanedWoodUse10[...] / cleanedWoodUse30[...]
-                        double cleanedWoodUseCurrent = cleanedWoodUse[plot.country];
-
-                        if (biomass > 0 && appMaiForest(plot.x, plot.y) > 0 && SD != 0) {
-                            double harvestTmp = appHarvestGrid(plot.x, plot.y);
-                            double harvestO = cohortVec[plot.asID].cohortRes().getTotalWoodRemoval();
-                            double lostHarvestTmp = cleanedWoodUseCurrent * harvestO * forestShareConcerned *
-                                                    appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
-                            appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp - lostHarvestTmp);
-
-                            if (SD < 0) {
-                                if (cohortVec[plot.asID].getU() < biomassRot)
-                                    cohortVec[plot.asID].setU(biomassRot);
-                            } else {
-                                cohortVec[plot.asID].setU(rotMaxBm);
-                                cohortVec[plot.asID].setStockingDegree(-1);
-
-                                forestConcerned == 10 ?
-                                        appThinningForest10(plot.x, plot.y) = -1 : appThinningForest30(plot.x,
-                                                                                                       plot.y) = -1;
-                            }
-
-                            if (multifunction) {
-                                double cleanedWoodUseNew = cleanedWoodUse[plot.country];
-
-                                if (forestConcerned == 10 && appForest10Policy)
-                                    cleanedWoodUseNew *= cleanWoodUseShare10;
-                                else if (forestConcerned == 30 && appForest30Policy)
-                                    cleanedWoodUseNew *= cleanWoodUseShare30;
-
-                                harvestTmp = appHarvestGrid(plot.x, plot.y);
-                                harvestO = cohortVec[plot.asID].cohortRes().getTotalWoodRemoval();
-                                double harvestNewTmp = cleanedWoodUseNew * harvestO * forestShareConcerned *
-                                                       appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
-                                appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp + harvestNewTmp);
-                            }
+                        if (multifunction) {
+                            harvestTmp = appHarvestGrid(plot.x, plot.y);
+                            harvestO = cohortVec[plot.asID].cohortRes().getTotalWoodRemoval();
+                            double harvestNewTmp =
+                                    cleanedWoodUseNew * harvestO * forestShareConcerned * cell.landAreaHa *
+                                    plot.fTimber;
+                            appHarvestGrid(plot.x, plot.y) = max(0., harvestTmp + harvestNewTmp);
                         }
                     }
                 }
+            }
         }
 
         // Calculate the harvest of wood damaged by disturbances.
@@ -580,36 +750,27 @@ namespace g4m::application::concrete {
             array<double, numberOfCountries> residueHarvest{};  // extraction of harvest residues, tC
 
             for (const auto &plot: appPlots) {
-                double reciprocalFTimber = 1 / plot.fTimber.data.at(2000);
+                Dat &cell = appDats[plot.asID];
+
+                double reciprocalFTimber = 1 / plot.fTimber;
 
                 double damagedWind = 0;
                 double damagedFire = 0;
                 double damagedBiotic = 0;
 
-                if (disturbanceTrend) {
+                if constexpr (disturbanceTrend) {
                     damagedWind = sis.disturbWind[plot.simuID](year) * reciprocalFTimber;
                     damagedFire = sis.disturbFire[plot.simuID](year) * reciprocalFTimber;
                     damagedBiotic = sis.disturbBiotic[plot.simuID](year) * reciprocalFTimber;
-                } else if (disturbanceExtreme && year == disturbanceExtremeYear) {
-                    damagedWind = sis.disturbWindExtreme[plot.simuID](year) * reciprocalFTimber;
-                    damagedFire = sis.disturbFireExtreme[plot.simuID](year) * reciprocalFTimber;
-                    damagedBiotic = sis.disturbBioticExtreme[plot.simuID](year) * reciprocalFTimber;
-                }
+                } else if constexpr (disturbanceExtreme)
+                    if (year == disturbanceExtremeYear) {
+                        damagedWind = sis.disturbWindExtreme[plot.simuID](year) * reciprocalFTimber;
+                        damagedFire = sis.disturbFireExtreme[plot.simuID](year) * reciprocalFTimber;
+                        damagedBiotic = sis.disturbBioticExtreme[plot.simuID](year) * reciprocalFTimber;
+                    }
 
-                double cleanedWoodUseCurrent10 = 0;
-                if (!appForest10Policy)
-                    cleanedWoodUseCurrent10 =
-                            cleanedWoodUse[plot.country] + appDats[plot.asID].harvestEfficiencyMultifunction;
-                else if (appMultifunction10)
-                    cleanedWoodUseCurrent10 = cleanWoodUseShare10 * cleanedWoodUse[plot.country];
-
-                double cleanedWoodUseCurrent30 = 1;
-                if (appForest30Policy)
-                    cleanedWoodUseCurrent30 = appMultifunction30 ? cleanWoodUseShare30 * cleanedWoodUse[plot.country]
-                                                                 : 0;
-                else if (appThinningForest30(plot.x, plot.y) < 0)
-                    cleanedWoodUseCurrent30 =
-                            cleanedWoodUse[plot.country] + appDats[plot.asID].harvestEfficiencyMultifunction;
+                const auto [cleanedWoodUseCurrent, cleanedWoodUseCurrent10, cleanedWoodUseCurrent30, _] =
+                        getCleanedWoodUseCurrent(plot);
 
                 double harvestableFire = 0;
                 double harvestableWind = 0;
@@ -621,130 +782,127 @@ namespace g4m::application::concrete {
                     harvestableBiotic = 0.95;
                 }
 
-                const double shareU = appDats[plot.asID].U.forestShare;
-                const double share10 = appDats[plot.asID].O10.forestShare;
-                const double share30 = appDats[plot.asID].O30.forestShare;
-                const double shareP = plot.strictProtected;  // The share of strictly protected forest. Usually, the area of strict protected forest does not change
-                const double shareNew = appDats[plot.asID].N.forestShare;
-
                 SalvageLoggingRes slrU =
-                        shareU > 0 ? appCohortsU[plot.asID].salvageLoggingAllAgents(damagedWind,
-                                                                                    damagedFire,
-                                                                                    damagedBiotic,
-                                                                                    harvestableWind,
-                                                                                    harvestableFire,
-                                                                                    harvestableBiotic)
-                                   : SalvageLoggingRes{};
+                        cell.U.forestShare.back() > 0 ? appCohortsU[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                                       damagedFire,
+                                                                                                       damagedBiotic,
+                                                                                                       harvestableWind,
+                                                                                                       harvestableFire,
+                                                                                                       harvestableBiotic)
+                                                      : SalvageLoggingRes{};
 
                 SalvageLoggingRes slrO30 =
-                        share30 > 0 ? appCohorts30[plot.asID].salvageLoggingAllAgents(damagedWind,
-                                                                                      damagedFire,
-                                                                                      damagedBiotic,
-                                                                                      harvestableWind,
-                                                                                      harvestableFire,
-                                                                                      harvestableBiotic)
-                                    : SalvageLoggingRes{};
+                        cell.O30.forestShare.back() > 0 ? appCohorts30[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                                          damagedFire,
+                                                                                                          damagedBiotic,
+                                                                                                          harvestableWind,
+                                                                                                          harvestableFire,
+                                                                                                          harvestableBiotic)
+                                                        : SalvageLoggingRes{};
 
                 SalvageLoggingRes slrO10 =
-                        share10 > 0 ? appCohorts10[plot.asID].salvageLoggingAllAgents(damagedWind,
-                                                                                      damagedFire,
-                                                                                      damagedBiotic,
-                                                                                      harvestableWind,
-                                                                                      harvestableFire,
-                                                                                      harvestableBiotic)
-                                    : SalvageLoggingRes{};
+                        cell.O10.forestShare.back() > 0 ? appCohorts10[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                                          damagedFire,
+                                                                                                          damagedBiotic,
+                                                                                                          harvestableWind,
+                                                                                                          harvestableFire,
+                                                                                                          harvestableBiotic)
+                                                        : SalvageLoggingRes{};
 
                 // ---- we don't account for the deadwood accumulation at the moment (to be improved) ---
                 SalvageLoggingRes slrN =
-                        shareNew > 0 ? appCohortsN[plot.asID].salvageLoggingAllAgents(damagedWind,
-                                                                                      damagedFire,
-                                                                                      damagedBiotic,
-                                                                                      harvestableWind,
-                                                                                      harvestableFire,
-                                                                                      harvestableBiotic)
-                                     : SalvageLoggingRes{};
+                        cell.N.forestShare.back() > 0 ? appCohortsN[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                                       damagedFire,
+                                                                                                       damagedBiotic,
+                                                                                                       harvestableWind,
+                                                                                                       harvestableFire,
+                                                                                                       harvestableBiotic)
+                                                      : SalvageLoggingRes{};
 
                 // ---- we don't clean salvage in the primary forest and don't account for the deadwood accumulation at the moment (to be improved) ---
                 SalvageLoggingRes slrP =
-                        shareNew > 0 ? appCohortsP[plot.asID].salvageLoggingAllAgents(damagedWind,
-                                                                                      damagedFire,
-                                                                                      damagedBiotic,
-                                                                                      harvestableWind,
-                                                                                      harvestableFire,
-                                                                                      harvestableBiotic)
-                                     : SalvageLoggingRes{};
+                        cell.P.forestShare.back() > 0 ? appCohortsP[plot.asID].salvageLoggingAllAgents(damagedWind,
+                                                                                                       damagedFire,
+                                                                                                       damagedBiotic,
+                                                                                                       harvestableWind,
+                                                                                                       harvestableFire,
+                                                                                                       harvestableBiotic)
+                                                      : SalvageLoggingRes{};
 
-                salvageLogging(plot.x, plot.y) = (slrU.harvestedWood * (shareU - appDats[plot.asID].deforestShare) +
-                                                  shareNew * slrN.harvestedWood +
-                                                  slrO30.harvestedWood * cleanedWoodUseCurrent30 * share30 +
-                                                  slrO10.harvestedWood * cleanedWoodUseCurrent10 * share10) *
-                                                 plot.fTimber.data.at(2000) * appDats[plot.asID].landAreaHa;
+                const double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
+                salvageLogging(plot.x, plot.y) =
+                        (slrU.harvestedWood * forestShareApplied + cell.N.forestShare.back() * slrN.harvestedWood +
+                         slrO30.harvestedWood * cleanedWoodUseCurrent30 * cell.O30.forestShare.back() +
+                         slrO10.harvestedWood * cleanedWoodUseCurrent10 * cell.O10.forestShare.back()) * plot.fTimber *
+                        cell.landAreaHa;
 
                 if (slrU.damagedFire + slrO30.damagedFire + slrO10.damagedFire + slrN.damagedFire +
                     slrP.damagedFire <= 0)
                     residueHarvest[plot.country] += adjustResiduesDisturbed(plot, year, slrU, slrN, slrO30);
 
-                const auto [deadWoodPoolIn, litterPoolIn] =
-                        shareU > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrU, shareU,
-                                                                     appDats[plot.asID].U.extractedResidues,
-                                                                     appDats[plot.asID].U.extractedStump)
-                                   : pair{0., 0.};
-
-                const auto [deadWoodPoolIn_new, litterPoolIn_new] =
-                        shareNew > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrN, appDats[plot.asID].N.prevForestShare,
-                                                                       appDats[plot.asID].U.extractedResidues,
-                                                                       appDats[plot.asID].U.extractedStump)
-                                     : pair{0., 0.};
+                const auto [deadwoodPoolIn, litterPoolIn] =
+                        cell.U.forestShare.back() > 0 ? deadwoodPoolDisturbanceCalcFunc(plot, slrU,
+                                                                                        cell.U.extractedResidues,
+                                                                                        cell.U.extractedStump)
+                                                      : pair{0., 0.};
+                // theoretically, year > 2020, so cell.N.forestShare.end()[-2] must exist
+                const auto [deadwoodPoolIn_new, litterPoolIn_new] =
+                        cell.N.forestShare.back() > 0 ? deadwoodPoolDisturbanceCalcFunc(plot, slrN,
+                                                                                        cell.U.extractedResidues,
+                                                                                        cell.U.extractedStump)
+                                                      : pair{0., 0.};
 
                 // because the whole structure is transferred to the function,
                 // we need to modify values here and restore them after
-                // TODO should be harvestO10 * cleanedWoodUseCurrent10?
+                // TODO should be harvestO10 * cleanedWoodUseCurrent10 or harvestO10 * (1 - cleanedWoodUseCurrent10)?
                 double tmp_hwO10 = slrO10.harvestedWood;
-                slrO10.harvestedWood *= 1 - cleanedWoodUseCurrent10;
-                const auto [deadWoodPoolIn10, litterPoolIn10] =
-                        share10 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrO10, share10,
-                                                                      appDats[plot.asID].O10.extractedResidues,
-                                                                      appDats[plot.asID].O10.extractedStump)
-                                    : pair{0., 0.};
+                slrO10.harvestedWood *= cleanedWoodUseCurrent10;
+                const auto [deadwoodPoolIn10, litterPoolIn10] =
+                        cell.O10.forestShare.back() > 0 ? deadwoodPoolDisturbanceCalcFunc(plot, slrO10,
+                                                                                          cell.O10.extractedResidues,
+                                                                                          cell.O10.extractedStump)
+                                                        : pair{0., 0.};
                 slrO10.harvestedWood = tmp_hwO10;
 
-                const auto [deadWoodPoolIn30, litterPoolIn30] =
-                        share30 > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrO30, share30,
-                                                                      appDats[plot.asID].O30.extractedResidues,
-                                                                      appDats[plot.asID].O30.extractedStump)
-                                    : pair{0., 0.};
+                const auto [deadwoodPoolIn30, litterPoolIn30] =
+                        cell.O30.forestShare.back() > 0 ? deadwoodPoolDisturbanceCalcFunc(plot, slrO30,
+                                                                                          cell.O30.extractedResidues,
+                                                                                          cell.O30.extractedStump)
+                                                        : pair{0., 0.};
 
                 // because the whole structure is transferred to the function,
                 // we need to modify values here and restore them after
                 double tmp_hwP = exchange(slrP.harvestedWood, 0);
-                const auto [deadWoodPoolInP, litterPoolInP] =
-                        shareP > 0 ? deadWoodPoolDisturbanceCalcFunc(plot, slrP, shareP, 0, 0)
-                                   : pair{0., 0.};
+                const auto [deadwoodPoolInP, litterPoolInP] =
+                        cell.P.forestShare.back() > 0 ? deadwoodPoolDisturbanceCalcFunc(plot, slrP,
+                                                                                        cell.P.extractedResidues,
+                                                                                        cell.P.extractedStump)
+                                                      : pair{0., 0.};
                 slrP.harvestedWood = tmp_hwP;
 
-                appDats[plot.asID].U.burntDeadwood = min(slrU.damagedFire, 0.9 * appDats[plot.asID].U.deadwood);
-                appDats[plot.asID].O30.burntDeadwood = min(slrO30.damagedFire, 0.9 * appDats[plot.asID].O30.deadwood);
-                appDats[plot.asID].O10.burntDeadwood = min(slrO10.damagedFire, 0.9 * appDats[plot.asID].O10.deadwood);
-                appDats[plot.asID].N.burntDeadwood = min(slrN.damagedFire, 0.9 * appDats[plot.asID].N.deadwood);
-                appDats[plot.asID].P.burntDeadwood = min(slrP.damagedFire, 0.9 * appDats[plot.asID].P.deadwood);
+                cell.U.burntDeadwood = min(slrU.damagedFire, 0.9 * cell.U.deadwood);
+                cell.O30.burntDeadwood = min(slrO30.damagedFire, 0.9 * cell.O30.deadwood);
+                cell.O10.burntDeadwood = min(slrO10.damagedFire, 0.9 * cell.O10.deadwood);
+                cell.N.burntDeadwood = min(slrN.damagedFire, 0.9 * cell.N.deadwood);
+                cell.P.burntDeadwood = min(slrP.damagedFire, 0.9 * cell.P.deadwood);
 
-                appDats[plot.asID].U.burntLitter = min(slrU.damagedFire, 0.9 * appDats[plot.asID].U.litter);
-                appDats[plot.asID].O30.burntLitter = min(slrO30.damagedFire, 0.9 * appDats[plot.asID].O30.litter);
-                appDats[plot.asID].O10.burntLitter = min(slrO10.damagedFire, 0.9 * appDats[plot.asID].O10.litter);
-                appDats[plot.asID].N.burntLitter = min(slrN.damagedFire, 0.9 * appDats[plot.asID].N.litter);
-                appDats[plot.asID].P.burntLitter = min(slrP.damagedFire, 0.9 * appDats[plot.asID].P.litter);
+                cell.U.burntLitter = min(slrU.damagedFire, 0.9 * cell.U.litter);
+                cell.O30.burntLitter = min(slrO30.damagedFire, 0.9 * cell.O30.litter);
+                cell.O10.burntLitter = min(slrO10.damagedFire, 0.9 * cell.O10.litter);
+                cell.N.burntLitter = min(slrN.damagedFire, 0.9 * cell.N.litter);
+                cell.P.burntLitter = min(slrP.damagedFire, 0.9 * cell.P.litter);
 
-                appDats[plot.asID].U.deadwood += deadWoodPoolIn;
-                appDats[plot.asID].N.deadwood += deadWoodPoolIn_new;
-                appDats[plot.asID].O10.deadwood += deadWoodPoolIn10;
-                appDats[plot.asID].O30.deadwood += deadWoodPoolIn30;
-                appDats[plot.asID].P.deadwood += deadWoodPoolInP;
+                cell.U.deadwood += deadwoodPoolIn;
+                cell.N.deadwood += deadwoodPoolIn_new;
+                cell.O10.deadwood += deadwoodPoolIn10;
+                cell.O30.deadwood += deadwoodPoolIn30;
+                cell.P.deadwood += deadwoodPoolInP;
 
-                appDats[plot.asID].U.litter += litterPoolIn;
-                appDats[plot.asID].N.litter += litterPoolIn_new;
-                appDats[plot.asID].O10.litter += litterPoolIn10;
-                appDats[plot.asID].O30.litter += litterPoolIn30;
-                appDats[plot.asID].P.litter += litterPoolInP;
+                cell.U.litter += litterPoolIn;
+                cell.N.litter += litterPoolIn_new;
+                cell.O10.litter += litterPoolIn10;
+                cell.O30.litter += litterPoolIn30;
+                cell.P.litter += litterPoolInP;
             }
 
             return residueHarvest;
@@ -765,9 +923,9 @@ namespace g4m::application::concrete {
             if (year <= residueHarvYear || plot.protect || plot.residuesUseShare <= 0)
                 return 0;
 
-            const double OForestShareU = appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
-            const double OForestShare30 = appDats[plot.asID].O30.forestShare;
-            const double AForestShare = appDats[plot.asID].N.forestShare;
+            const Dat &cell = appDats[plot.asID];
+            // TODO if (!appForest30Policy)?
+            const double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
             const double residueUse30 = !appForest30Policy;
 
             //---- Estimation of harvest residues (branches and leaves) per grid in tC ------------------------------------
@@ -801,7 +959,7 @@ namespace g4m::application::concrete {
 //            double stump_df30 = 0;
 
             // calculate amount of stumps + big roots for final felling, tC/ha
-            if (stumpHarvCountrySpecies.contains({plot.country, plot.speciesType}) && plot.fTimber.data.at(2000) > 0) {
+            if (stumpHarvCountrySpecies.contains({plot.country, plot.speciesType}) && plot.fTimber > 0) {
                 if (appThinningForest(plot.x, plot.y) > 0) {
                     double hDBHOld = slrU.getDBHSlashCut();
                     double hHOld = slrU.getHSlashCut();
@@ -836,16 +994,18 @@ namespace g4m::application::concrete {
             double residuesSuit1_perHa30 = plot.residuesUseShare * harvRes_fc30;               // tC/ha
             double residuesSuit2_perHa30 = plot.residuesUseShare * stump30 * residueUse30;      // tC/ha
 
-            double residuesSuit1 = plot.residuesUseShare * (harvRes_fcO * OForestShareU + harvRes_fcN * AForestShare) *
-                                   appDats[plot.asID].landAreaHa;
-            double residuesSuit2 = plot.residuesUseShare * (stump * OForestShareU + stump_new * AForestShare) *
-                                   appDats[plot.asID].landAreaHa;
+            double residuesSuit1 = plot.residuesUseShare *
+                                   (harvRes_fcO * forestShareApplied + harvRes_fcN * cell.N.forestShare.back()) *
+                                   cell.landAreaHa;
+            double residuesSuit2 =
+                    plot.residuesUseShare * (stump * forestShareApplied + stump_new * cell.N.forestShare.back()) *
+                    cell.landAreaHa;
 
-            double residuesSuit1_30 = residuesSuit1_perHa30 * OForestShare30 * appDats[plot.asID].landAreaHa;
-            double residuesSuit2_30 = residuesSuit2_perHa30 * OForestShare30 * appDats[plot.asID].landAreaHa;
+            double residuesSuit1_30 = residuesSuit1_perHa30 * cell.O30.forestShare.back() * cell.landAreaHa;
+            double residuesSuit2_30 = residuesSuit2_perHa30 * cell.O30.forestShare.back() * cell.landAreaHa;
 
             double residueHarvestDist =
-                    (residuesSuit1 + residuesSuit2 + residuesSuit1_30 + residuesSuit2_30) * plot.fTimber.data.at(2000);
+                    (residuesSuit1 + residuesSuit2 + residuesSuit1_30 + residuesSuit2_30) * plot.fTimber;
 
             countriesResiduesExtract_m3.inc(plot.country, year, residueHarvestDist);
             return residueHarvestDist;
@@ -853,76 +1013,80 @@ namespace g4m::application::concrete {
 
         // Deadwood input (d > 10cm) in the cell, tC/ha, in the old forest
         // Litter input (d <= 10cm) in the cell, tC/ha, in the old forest
-        // return pair<deadWoodPoolIn, litterPoolIn>
+        // returns pair<deadwoodPoolIn, litterPoolIn>
         [[nodiscard]] static pair<double, double>
-        deadWoodPoolDisturbanceCalcFunc(const DataStruct &plot, const SalvageLoggingRes &slr,
+        deadwoodPoolDisturbanceCalcFunc(const DataStruct &plot, const SalvageLoggingRes &slr,
                 // wood harvested in the production forest, m3/ha
                 // pure harvested area
                 // total harvested stem biomass at final felling in the production forest and multifunction forest
-                                        const double forestShare, // considered forest share in the cell
                                         const double extractedResidues, // share of extracted logging residues
                                         const double extractedStump) // share of extracted stump
         {
+            const double shareLargeBranches = 0.3; // share of branches greater than 10 cm in diameter
             // Dead wood
-//            double deadWood_fc_unmng = 0;       // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests not used for intensive wood production
-            double deadWood_fc_mng = 0;         // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests used for intensive wood production
+//            double deadwood_fc_unmanaged = 0;       // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests not used for intensive wood production
+//            double deadwood_fc_managed = 0;         // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests used for intensive wood production
 //
-//            double deadWood_mort = 0;           // deadwood (stem) due to mortality in old forest that is not classified as potentially merchantable
+//            double deadwood_mort = 0;           // deadwood (stem) due to mortality in old forest that is not classified as potentially merchantable
 //            double litter_mort = 0;             // litter (stem) due to mortality in old forest that is not classified as potentially merchantable
 
-//            double deadWoodBranches_mort = 0;
+//            double deadwoodBranches_mort = 0;
 //            double litterBranches_mort = 0;
-//            double deadWoodStump_mort = 0;
+//            double deadwoodStump_mort = 0;
 //            double litterStump_mort = 0;
-
-            double areaRatio = slr.harvestArea > 0 ? slr.realArea / slr.harvestArea : 0;
 
             double fcDBH = slr.getDBHSlashCut();
             double fcH = slr.getHSlashCut();
-            double fcGS = slr.bmH * areaRatio;
+            double fcGS = slr.getGrowingStockCut();
 
-            double deadWoodStump_fc = areaRatio > 0 ? plot.DBHHToStump(fcDBH, fcH, fcGS) / areaRatio : 0;
+            double deadwoodStump_fc = 0;
 //            double deadWoodStump_th = 0;
-
             // tC/ha in the cell
-            double deadWoodBranches_fc = 0.3 * slr.bmH * (plot.BEF(fcGS) - 1);
-            double litterBranches_fc = deadWoodBranches_fc / 0.3 * 0.7;
+            double deadwoodBranches_fc = 0;
+
+            if (slr.positiveAreas()) {
+                deadwoodStump_fc = plot.DBHHToStump(fcDBH, fcH, fcGS) * slr.getAreaRatio();
+                deadwoodBranches_fc = shareLargeBranches * slr.biomassHarvest * (plot.BEF(fcGS) - 1);
+            }
+
+            double litterBranches_fc = deadwoodBranches_fc * (1 / shareLargeBranches - 1);
 //            double litterBranches_th = 0;
 
-//            double deadWoodBranches_th = 0;
+//            double deadwoodBranches_th = 0;
 
             const double harvLossShare = 0.25;
 
-            double harvL = max(0., slr.bmH - slr.harvestedWood);
+            double harvL = max(0., slr.biomassHarvest - slr.harvestedWood);
             // deadwood from harvest losses in intensively managed old forest
             double deadwood_hRes_mng = (1 - harvLossShare) * harvL;
             // litter from harvest losses in intensively managed old forest
             double litter_hRes_mng = harvLossShare * harvL;
 
-//            double thDBHold = 0;
-//            double thHold = 0;
+//            double thDBH_old = 0;
+//            double thH_old = 0;
 
             // branches from harvested trees
-            double tmp_share = 1 - extractedResidues * plot.residuesUseShare;
+            double residuesLeftShare = 1 - extractedResidues * plot.residuesUseShare;
+            double stumpLeftShare = 1 - extractedStump * plot.residuesUseShare;
 
-            double deadWoodPoolIn = (deadWoodBranches_fc + deadwood_hRes_mng) * tmp_share +
-                                    deadWoodStump_fc * (1 - extractedStump * plot.residuesUseShare) + deadWood_fc_mng;
+            double deadwoodPoolIn = (deadwoodBranches_fc + deadwood_hRes_mng) * residuesLeftShare +
+                                    deadwoodStump_fc * stumpLeftShare;
 
-            double litterPoolIn = (litterBranches_fc + litter_hRes_mng) * tmp_share;
+            double litterPoolIn = (litterBranches_fc + litter_hRes_mng) * residuesLeftShare;
 
-            return {deadWoodPoolIn, litterPoolIn};
+            return {deadwoodPoolIn, litterPoolIn};
         }
 
         void findMaxWoodAndCNPV(const uint16_t year) {
-            for (const auto &plot: appPlots)
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
                 // Don't do initial disturbance for countries which cannot produce demanded amount of wood due to lack of forest resources or very high deforestation
-                if (countriesNoFmCPol.contains(plot.country) && toAdjust.contains(plot.country) && !plot.protect)
-                    if (appMaiForest(plot.x, plot.y) > 0 && appDats[plot.asID].OForestShare > 0) {
+                if (countriesNoFmCPol.contains(plot.country) && toAdjust.contains(plot.country))
+                    if (appMaiForest(plot.x, plot.y) > 0 && appDats[plot.asID].forestShareOld(-1) > 0) {
 
                         if (appManagedForest(plot.x, plot.y) > 0) {
-                            double rotMAI = species.at(plot.speciesType).getTOptT(
+                            const double rotMAI = species.at(plot.speciesType).getTOptT(
                                     appMaiForest(plot.x, plot.y), OptRotTimes::Mode::MAI);
-                            double rotMaxBmTh = species.at(plot.speciesType).getTOptT(
+                            const double rotMaxBmTh = species.at(plot.speciesType).getTOptT(
                                     appMaiForest(plot.x, plot.y), OptRotTimes::Mode::MaxBm);
                             const auto [rotMaxNPV, maxNPV, harvestMaxNPV] =
                                     maxNPVRotation(plot, year, true, rotMAI, rotMaxBmTh);
@@ -960,44 +1124,32 @@ namespace g4m::application::concrete {
 
         // returns newHarvestTmp, newHarvestTmp10, newHarvestTmp30
         [[nodiscard]] array<double, 3> calculatePlotHarvest(const DataStruct &plot) const {
-            double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
-            double harvestO10 = appCohorts10[plot.asID].cohortRes().getTotalWoodRemoval();
-            double harvestO30 = appCohorts30[plot.asID].cohortRes().getTotalWoodRemoval();
-            double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
+            const Dat &cell = appDats[plot.asID];
 
-            double cleanedWoodUseCurrent =
-                    cleanedWoodUse[plot.country] + appDats[plot.asID].harvestEfficiencyMultifunction;
+            const double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
+            const double harvestO10 = appCohorts10[plot.asID].cohortRes().getTotalWoodRemoval();
+            const double harvestO30 = appCohorts30[plot.asID].cohortRes().getTotalWoodRemoval();
+            const double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-            double cleanedWoodUseCurrent10 = appForest10Policy ? 0 : cleanedWoodUseCurrent;
-            if (appForest10Policy && appMultifunction10)
-                cleanedWoodUseCurrent10 = cleanWoodUseShare10 * cleanedWoodUse[plot.country];
+            const auto [cleanedWoodUseCurrent, cleanedWoodUseCurrent10, cleanedWoodUseCurrent30, _] =
+                    getCleanedWoodUseCurrent(plot);
 
-            double cleanedWoodUseCurrent30 = appForest30Policy ? 0 : cleanedWoodUseCurrent;
-            if (appForest30Policy && appMultifunction30)
-                cleanedWoodUseCurrent30 = cleanWoodUseShare30 * cleanedWoodUse[plot.country];
-
-            double forestShareApplied =
-                    appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
+            const double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
 
             // Total current harvested wood in the cell, m3
             double newHarvestTmp =
-                    (harvestO * forestShareApplied + harvestN * appDats[plot.asID].N.forestShare) *
-                    appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                    appDats[plot.asID].deforWoodTotM3;
+                    (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) * cell.landAreaHa *
+                    plot.fTimber + cell.deforestationWoodTotalM3;
 
             if (appThinningForest(plot.x, plot.y) <= 0)
                 newHarvestTmp *= cleanedWoodUseCurrent;
 
-            double newHarvestTmp10 =
-                    harvestO10 * appDats[plot.asID].O10.forestShare * appDats[plot.asID].landAreaHa *
-                    plot.fTimber(coef.bYear);
+            double newHarvestTmp10 = harvestO10 * cell.O10.forestShare.back() * cell.landAreaHa * plot.fTimber;
 
             if (appThinningForest10(plot.x, plot.y) <= 0)
                 newHarvestTmp10 *= cleanedWoodUseCurrent10;
 
-            double newHarvestTmp30 =
-                    harvestO30 * appDats[plot.asID].O30.forestShare * appDats[plot.asID].landAreaHa *
-                    plot.fTimber(coef.bYear);
+            double newHarvestTmp30 = harvestO30 * cell.O30.forestShare.back() * cell.landAreaHa * plot.fTimber;
 
             if (appThinningForest30(plot.x, plot.y) <= 0)
                 newHarvestTmp30 *= cleanedWoodUseCurrent30;
@@ -1011,13 +1163,14 @@ namespace g4m::application::concrete {
         // woodHarvestDetailed[country]: 0 - woodHarvestTotal, 1 - UN, 2 - O10, 3 - O30, 4 - salvageLogging
         // returns woodHarvestDetailed, harvestGridLocal
         [[nodiscard]] pair<array<array<double, numberOfCountries>, 5>, DataGrid<double> >
+
         calculateHarvestDetailed(const bool toAdjustOnly) const {
             // 0 - woodHarvestTotal, 1 - UN, 2 - O10, 3 - O30, 4 - salvageLogging
             array<array<double, numberOfCountries>, 5> woodHarvestDetailed{};
             DataGrid<double> harvestGridLocal{resLatitude};
 
-            for (const auto &plot: appPlots)
-                if ((!toAdjustOnly || toAdjust.contains(plot.country)) && !plot.protect) {  // using Karnaugh map
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                if (!toAdjustOnly || toAdjust.contains(plot.country)) {  // using Karnaugh map
                     const auto [newHarvestTmp, newHarvestTmp10, newHarvestTmp30] = calculatePlotHarvest(plot);
 
                     double woodHarvestTotal =
@@ -1053,10 +1206,10 @@ namespace g4m::application::concrete {
 
             // https://docs.python.org/3/library/string.html
             for (const auto country: countriesList) {
-                TRACE("i = {0:3}\tharvDiff = {1:{8}.{9}f}\twoodDemand = {2:{8}.{9}f}\twoodHarvestTotal = {3:{8}.{9}f}\tUN = {4:{8}.{9}f}\tO10 = {5:{8}.{9}f}\tO30 = {6:{8}.{9}f}\tsalvageLogging = {7:{8}.{9}f}",
-                      country, harvDiff[country], dms.woodDemand.at(country)(year),
+                TRACE("i = {2:3}\tharvDiff = {3:{0}.{1}f}\twoodDemand = {4:{0}.{1}f}\twoodHarvestTotal = {5:{0}.{1}f}\tUN = {6:{0}.{1}f}\tO10 = {7:{0}.{1}f}\tO30 = {8:{0}.{1}f}\tsalvageLogging = {9:{0}.{1}f}",
+                      width, precision, country, harvDiff[country], dms.woodDemand.at(country)(year),
                       woodHarvestDetailed[0][country], woodHarvestDetailed[1][country], woodHarvestDetailed[2][country],
-                      woodHarvestDetailed[3][country], woodHarvestDetailed[4][country], width, precision);
+                      woodHarvestDetailed[3][country], woodHarvestDetailed[4][country]);
 //                TRACE("harvestCalcPrev = {}\t\tprevUN = {}\t\tprevO10 = {}\t\tprevO30 = {}",
 //                      countriesWoodHarvestM3Year.getVal(country, year - 1), countriesWoodHarvestUNM3Year.getVal(country, year - 1),
 //                      countriesWoodHarvest10M3Year.getVal(country, year - 1),
@@ -1178,7 +1331,7 @@ namespace g4m::application::concrete {
         [[nodiscard]] array<double, 3>
         maxNPVRotation(const DataStruct &plot, const uint16_t year, const bool used,
                        const double MAIRot, const double BmMaxRot) {
-            double OForestShare = appDats[plot.asID].OForestShare;
+            const double OForestShare = appDats[plot.asID].forestShareOld(-1);
 
             const auto [NPV_maiRot, harv_maiRot] = npvCalc(plot, appCohortsU[plot.asID].createSetU(MAIRot), year,
                                                            MAIRot, used);
@@ -1258,9 +1411,9 @@ namespace g4m::application::concrete {
         [[nodiscard]] pair<double, double>
         npvCalc(const DataStruct &plot, AgeStruct cohortTmp, const uint16_t year, const double rotation,
                 const bool used, const double wpMult = 1, const bool zeroC = false) const {
-            double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber(coef.bYear);
-            double rotMAI = species.at(plot.speciesType).getTOptT(maiV / plot.fTimber(year), OptRotTimes::Mode::MAI);
-            double costsScaling = plot.priceIndex(year) / priceIndexAvgEU27;
+            double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber;
+            double rotMAI = species.at(plot.speciesType).getTOptT(maiV / plot.fTimber, OptRotTimes::Mode::MAI);
+            double costsScaling = plot.priceIndex / priceIndexAvgEU27;
             if (plot.country == 69)
                 costsScaling *= scaleCostsFactorEs;
             double damageRiscCosts = max(0., (rotation - rotMAI) * damageRiscCostsYear * costsScaling);
@@ -1271,12 +1424,12 @@ namespace g4m::application::concrete {
             size_t n = bauScenarios.biomassBauScenarios.at(suffix0).size();
             auto maxYear = min(static_cast<uint16_t>(refYear + n * modTimeStep), coef.eYear);
             for (int j = 0; year + j + modTimeStep <= maxYear; j += modTimeStep) {
-                CohortRes cohort_res = cohortTmp.aging(cohortTmp.getMai(), false);
+                CohortRes cohort_res = cohortTmp.aging();
                 double realAreaO = clamp(cohort_res.realArea, 0., 1.);  // cohortTmp.getArea()
                 double bm = realAreaO > 0 && !zeroC ? cohortTmp.getBm() / realAreaO : 0;
 
                 if (used) {
-                    harvestTmp = cohort_res.getTotalWoodRemoval() * plot.fTimber(year);
+                    harvestTmp = cohort_res.getTotalWoodRemoval() * plot.fTimber;
                     harvestedArea = cohort_res.finalCut.area; // cohortTmp.getArea(size_t{0})
                 }
 
@@ -1306,22 +1459,22 @@ namespace g4m::application::concrete {
 
             // Costs to plant 1 ha of forest
             double plantingCosts = 0;
-            double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber(coef.bYear);
+            double maiV = appMaiForest(plot.x, plot.y) * plot.fTimber;
             if (harvestedArea > 0) {
                 double plantRate = clamp((maiV - 3) / 6., 0., 1.);
                 plantingCosts =
-                        plantRate * coef.plantingCostsR * harvestedArea * plot.priceIndex(year) / coef.priceIndexE;
+                        plantRate * coef.plantingCostsR * harvestedArea * plot.priceIndex / coef.priceIndexE;
             }
 
             double priceWExt = 0;
 
             if (harvestedW > 0) {
-                double sFor = (1 - appDats[plot.asID].OForestShare) * 9 + 1;
+                const double sFor = (1 - appDats[plot.asID].forestShareOld(-1)) * 9 + 1;
                 // MG: use internal G4M wood price
                 // MG: Changed to external SawnLogsPrice
                 double c4 = (coef.priceTimberMaxR - coef.priceTimberMinR) / 99;
                 double c3 = coef.priceTimberMinR - c4;
-                priceWExt = (c3 + c4 * plot.sPopDens(year) * sFor) * plot.priceIndex(year) / coef.priceIndexE *
+                priceWExt = (c3 + c4 * plot.sPopDens(year) * sFor) * plot.priceIndex / coef.priceIndexE *
                             dms.woodPrice.at(plot.country)(year) / dms.woodPrice.at(plot.country).data.at(2000) *
                             wpMult;
             }
@@ -1330,8 +1483,8 @@ namespace g4m::application::concrete {
             double CBenefit = 0;
             if (fdcFlag) {
                 size_t idx = (year - refYear) / modTimeStep - 1;
-                double biomassBau = bauScenarios.biomassBauScenarios.at(suffix0)[idx][plot.asID];
-                CBenefit = 1.2 * dms.CO2Price.at(plot.country)(year) * (biomassCur - biomassBau);
+                double biomassBauTmp = bauScenarios.biomassBauScenarios.at(suffix0)[idx][plot.asID];
+                CBenefit = 1.2 * dms.CO2Price.at(plot.country)(year) * (biomassCur - biomassBauTmp);
             }
 
             //MG: Value of Forestry during one rotation External // Changed to 1 year!!!!
@@ -1424,17 +1577,19 @@ namespace g4m::application::concrete {
                 }
             };
 
-            for (const auto &plot: appPlots)
-                if (toAdjust.contains(plot.country) && !plot.protect)
-                    if (appDats[plot.asID].U.forestShare > 0 && appMaiForest(plot.x, plot.y) > 0) {
-                        double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                if (toAdjust.contains(plot.country))
+                    if (appDats[plot.asID].U.forestShare.back() > 0 && appMaiForest(plot.x, plot.y) > 0) {
+                        Dat &cell = appDats[plot.asID];
 
-                        double rotationForestTmp = appRotationForest(plot.x, plot.y);
-                        int8_t managedForestTmp = appManagedForest(plot.x, plot.y);
-                        double thinningForestTmp = appThinningForest(plot.x, plot.y);
+                        const double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
 
-                        double rotationForestTmpNew = appCohortsU[plot.asID].getU();
-                        double thinningForestTmpNew = appCohortsN[plot.asID].getStockingDegree();
+                        const double rotationForestTmp = appRotationForest(plot.x, plot.y);
+                        const int8_t managedForestTmp = appManagedForest(plot.x, plot.y);
+                        const double thinningForestTmp = appThinningForest(plot.x, plot.y);
+
+                        const double rotationForestTmpNew = appCohortsU[plot.asID].getU();
+                        const double thinningForestTmpNew = appCohortsN[plot.asID].getStockingDegree();
 
                         if (woodHarvest[plot.country] < (1 - woodProdTolerance) * countryWoodDemand) {
                             if (appManagedForest(plot.x, plot.y) <= 0) {
@@ -1442,18 +1597,16 @@ namespace g4m::application::concrete {
                                 double rotMaxBmTh = 0;
                                 double biomassRotTh2 = 0;
 
-                                if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
+                                if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
                                     appMaiForest(plot.x, plot.y) > 0) {
-
+                                    // rotation time to get current biomass (with thinning)
                                     biomassRotTh2 = species.at(plot.speciesType).getUSdTab(
-                                            appDats[plot.asID].OBiomass0, appMaiForest(plot.x, plot.y),
-                                            stockingDegree);     // rotation time to get current biomass (with thinning)
+                                            cell.U.stemBiomass[0], appMaiForest(plot.x, plot.y), stockingDegree);
                                     rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                                    OptRotTimes::Mode::MAI);
                                     rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                                        OptRotTimes::Mode::MaxBm);
-                                } else if (appDats[plot.asID].prevPlantPhytHaBmGr > 0) {
-
+                                } else if (cell.N.stemBiomass.back() > 0) {
                                     rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                                    OptRotTimes::Mode::MAI);
                                     rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
@@ -1490,20 +1643,18 @@ namespace g4m::application::concrete {
                                 double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                 double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-                                double forestShareApplied =
-                                        appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
+                                double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
                                 if (!appForest30Policy)
-                                    forestShareApplied += appDats[plot.asID].O30.forestShare;
+                                    forestShareApplied += cell.O30.forestShare.back();
 
                                 // Total current harvested wood in the cell, m3
-                                double newHarvestTmp = (harvestO * forestShareApplied +
-                                                        harvestN * appDats[plot.asID].N.forestShare) *
-                                                       appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                                                       appDats[plot.asID].deforWoodTotM3;
+                                double newHarvestTmp =
+                                        (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) *
+                                        cell.landAreaHa * plot.fTimber + cell.deforestationWoodTotalM3;
                                 double countryHarvestTmp =
                                         woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
 
-                                double costsScaling = plot.priceIndex.data.at(2000) / priceIndexAvgEU27;
+                                double costsScaling = plot.priceIndex / priceIndexAvgEU27;
                                 double roadMultifunctional = meanRoadDensityMultifunctional;
                                 if (plot.country == 69) {
                                     costsScaling *= scaleCostsFactorEs;
@@ -1520,11 +1671,11 @@ namespace g4m::application::concrete {
                                         NPVTmp = npvCalc(plot, appCohortsU[plot.asID], year, rotation, used,
                                                          fm_hurdle).first;
 
-                                        if (appDats[plot.asID].constructedRoadsMultifunction < 0 &&
+                                        if (cell.constructedRoadsMultifunction < 0 &&
                                             appManageChForest(plot.x, plot.y) == 0)
-                                            NPVTmp -= appDats[plot.asID].currentYearRoadInvestment +
+                                            NPVTmp -= cell.currentYearRoadInvestment +
                                                       (meanRoadDensityProduction - roadMultifunctional -
-                                                       appDats[plot.asID].constructedRoadsMultifunction) *
+                                                       cell.constructedRoadsMultifunction) *
                                                       forestRoadConstructionCostsEuroM * costsScaling;
                                     }
 
@@ -1536,9 +1687,9 @@ namespace g4m::application::concrete {
                                         appHarvestGrid(plot.x, plot.y) = newHarvestTmp;
                                         // usage of useChange was reconsidered
                                         appManageChForest(plot.x, plot.y) = 1;
-                                        appDats[plot.asID].constructedRoadsMultifunction =
+                                        cell.constructedRoadsMultifunction =
                                                 meanRoadDensityProduction - roadMultifunctional;
-                                        appDats[plot.asID].harvestEfficiencyMultifunction = 0;
+                                        cell.harvestEfficiencyMultifunction = 0;
 
                                         if (!appForest30Policy) {
                                             appThinningForest30(plot.x, plot.y) = stockingDegree;
@@ -1569,11 +1720,11 @@ namespace g4m::application::concrete {
 
                                     // to simplify? because meanRoadDensityProduction = roadMultifunctional
                                     // => 0 = meanRoadDensityProduction - roadMultifunctional
-                                    if (appDats[plot.asID].constructedRoadsMultifunction < 0 &&
+                                    if (cell.constructedRoadsMultifunction < 0 &&
                                         appManageChForest(plot.x, plot.y) == 0)
-                                        NPVTmp -= appDats[plot.asID].currentYearRoadInvestment +
+                                        NPVTmp -= cell.currentYearRoadInvestment +
                                                   (meanRoadDensityProduction - roadMultifunctional -
-                                                   appDats[plot.asID].constructedRoadsMultifunction) *
+                                                   cell.constructedRoadsMultifunction) *
                                                   forestRoadConstructionCostsEuroM * costsScaling;
 
                                     if (abs(countryHarvestTmp - countryWoodDemand) < (1 + tolerance * adjustTolerance) *
@@ -1584,9 +1735,9 @@ namespace g4m::application::concrete {
                                         appHarvestGrid(plot.x, plot.y) = newHarvestTmp;
                                         appManageChForest(plot.x, plot.y) = 1;
 
-                                        appDats[plot.asID].constructedRoadsMultifunction =
+                                        cell.constructedRoadsMultifunction =
                                                 meanRoadDensityProduction - roadMultifunctional;
-                                        appDats[plot.asID].harvestEfficiencyMultifunction = 0;
+                                        cell.harvestEfficiencyMultifunction = 0;
 
                                         if (!appForest30Policy) {
                                             appThinningForest30(plot.x, plot.y) = stockingDegree;
@@ -1616,8 +1767,8 @@ namespace g4m::application::concrete {
                         } else if (woodHarvest[plot.country] > (1 + woodProdTolerance) * countryWoodDemand) {
                             if (appManagedForest(plot.x, plot.y) > 0 && appManagedForest(plot.x, plot.y) < 3) {
                                 double rotMaxBm = 0;
-                                if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
-                                    appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
+                                if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || cell.N.stemBiomass.back() > 0)
                                     rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
                                                                                     OptRotTimes::Mode::MaxBm);
 
@@ -1647,21 +1798,16 @@ namespace g4m::application::concrete {
                                 double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                 double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-                                double forestShareApplied =
-                                        appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
+                                double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
 
                                 if (!appForest30Policy)
-                                    forestShareApplied += appDats[plot.asID].O30.forestShare;
+                                    forestShareApplied += cell.O30.forestShare.back();
 
                                 // Total current harvested wood in the cell, m3
-                                double newHarvestTmp = ((cleanedWoodUse[plot.country] +
-                                                         appDats[plot.asID].harvestEfficiencyMultifunction) *
-                                                        harvestO * forestShareApplied + (cleanedWoodUse[plot.country] +
-                                                                                         appDats[plot.asID].harvestEfficiencyMultifunction) *
-                                                                                        harvestN *
-                                                                                        appDats[plot.asID].N.forestShare) *
-                                                       appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                                                       appDats[plot.asID].deforWoodTotM3;
+                                double newHarvestTmp =
+                                        (cleanedWoodUse[plot.country] + cell.harvestEfficiencyMultifunction) *
+                                        (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) *
+                                        cell.landAreaHa * plot.fTimber + cell.deforestationWoodTotalM3;
 
                                 double countryHarvestTmp =
                                         woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
@@ -1673,23 +1819,25 @@ namespace g4m::application::concrete {
                         }
                     }
 
-            for (const auto &plot: appPlots)
-                if (toAdjust.contains(plot.country) && !plot.protect)
-                    if (appDats[plot.asID].U.forestShare > 0) {
-                        double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                if (toAdjust.contains(plot.country))
+                    if (appDats[plot.asID].U.forestShare.back() > 0) {
+                        const Dat &cell = appDats[plot.asID];
 
-                        double rotationForestTmp = appRotationForest(plot.x, plot.y);
-                        int8_t managedForestTmp = appManagedForest(plot.x, plot.y);
-                        double thinningForestTmp = appThinningForest(plot.x, plot.y);
+                        const double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
 
-                        double rotationForestTmpNew = appCohortsU[plot.asID].getU();
-                        double thinningForestTmpNew = appCohortsN[plot.asID].getStockingDegree();
+                        const double rotationForestTmp = appRotationForest(plot.x, plot.y);
+                        const int8_t managedForestTmp = appManagedForest(plot.x, plot.y);
+                        const double thinningForestTmp = appThinningForest(plot.x, plot.y);
+
+                        const double rotationForestTmpNew = appCohortsU[plot.asID].getU();
+                        const double thinningForestTmpNew = appCohortsN[plot.asID].getStockingDegree();
 
                         if (woodHarvest[plot.country] > (1 - woodProdTolerance) * countryWoodDemand)
                             if (appManagedForest(plot.x, plot.y) > 0) {
                                 double rotMaxBm = 0;
-                                if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
-                                    appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
+                                if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || cell.N.stemBiomass.back() > 0)
                                     rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
                                                                                     OptRotTimes::Mode::MaxBm);
 
@@ -1725,21 +1873,16 @@ namespace g4m::application::concrete {
                                 double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                 double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-                                double forestShareApplied =
-                                        appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
+                                double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
 
                                 if (!appForest30Policy)
-                                    forestShareApplied += appDats[plot.asID].O30.forestShare;
+                                    forestShareApplied += cell.O30.forestShare.back();
 
                                 // Total current harvested wood in the cell, m3
-                                double newHarvestTmp = ((cleanedWoodUse[plot.country] +
-                                                         appDats[plot.asID].harvestEfficiencyMultifunction) *
-                                                        harvestO * forestShareApplied + (cleanedWoodUse[plot.country] +
-                                                                                         appDats[plot.asID].harvestEfficiencyMultifunction) *
-                                                                                        harvestN *
-                                                                                        appDats[plot.asID].N.forestShare) *
-                                                       appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                                                       appDats[plot.asID].deforWoodTotM3;
+                                double newHarvestTmp =
+                                        (cleanedWoodUse[plot.country] + cell.harvestEfficiencyMultifunction) *
+                                        (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) *
+                                        cell.landAreaHa * plot.fTimber + cell.deforestationWoodTotalM3;
 
                                 double countryHarvestTmp =
                                         woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
@@ -1801,20 +1944,22 @@ namespace g4m::application::concrete {
                 }
             };
 
-            for (const auto &plot: appPlots)
-                if (toAdjust.contains(plot.country) && !plot.protect)
-                    if (appDats[plot.asID].U.forestShare > 0) {
-                        double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                if (toAdjust.contains(plot.country))
+                    if (appDats[plot.asID].U.forestShare.back() > 0) {
+                        const Dat &cell = appDats[plot.asID];
 
-                        double rotationForestTmp = appRotationForest(plot.x, plot.y);
+                        const double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
+
+                        const double rotationForestTmp = appRotationForest(plot.x, plot.y);
 
                         if (woodHarvest[plot.country] < (1 - woodProdTolerance) * countryWoodDemand) {
                             if (appManagedForest(plot.x, plot.y) >= 2 && !allMng ||
                                 appManagedForest(plot.x, plot.y) > 0 && allMng) {
 
                                 double rotMAI = 0;
-                                if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
-                                    appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
+                                if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || cell.N.stemBiomass.back() > 0)
                                     rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                                    OptRotTimes::Mode::MAI);
 
@@ -1836,17 +1981,15 @@ namespace g4m::application::concrete {
                                     double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                     double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-                                    double forestShareApplied =
-                                            appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
+                                    double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
 
                                     if (!appForest30Policy)
-                                        forestShareApplied += appDats[plot.asID].O30.forestShare;
+                                        forestShareApplied += cell.O30.forestShare.back();
 
                                     // Total current harvested wood in the cell, m3
-                                    double newHarvestTmp = (harvestO * forestShareApplied +
-                                                            harvestN * appDats[plot.asID].N.forestShare) *
-                                                           appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                                                           appDats[plot.asID].deforWoodTotM3;
+                                    double newHarvestTmp =
+                                            (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) *
+                                            cell.landAreaHa * plot.fTimber + cell.deforestationWoodTotalM3;
 
                                     double countryHarvestTmp =
                                             woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
@@ -1860,8 +2003,8 @@ namespace g4m::application::concrete {
                                 (appManagedForest(plot.x, plot.y) <= 2 && !allMng || allMng)) {
 
                                 double rotMaxBmTh = 0;
-                                if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
-                                    appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
+                                if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || cell.N.stemBiomass.back() > 0)
                                     rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                                        OptRotTimes::Mode::MaxBm);
 
@@ -1879,17 +2022,15 @@ namespace g4m::application::concrete {
                                     double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                     double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-                                    double forestShareApplied =
-                                            appDats[plot.asID].U.forestShare - appDats[plot.asID].deforestShare;
+                                    double forestShareApplied = cell.U.forestShare.back() - cell.deforestShare;
 
                                     if (!appForest30Policy)
-                                        forestShareApplied += appDats[plot.asID].O30.forestShare;
+                                        forestShareApplied += cell.O30.forestShare.back();
 
                                     // Total current harvested wood in the cell, m3
-                                    double newHarvestTmp = (harvestO * forestShareApplied +
-                                                            harvestN * appDats[plot.asID].N.forestShare) *
-                                                           appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                                                           appDats[plot.asID].deforWoodTotM3;
+                                    double newHarvestTmp =
+                                            (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) *
+                                            cell.landAreaHa * plot.fTimber + cell.deforestationWoodTotalM3;
 
                                     double countryHarvestTmp =
                                             woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
@@ -1931,11 +2072,13 @@ namespace g4m::application::concrete {
                 dms.woodDemand.at(57).data[year] = allHarvestedUsed[yearSalvage] * 1e6;
 
             if (yearSalvage >= 0 && yearSalvage < salvageLoggingTotal.size()) {
-                for (const auto &plot: appPlots)  // additionally filtered by countriesList (see filter plots)
-                    if (toAdjust.contains(plot.country) && !plot.protect &&
-                        plot.speciesType == Species::Spruce)
+                // additionally filtered by countriesList (see filter plots)
+                for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                    if (toAdjust.contains(plot.country) && plot.speciesType == Species::Spruce)
                         if (salvageHarvest[yearSalvage] <
                             (1 - woodProdTolerance) * salvageLoggingTotal[yearSalvage] * 1e6) {
+                            const Dat &cell = appDats[plot.asID];
+
                             if (appManagedForest(plot.x, plot.y) <= 0) {
                                 appManagedForest(plot.x, plot.y) = appManagedForest(plot.x, plot.y) == 0 ? 3 : 2;
 
@@ -1956,20 +2099,19 @@ namespace g4m::application::concrete {
                             appCohortsN[plot.asID].setU(rotationSalvage);
 
                             CohortRes resO;
-                            if (appDats[plot.asID].OForestShare > 0)
+                            if (cell.forestShareOld(-1) > 0)
                                 resO = appCohortsU[plot.asID].cohortRes();
 
                             CohortRes resN;
-                            if (appDats[plot.asID].N.forestShare > 0)
+                            if (cell.N.forestShare.back() > 0)
                                 resN = appCohortsN[plot.asID].cohortRes();
 
-                            double forestShareApplied =
-                                    appDats[plot.asID].OForestShare - appDats[plot.asID].deforestShare;
+                            const double forestShareApplied = cell.forestShareOld(-1) - cell.deforestShare;
 
                             // Total current harvested wood in the cell, m3
                             double newHarvestTmp = (resO.getTotalWoodRemoval() * forestShareApplied +
-                                                    resN.getTotalWoodRemoval() * appDats[plot.asID].N.forestShare) *
-                                                   appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
+                                                    resN.getTotalWoodRemoval() * cell.N.forestShare.back()) *
+                                                   cell.landAreaHa * plot.fTimber;
 
                             woodHarvest[plot.country] += newHarvestTmp - appHarvestGrid(plot.x, plot.y);
 
@@ -1977,9 +2119,8 @@ namespace g4m::application::concrete {
 
                             // total salvage felling in the cell m3
                             double salvageFelled = (resO.getTotalHarvestedBiomass() * forestShareApplied +
-                                                    resN.getTotalHarvestedBiomass() *
-                                                    appDats[plot.asID].N.forestShare) *
-                                                   appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear);
+                                                    resN.getTotalHarvestedBiomass() * cell.N.forestShare.back()) *
+                                                   cell.landAreaHa * plot.fTimber;
                             salvageHarvest[yearSalvage] += salvageFelled;
 
                             infested.insert(plot.asID);
@@ -2071,9 +2212,11 @@ namespace g4m::application::concrete {
                 }
             };
 
-            for (const auto &plot: appPlots)
-                if (toAdjust.contains(plot.country) && !plot.protect)
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                if (toAdjust.contains(plot.country))
                     if (plot.country == 57 && !infested.contains(plot.asID)) {
+                        const Dat &cell = appDats[plot.asID];
+
                         double countryWoodDemand = dms.woodDemand.at(plot.country)(year);
 
                         double rotationForestTmp = appRotationForest(plot.x, plot.y);
@@ -2082,8 +2225,8 @@ namespace g4m::application::concrete {
                             if (appManagedForest(plot.x, plot.y) > 0) {
 
                                 double rotMAI = 0;
-                                if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
-                                    appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
+                                if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || cell.N.stemBiomass.back() > 0)
                                     rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                                    OptRotTimes::Mode::MAI);
 
@@ -2105,14 +2248,12 @@ namespace g4m::application::concrete {
                                     double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                     double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-                                    double forestShareApplied =
-                                            appDats[plot.asID].OForestShare - appDats[plot.asID].deforestShare;
+                                    const double forestShareApplied = cell.forestShareOld(-1) - cell.deforestShare;
 
                                     // Total current harvested wood in the cell, m3
-                                    double newHarvestTmp = (harvestO * forestShareApplied +
-                                                            harvestN * appDats[plot.asID].N.forestShare) *
-                                                           appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                                                           appDats[plot.asID].deforWoodTotM3;
+                                    double newHarvestTmp =
+                                            (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) *
+                                            cell.landAreaHa * plot.fTimber + cell.deforestationWoodTotalM3;
 
                                     double countryHarvestTmp =
                                             woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
@@ -2125,8 +2266,8 @@ namespace g4m::application::concrete {
                             if (appManagedForest(plot.x, plot.y) > 0) {
 
                                 double rotMaxBmTh = 0;
-                                if (appDats[plot.asID].U.prevStemBiomass > 0 && plot.CAboveHa > 0 &&
-                                    appMaiForest(plot.x, plot.y) > 0 || appDats[plot.asID].prevPlantPhytHaBmGr > 0)
+                                if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
+                                    appMaiForest(plot.x, plot.y) > 0 || cell.N.stemBiomass.back() > 0)
                                     rotMaxBmTh = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                                        OptRotTimes::Mode::MaxBm);
 
@@ -2144,14 +2285,12 @@ namespace g4m::application::concrete {
                                     double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                     double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
-                                    double forestShareApplied =
-                                            appDats[plot.asID].OForestShare - appDats[plot.asID].deforestShare;
+                                    const double forestShareApplied = cell.forestShareOld(-1) - cell.deforestShare;
 
                                     // Total current harvested wood in the cell, m3
-                                    double newHarvestTmp = (harvestO * forestShareApplied +
-                                                            harvestN * appDats[plot.asID].N.forestShare) *
-                                                           appDats[plot.asID].landAreaHa * plot.fTimber(coef.bYear) +
-                                                           appDats[plot.asID].deforWoodTotM3;
+                                    double newHarvestTmp =
+                                            (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) *
+                                            cell.landAreaHa * plot.fTimber + cell.deforestationWoodTotalM3;
 
                                     double countryHarvestTmp =
                                             woodHarvest[plot.country] + newHarvestTmp - appHarvestGrid(plot.x, plot.y);
@@ -2181,49 +2320,36 @@ namespace g4m::application::concrete {
 
             const double residueUse30 = !appForest30Policy;
 
-            for (const auto &plot: appPlots)
-                if (!plot.protect && plot.residuesUseShare > 0) {
-                    double cleanedWoodUseCurrent = cleanedWoodUse[plot.country];
-                    double cleanedWoodUseCurrent10 =
-                            cleanedWoodUse[plot.country] + appDats[plot.asID].harvestEfficiencyMultifunction;
-                    double cleanedWoodUseCurrent30 = cleanedWoodUseCurrent10;
-                    if (appForest10Policy)
-                        cleanedWoodUseCurrent10 *= cleanWoodUseShare10;
-                    if (appForest30Policy)
-                        cleanedWoodUseCurrent30 *= cleanWoodUseShare30;
+            for (const auto &plot: appPlots | rv::filter(not_fn(&DataStruct::protect)))
+                if (plot.residuesUseShare > 0) {
+                    const Dat &cell = appDats[plot.asID];
+
+                    const auto [cleanedWoodUseCurrent, cleanedWoodUseCurrent10, cleanedWoodUseCurrent30, _] =
+                            getCleanedWoodUseCurrent(plot);
 
                     CohortRes cohortResAll =
-                            appDats[plot.asID].U.forestShare > 0 ? appCohortsU[plot.asID].cohortRes() : CohortRes{};
+                            cell.U.forestShare.back() > 0 ? appCohortsU[plot.asID].cohortRes() : CohortRes{};
                     CohortRes cohortResNew =
-                            appDats[plot.asID].N.forestShare > 0 ? appCohortsN[plot.asID].cohortRes() : CohortRes{};
+                            cell.N.forestShare.back() > 0 ? appCohortsN[plot.asID].cohortRes() : CohortRes{};
                     CohortRes cohortRes30 =
-                            appDats[plot.asID].O30.forestShare > 0 ? appCohorts30[plot.asID].cohortRes() : CohortRes{};
+                            cell.O30.forestShare.back() > 0 ? appCohorts30[plot.asID].cohortRes() : CohortRes{};
 
                     // harvRes_fcO = ((sawnW + restW) * (BEF(int(iter->SPECIESTYPE[byear]) - 1, (bmH / harvAreaO * realAreaO), iter->FTIMBER[byear]) - 1) + (bmH - (sawnW + restW)));
-                    double harvRes_fcO = cohortResAll.if_fc() ? cohortResAll.getFinalCutWood() *
-                                                                (plot.BEF(cohortResAll.getHarvestGS()) - 2) +
-                                                                cohortResAll.bmH : 0;
-                    double harvRes_thO = cohortResAll.if_th() ? cohortResAll.getThinnedWood() *
-                                                                (plot.BEF(appDats[plot.asID].U.prevStemBiomass) -
-                                                                 2) +
-                                                                cohortResAll.bmTh : 0;
-                    double harvRes_fcN = cohortResNew.if_fc() ? cohortResNew.getFinalCutWood() *
-                                                                (plot.BEF(cohortResNew.getHarvestGS()) - 2) +
-                                                                cohortResNew.bmH : 0;
+                    double harvRes_fcO = cohortResAll.if_fc() ? cohortResAll.getHarvestResiduesFinalCut(
+                            plot.BEF(cohortResAll.getHarvestGrowingStock())) : 0;
+                    double harvRes_thO = cohortResAll.if_th() ? cohortResAll.getHarvestResiduesThinning(
+                            plot.BEF(cell.U.stemBiomass.back())) : 0;
+                    double harvRes_fcN = cohortResNew.if_fc() ? cohortResNew.getHarvestResiduesFinalCut(
+                            plot.BEF(cohortResNew.getHarvestGrowingStock())) : 0;
                     // harvRes_thN = ((sawnThWnew + restThWnew) * (((PlantPhytHaBmGrBef - PlantPhytHaBmGr) / PlantPhytHaBmGr) - 1) + (bmThnew - (sawnThWnew + restThWnew)));
                     // For the forest planted after 2000 we calculate above-ground biomass, PlantPhytHaBmGrBef,
                     // for each age cohort in calc
-                    double harvRes_thN = cohortResNew.if_th() ? cohortResNew.getThinnedWood() *
-                                                                (appDats[plot.asID].prevPlantPhytHaBmGrBef /
-                                                                 appDats[plot.asID].prevPlantPhytHaBmGr - 3) +
-                                                                cohortResNew.bmTh : 0;
-                    double harvRes_fc30 = cohortRes30.if_fc() ? cohortRes30.getFinalCutWood() *
-                                                                (plot.BEF(cohortRes30.getHarvestGS()) - 2) +
-                                                                cohortRes30.bmH : 0;
-                    double harvRes_th30 = cohortRes30.if_th() ? cohortRes30.getThinnedWood() *
-                                                                (plot.BEF(appDats[plot.asID].U.prevStemBiomass) -
-                                                                 2) +
-                                                                cohortRes30.bmTh : 0;
+                    double harvRes_thN = cohortResNew.if_th() ? cohortResNew.getHarvestResiduesThinning(
+                            cell.N_abovegroundBiomass(-1) / cell.N.stemBiomass.back() - 1) : 0;
+                    double harvRes_fc30 = cohortRes30.if_fc() ? cohortRes30.getHarvestResiduesFinalCut(
+                            plot.BEF(cohortRes30.getHarvestGrowingStock())) : 0;
+                    double harvRes_th30 = cohortRes30.if_th() ? cohortRes30.getHarvestResiduesThinning(
+                            plot.BEF(cell.O30.stemBiomass.back())) : 0;
 
                     double harvRes_scO = 0, harvRes_scO_notTaken = 0;
                     double harvRes_scN = 0, harvRes_scN_notTaken = 0;
@@ -2231,20 +2357,20 @@ namespace g4m::application::concrete {
 
                     if (appThinningForest(plot.x, plot.y) < 0) {
                         tie(harvRes_scO, harvRes_scO_notTaken)
-                                = cohortResAll.harvestResiduesSanitaryFellings(plot, cleanedWoodUseCurrent,
-                                                                               plot.BEF(
-                                                                                       appDats[plot.asID].U.prevStemBiomass));
+                                = cohortResAll.harvestResiduesSanitaryFellings(
+                                plot.BEF(cohortResAll.getHarvestGrowingStock()), cleanedWoodUseCurrent,
+                                plot.BEF(cell.U.stemBiomass.back()));
                         tie(harvRes_scN, harvRes_scN_notTaken)
-                                = cohortResNew.harvestResiduesSanitaryFellings(plot, cleanedWoodUseCurrent,
-                                                                               appDats[plot.asID].prevPlantPhytHaBmGrBef /
-                                                                               appDats[plot.asID].prevPlantPhytHaBmGr -
-                                                                               1);
+                                = cohortResNew.harvestResiduesSanitaryFellings(
+                                plot.BEF(cohortResNew.getHarvestGrowingStock()), cleanedWoodUseCurrent,
+                                cell.N_abovegroundBiomass(-1) /
+                                cell.N.stemBiomass.back() - 1);
                     }
                     if (appThinningForest30(plot.x, plot.y) < 0 && residueUse30 > 0)
                         tie(harvRes_sc30, harvRes_sc30_notTaken)
-                                = cohortResAll.harvestResiduesSanitaryFellings(plot, cleanedWoodUseCurrent30,
-                                                                               plot.BEF(
-                                                                                       appDats[plot.asID].O30.prevStemBiomass));
+                                = cohortResAll.harvestResiduesSanitaryFellings(
+                                plot.BEF(cohortResAll.getHarvestGrowingStock()), cleanedWoodUseCurrent30,
+                                plot.BEF(cell.O30.stemBiomass.back()));
 
                     double stump = 0;       // stumps of old forest, tC/ha
                     double stump_new = 0;   // stumps of new forest, tC/ha
@@ -2255,16 +2381,16 @@ namespace g4m::application::concrete {
                             // calculate amount of stumps + big roots for final felling, tC/ha
                             if (cohortResAll.positiveAreas())
                                 stump = plot.DBHHToStump(cohortResAll.finalCut.DBH, cohortResAll.finalCut.H,
-                                                         cohortResAll.getHarvestGS());
+                                                         cohortResAll.getHarvestGrowingStock());
                             if (cohortResNew.positiveAreas())
                                 stump_new = plot.DBHHToStump(cohortResNew.finalCut.DBH, cohortResNew.finalCut.H,
-                                                             cohortResNew.getHarvestGS());
+                                                             cohortResNew.getHarvestGrowingStock());
                         }
                         if (appThinningForest30(plot.x, plot.y) > 0 && residueUse30 > 0) {
                             // calculate amount of stumps + big roots for final felling, tC/ha
                             if (cohortRes30.positiveAreas())
                                 stump30 = plot.DBHHToStump(cohortRes30.finalCut.DBH, cohortRes30.finalCut.H,
-                                                           cohortRes30.getHarvestGS());
+                                                           cohortRes30.getHarvestGrowingStock());
                         }
                     }
                     /*
@@ -2312,22 +2438,21 @@ namespace g4m::application::concrete {
                     hr.O30.residuesSuit3_perHa *= plot.residuesUseShare;
                     hr.O30.residuesSuit4_notTaken_perHa *= plot.residuesUseShare;
 
-                    hr.U.residuesSuit1 = (harvRes_fcO + harvRes_thO) * appDats[plot.asID].U.forestShare +
-                                         (harvRes_fcN + harvRes_thN) * appDats[plot.asID].N.forestShare;
-                    hr.U.residuesSuit2 = stump * appDats[plot.asID].U.forestShare +
-                                         stump_new * appDats[plot.asID].N.forestShare;
-                    hr.U.residuesSuit3 = harvRes_scO * appDats[plot.asID].U.forestShare +
-                                         harvRes_scN * appDats[plot.asID].N.forestShare;
-                    hr.U.residuesSuit4_notTaken = harvRes_scO_notTaken * appDats[plot.asID].U.forestShare +
-                                                  harvRes_scN_notTaken * appDats[plot.asID].N.forestShare;
+                    hr.U.residuesSuit1 = (harvRes_fcO + harvRes_thO) * cell.U.forestShare.back() +
+                                         (harvRes_fcN + harvRes_thN) * cell.N.forestShare.back();
+                    hr.U.residuesSuit2 = stump * cell.U.forestShare.back() + stump_new * cell.N.forestShare.back();
+                    hr.U.residuesSuit3 =
+                            harvRes_scO * cell.U.forestShare.back() + harvRes_scN * cell.N.forestShare.back();
+                    hr.U.residuesSuit4_notTaken = harvRes_scO_notTaken * cell.U.forestShare.back() +
+                                                  harvRes_scN_notTaken * cell.N.forestShare.back();
 
-                    double useShareArea = plot.residuesUseShare * appDats[plot.asID].landAreaHa;
+                    double useShareArea = plot.residuesUseShare * cell.landAreaHa;
                     hr.U.residuesSuit1 *= useShareArea;
                     hr.U.residuesSuit2 *= useShareArea;
                     hr.U.residuesSuit3 *= useShareArea;
                     hr.U.residuesSuit4_notTaken *= useShareArea;
 
-                    double shareArea30 = appDats[plot.asID].O30.forestShare * appDats[plot.asID].landAreaHa;
+                    double shareArea30 = cell.O30.forestShare.back() * cell.landAreaHa;
                     hr.O30.residuesSuit1 = hr.O30.residuesSuit1_perHa * shareArea30;
                     hr.O30.residuesSuit2 = hr.O30.residuesSuit2_perHa * shareArea30;
                     hr.O30.residuesSuit3 = hr.O30.residuesSuit3_perHa * shareArea30;
@@ -2400,10 +2525,10 @@ namespace g4m::application::concrete {
                             double em_fo = 0, em_fn = 0;
                             if (hr.em_harvRes_fcO || hr.em_harvRes_thO)
                                 em_fo = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust1) *
-                                        appDats[hr.asID].U.forestShare * appDats[hr.asID].landAreaHa;
+                                        appDats[hr.asID].U.forestShare.back() * appDats[hr.asID].landAreaHa;
                             if (hr.em_harvRes_fcN || hr.em_harvRes_thN)
                                 em_fn = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust1) *
-                                        appDats[hr.asID].N.forestShare * appDats[hr.asID].landAreaHa;
+                                        appDats[hr.asID].N.forestShare.back() * appDats[hr.asID].landAreaHa;
 
                             hr.emissionsSuit1 = lastShare * (em_fo + em_fn);
                             harvestResiduesSoilEmissions[country] += hr.emissionsSuit1;
@@ -2429,7 +2554,7 @@ namespace g4m::application::concrete {
                                 double em_fo = 0;
                                 if (hr.em_harvRes_fc30 || hr.em_harvRes_th30)
                                     em_fo = hr.lerpERUS(emissionsResUseSust1, hr.O30.timeUseSust1) *
-                                            appDats[hr.asID].O30.forestShare * appDats[hr.asID].landAreaHa;
+                                            appDats[hr.asID].O30.forestShare.back() * appDats[hr.asID].landAreaHa;
 
                                 hr.emissionsSuit1 = lastShare * em_fo;
                                 harvestResiduesSoilEmissions[country] += hr.emissionsSuit1;
@@ -2454,15 +2579,15 @@ namespace g4m::application::concrete {
                             double em_fo = 0, em_fn = 0, em_fo_sust1 = 0, em_fn_sust1 = 0;
                             if (hr.em_harvRes_fcO || hr.em_harvRes_thO) {
                                 em_fo = hr.lerpERUS(emissionsResUseSust2, hr.U.timeUseSust2) *
-                                        appDats[hr.asID].U.forestShare * appDats[hr.asID].landAreaHa;
+                                        appDats[hr.asID].U.forestShare.back() * appDats[hr.asID].landAreaHa;
                                 em_fo_sust1 = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust2) *
-                                              appDats[hr.asID].U.forestShare * appDats[hr.asID].landAreaHa;
+                                              appDats[hr.asID].U.forestShare.back() * appDats[hr.asID].landAreaHa;
                             }
                             if (hr.em_harvRes_fcN || hr.em_harvRes_thN) {
                                 em_fn = hr.lerpERUS(emissionsResUseSust2, hr.U.timeUseSust2) *
-                                        appDats[hr.asID].N.forestShare * appDats[hr.asID].landAreaHa;
+                                        appDats[hr.asID].N.forestShare.back() * appDats[hr.asID].landAreaHa;
                                 em_fn_sust1 = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust2) *
-                                              appDats[hr.asID].N.forestShare * appDats[hr.asID].landAreaHa;
+                                              appDats[hr.asID].N.forestShare.back() * appDats[hr.asID].landAreaHa;
                             }
 
                             hr.emissionsSuit2 = lastShare * (em_fo + em_fn - em_fo_sust1 - em_fn_sust1);
@@ -2489,9 +2614,9 @@ namespace g4m::application::concrete {
                                 double em_fo30 = 0, em_fo_sust1_30 = 0;
                                 if (hr.em_harvRes_fc30 || hr.em_harvRes_th30) {
                                     em_fo30 = hr.lerpERUS(emissionsResUseSust2, hr.O30.timeUseSust2) *
-                                              appDats[hr.asID].O30.forestShare * appDats[hr.asID].landAreaHa;
+                                              appDats[hr.asID].O30.forestShare.back() * appDats[hr.asID].landAreaHa;
                                     em_fo_sust1_30 = hr.lerpERUS(emissionsResUseSust1, hr.O30.timeUseSust2) *
-                                                     appDats[hr.asID].O30.forestShare *
+                                                     appDats[hr.asID].O30.forestShare.back() *
                                                      appDats[hr.asID].landAreaHa;
                                 }
 
@@ -2517,10 +2642,10 @@ namespace g4m::application::concrete {
                             double em_sco = 0, em_scn = 0;
                             if (hr.em_harvRes_scO)
                                 em_sco = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust1) *
-                                         appDats[hr.asID].U.forestShare * appDats[hr.asID].landAreaHa;
+                                         appDats[hr.asID].U.forestShare.back() * appDats[hr.asID].landAreaHa;
                             if (hr.em_harvRes_scN)
                                 em_scn = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust1) *
-                                         appDats[hr.asID].N.forestShare * appDats[hr.asID].landAreaHa;
+                                         appDats[hr.asID].N.forestShare.back() * appDats[hr.asID].landAreaHa;
 
                             double cleanedWoodUseCurrent = hr.protect ? 0 : cleanedWoodUse[country];
                             em_sco *= cleanedWoodUseCurrent;
@@ -2549,7 +2674,7 @@ namespace g4m::application::concrete {
                                 double em_sco = 0;
                                 if (hr.em_harvRes_scO)
                                     em_sco = hr.lerpERUS(emissionsResUseSust1, hr.O30.timeUseSust1) *
-                                             appDats[hr.asID].O30.forestShare * appDats[hr.asID].landAreaHa;
+                                             appDats[hr.asID].O30.forestShare.back() * appDats[hr.asID].landAreaHa;
 
                                 double cleanedWoodUseCurrent30 = hr.protect ? 0 : cleanedWoodUse[country] +
                                                                                   appDats[hr.asID].harvestEfficiencyMultifunction;
@@ -2577,10 +2702,10 @@ namespace g4m::application::concrete {
                             double em_sco_notTaken = 0, em_scn_notTaken = 0;
                             if (hr.em_harvRes_scO)
                                 em_sco_notTaken = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust1) *
-                                                  appDats[hr.asID].U.forestShare * appDats[hr.asID].landAreaHa;
+                                                  appDats[hr.asID].U.forestShare.back() * appDats[hr.asID].landAreaHa;
                             if (hr.em_harvRes_scN)
                                 em_scn_notTaken = hr.lerpERUS(emissionsResUseSust1, hr.U.timeUseSust1) *
-                                                  appDats[hr.asID].N.forestShare * appDats[hr.asID].landAreaHa;
+                                                  appDats[hr.asID].N.forestShare.back() * appDats[hr.asID].landAreaHa;
 
                             double cleanedWoodUseCurrent = hr.protect ? 0 : cleanedWoodUse[country];
                             em_sco_notTaken *= 1 - cleanedWoodUseCurrent;
@@ -2608,7 +2733,7 @@ namespace g4m::application::concrete {
                             double em_sco_notTaken = 0, em_scn_notTaken = 0;
                             if (hr.em_harvRes_scO)
                                 em_sco_notTaken = hr.lerpERUS(emissionsResUseSust1, hr.O30.timeUseSust1) *
-                                                  appDats[hr.asID].O30.forestShare * appDats[hr.asID].landAreaHa;
+                                                  appDats[hr.asID].O30.forestShare.back() * appDats[hr.asID].landAreaHa;
 
                             double cleanedWoodUseCurrent30 = hr.protect ? 0 : cleanedWoodUse[country] +
                                                                               appDats[hr.asID].harvestEfficiencyMultifunction;
@@ -2638,7 +2763,7 @@ namespace g4m::application::concrete {
 
             vector<double> OForestShares(appPlots.size());
             for (const auto &plot: appPlots)
-                // or appDats[plot.asID].OForestShare - plot.oldGrowthForest_ten - plot.strictProtected
+                // or appDats[plot.asID].forestShareAll() - plot.oldGrowthForest_ten - plot.strictProtected
                 OForestShares[plot.asID] = plot.oldGrowthForest_thirty + plot.forest;
 
             vector<double> bmBEF0s(appPlots.size());
@@ -2651,12 +2776,12 @@ namespace g4m::application::concrete {
 
                     int count = 0;
                     for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
-                        auto _ = cohortTmp.aging(cohortTmp.getMai(), false);
+                        auto _ = cohortTmp.aging();
 
                     const double bm = cohortTmp.getBm();
                     const double FM_tmp =
                             (bm * plot.BEF(bm) - bmBEF0) * OForestShares[plot.asID] * appDats[plot.asID].landAreaHa *
-                            molar_ratio * 0.001 / count;
+                            molarRatio * 0.001 / count;
                     bmBEF0s[plot.asID] = bmBEF0;
                     FM_init[plot.asID] = FM_tmp;
                 }
@@ -2667,12 +2792,14 @@ namespace g4m::application::concrete {
 
             for (const auto &plot: appPlots)
                 if (plot.managed_UNFCCC && appThinningForest(plot.x, plot.y) > 0) {
+                    const Dat &cell = appDats[plot.asID];
+
                     if (FMs[plot.country] < (1 - adjustToleranceFM) * FM_sink_stat[plot.country]) {
                         double biomassRot = 0;
                         double rotMaxBm = 0;
 
                         if (OForestShares[plot.asID] > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
-                            biomassRot = species.at(plot.speciesType).getU(appDats[plot.asID].OBiomass0,
+                            biomassRot = species.at(plot.speciesType).getU(cell.U.stemBiomass[0],
                                                                            appMaiForest(plot.x, plot.y));
                             rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
                                                                             OptRotTimes::Mode::MaxBm);
@@ -2689,15 +2816,13 @@ namespace g4m::application::concrete {
 
                             AgeStruct cohortTmp = appCohortsU[plot.asID];
 
-                            const double bm0 = cohortTmp.getBm();
-
                             int count = 0;
                             for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
-                                auto _ = cohortTmp.aging(cohortTmp.getMai(), false);
+                                auto _ = cohortTmp.aging();
 
                             const double bm = cohortTmp.getBm();
                             const double FM_tmp = (bm * plot.BEF(bm) - bmBEF0s[plot.asID]) * OForestShares[plot.asID] *
-                                                  appDats[plot.asID].landAreaHa * molar_ratio * 0.001 / count;
+                                                  cell.landAreaHa * molarRatio * 0.001 / count;
                             const double dFM = FM_tmp - FM_init[plot.asID];
                             FMs[plot.country] += dFM;
                         }
@@ -2707,7 +2832,7 @@ namespace g4m::application::concrete {
                         double rotMAI = 0;
 
                         if (OForestShares[plot.asID] > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
-                            biomassRot = species.at(plot.speciesType).getU(appDats[plot.asID].OBiomass0,
+                            biomassRot = species.at(plot.speciesType).getU(cell.U.stemBiomass[0],
                                                                            appMaiForest(plot.x, plot.y));
                             rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
                                                                            OptRotTimes::Mode::MAI);
@@ -2719,15 +2844,13 @@ namespace g4m::application::concrete {
                             appCohortsU[plot.asID].setU(rotation);
                             AgeStruct cohortTmp = appCohortsU[plot.asID];
 
-                            const double bm0 = cohortTmp.getBm();
-
                             int count = 0;
                             for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
-                                auto _ = cohortTmp.aging(cohortTmp.getMai(), false);
+                                auto _ = cohortTmp.aging();
 
                             const double bm = cohortTmp.getBm();
                             const double FM_tmp = (bm * plot.BEF(bm) - bmBEF0s[plot.asID]) * OForestShares[plot.asID] *
-                                                  appDats[plot.asID].landAreaHa * molar_ratio * 0.001 / count;
+                                                  cell.landAreaHa * molarRatio * 0.001 / count;
                             const double dFM = FM_tmp - FM_init[plot.asID];
                             FMs[plot.country] += dFM;
                         }
@@ -2738,6 +2861,1586 @@ namespace g4m::application::concrete {
             for (const auto country: countriesList) // test only some countries
                 FMs_diff2 += pow(FMs[country] - FM_sink_stat[country], 2);
             return FMs_diff2;
+        }
+
+        [[nodiscard]] array<double, 4> getCleanedWoodUseCurrent(const DataStruct &plot) const noexcept {
+            double cleanedWoodUseCurrent = 0;
+            double cleanedWoodUseCurrent10 = 0;
+            double cleanedWoodUseCurrent30 = 0;
+            double baseValue = cleanedWoodUse[plot.country] + appDats[plot.asID].harvestEfficiencyMultifunction;
+            if (!plot.protect) {
+                cleanedWoodUseCurrent = appThinningForest(plot.x, plot.y) < 0 ? baseValue : 0;
+                if (appThinningForest10(plot.x, plot.y) < 0) {
+                    if (!appForest10Policy)
+                        cleanedWoodUseCurrent10 = baseValue;
+                    else if (appMultifunction10)
+                        cleanedWoodUseCurrent10 = cleanWoodUseShare10 * baseValue;
+                }
+                if (appThinningForest30(plot.x, plot.y) < 0) {
+                    if (!appForest30Policy)
+                        cleanedWoodUseCurrent30 = baseValue;
+                    else if (appMultifunction30)
+                        cleanedWoodUseCurrent30 = cleanWoodUseShare30 * baseValue;
+                }
+            }
+            return {cleanedWoodUseCurrent, cleanedWoodUseCurrent10, cleanedWoodUseCurrent30, baseValue};
+        }
+
+        void calc(const DataStruct &plot, const uint16_t year) {
+            Dat &cell = appDats[plot.asID];
+            cell.addModelingStep(year);
+            cell.takeForestShareSnapshot();
+
+            constexpr bool roadInfo = true;
+            constexpr bool deforestationInit = true;
+
+            cell.rotation.back() = appRotationForest(plot.x, plot.y);
+            // Initialise cohorts
+            if (year == coef.bYear) {
+                double SD = appThinningForest(plot.x, plot.y);
+                appCohortsU[plot.asID].setU(cell.rotation.back());
+                appCohortsN[plot.asID].setU(cell.rotation.back());
+                appCohorts30[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
+                appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
+
+                appThinningForest30(plot.x, plot.y) = SD;
+                thinningForestNew(plot.x, plot.y) = SD;
+                rotationForestNew(plot.x, plot.y) = cell.rotation.back();
+            }
+            CohortRes resU;
+            CohortRes resULost;
+            {
+                CohortRes tmp = appCohortsU[plot.asID].aging();
+                if (double SD = appThinningForest(plot.x, plot.y); cell.U.forestShare.back() > 0 && SD != 0) {
+                    if (SD > 0)
+                        resU = tmp;
+                    else
+                        resULost = tmp;
+                }
+            }
+            CohortRes resN;
+            CohortRes resNLost;
+            {
+                CohortRes tmp = appCohortsN[plot.asID].aging();
+                if (double SD = appThinningForest(plot.x, plot.y); cell.N.forestShare.back() > 0 && SD != 0) {
+                    if (SD > 0)
+                        resN = tmp;
+                    else
+                        resNLost = tmp;
+                }
+            }
+            CohortRes res10;
+            CohortRes res10Lost;
+            {
+                CohortRes tmp = appCohorts10[plot.asID].aging();
+                if (double SD = appThinningForest10(plot.x, plot.y); cell.O10.forestShare.back() > 0 && SD != 0) {
+                    if (SD > 0)
+                        res10 = tmp;
+                    else
+                        res10Lost = tmp;
+                }
+            }
+            CohortRes res30;
+            CohortRes res30Lost;
+            {
+                CohortRes tmp = appCohorts30[plot.asID].aging();
+                if (double SD = appThinningForest30(plot.x, plot.y); cell.O30.forestShare.back() > 0 && SD != 0) {
+                    if (SD > 0)
+                        res30 = tmp;
+                    else
+                        res30Lost = tmp;
+                }
+            }
+            CohortRes resPLost;
+            {
+                CohortRes tmp = appCohortsP[plot.asID].aging();
+                resPLost = cell.P.forestShare.back() > 0 ? tmp : CohortRes{};
+            }
+
+            cell.U.stemBiomass.back() = resU.realArea > 0 || resULost.realArea > 0 ? appCohortsU[plot.asID].getBm() : 0;
+            cell.O10.stemBiomass.back() =
+                    res10.realArea > 0 || res10Lost.realArea > 0 ? appCohorts10[plot.asID].getBm() : 0;
+            cell.O30.stemBiomass.back() =
+                    res30.realArea > 0 || res30Lost.realArea > 0 ? appCohorts30[plot.asID].getBm() : 0;
+            cell.P.stemBiomass.back() = resPLost.realArea > 0 ? appCohortsP[plot.asID].getBm() : 0;
+            // new forest stem biomass is calculated differently
+
+            const auto [cleanedWoodUseCurrent, cleanedWoodUseCurrent10, cleanedWoodUseCurrent30, _] =
+                    getCleanedWoodUseCurrent(plot);
+
+            // Total current harvested wood in the cell, m3
+            // Total current "lost" wood in the cell, tC (in remote forests)
+            // Total current harvested wood in the cell which is not used for intensive wood production, m3
+            // harvestable wood (m3/ha) including 50% of residues
+            double harvestWoodU = harvestedWoodUse[plot.country] * resU.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodLU = cleanedWoodUseCurrent * resULost.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodPlusU = harvestWoodU + harvestWoodLU;
+
+            double harvestWoodN = harvestedWoodUse[plot.country] * resN.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodLN = cleanedWoodUseCurrent * resNLost.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodPlusN = harvestWoodN + harvestWoodLN;
+
+            double harvestWood10 = harvestedWoodUse[plot.country] * res10.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodL10 = cleanedWoodUseCurrent10 * res10Lost.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodPlus10 = harvestWood10 + harvestWoodL10;
+
+            double harvestWood30 = harvestedWoodUse[plot.country] * res30.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodL30 = cleanedWoodUseCurrent30 * res30Lost.getTotalWoodRemoval() * plot.fTimber;
+            double harvestWoodPlus30 = harvestWood30 + harvestWoodL30;
+
+            double rotMAI = 0;
+            double harvMAI = 0;
+            double timberPrice = 0;
+            double forestryValue = 0;
+            double agriculturalValue = 0;
+            double forestryValuePlus = 0;
+            double plantingCosts = 0;
+
+            if (!plot.protect) {
+                // Rotation time fitted to get certain biomass under certain MAI (w/o thinning)
+                if (cell.forestShareAll(-1) > 0 && plot.CAboveHa > 0 && appMaiForest(plot.x, plot.y) > 0) {
+                    rotMAI = species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                   OptRotTimes::Mode::MAI);
+                    rotMAI = max(0., rotMAI);
+                }
+                if (cell.rotation.back() <= 1)
+                    harvestWoodU = 0;
+                harvestWoodU = max(0., harvestWoodU);
+
+                harvMAI = appMaiForest(plot.x, plot.y) * plot.fTimber * (1 - coef.harvLoos);
+
+                DIMA decision{
+                        year, plot.NPP, plot.sPopDens, plot.sAgrSuit, plot.priceIndex, coef.priceIndexE, plot.R,
+                        coef.priceC, coef.plantingCostsR, coef.priceLandMinR, coef.priceLandMaxR,
+                        coef.maxRotInter,
+                        coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd, coef.baseline,
+                        plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR, coef.fCUptake, plot.GDP,
+                        coef.harvLoos, cell.forestShareOld(-1),
+                        dms.woodPrice.at(plot.country), rotMAI, harvMAI};
+
+                timberPrice = decision.priceTimberComb();   // MG: use Combined G4M + external timberPrice
+                forestryValue = decision.forValComb();      // Combined G4M + external forestryValue
+                plantingCosts = decision.plantingCosts();
+                // We bypass the "policies" above for calibration!
+                forestryValueDPrevGrid(plot.x, plot.y) = forestryValue;
+                // MG: use G4M & GLOBIOM prices
+                agriculturalValue = decision.agrVal() * dms.landPrice.at(plot.country)(year) /
+                                    dms.landPrice.at(plot.country).data.at(2000);
+
+                if constexpr (cellInteract) {
+                    // minimum of forest share in the neighbour cells within a country
+                    double minForestShare = appOForestShGrid.getMinCountry(plot.x, plot.y, 1);
+                    // higher agriculture value if closer to recently deforested places
+                    // agriculture is more attractive if neighbor cells are deforested
+                    agriculturalValue *= 2 - ((plot.potVeg == VegetationType::TropicalEvergreenForest ||
+                                               plot.potVeg == VegetationType::TropicalDeciduousForest) ?
+                                              minForestShare : min(minForestShare, cell.forestShareOld(-1)));
+                    // prevForestShareOld = forestShareOld at this point
+                }
+                // presence of road increases the probability of deforestation
+                if constexpr (roadInfo)
+                    if (cell.road > 0)
+                        agriculturalValue *= 1.2 + cell.road * 0.0044;
+                // higher agriculture value if closer to recently deforested places
+                if constexpr (deforestationInit)
+                    if ((plot.potVeg == VegetationType::TropicalEvergreenForest ||
+                         plot.potVeg == VegetationType::TropicalDeciduousForest) && cell.deforestPrev > 0.00014)
+                        agriculturalValue *= 2;
+
+                double maxForestShare = plot.getMaxForestShare(year);
+                double afforMax = plot.afforMax(year);
+
+                if (plot.country == 78)
+                    afforMax *= 0.45;
+                else if (plot.country != 71 && plot.country != 177)
+                    afforMax *= 0.5;
+
+                double afforMaxCountry = countryLandArea[plot.country] * 500;           // 0.5 * 1000
+                double globiomReservedCountry = afforMaxCountry;
+
+                if (!dms.GLOBIOM_LandCountry[plot.country].data.empty() &&
+                    !dms.GLOBIOM_AfforMaxCountry[plot.country].data.empty()) {
+                    globiomReservedCountry = dms.GLOBIOM_AfforMaxCountry[plot.country](year) * 1000;
+                    afforMaxCountry = dms.GLOBIOM_AfforMaxCountry[plot.country](year) * 500;
+                }
+                double gdp = 1644;
+                if (plot.popDens(year) > 0) {
+                    gdp = 200'000 * plot.GDP(year) / plot.popDens(year);
+                    gdp *= deflator; // Global GDP deflator GDP(1995) / GDP(2000) = 8.807 / 10 (World Bank)
+                }
+                if (plot.country == 162)
+                    gdp = min(gdp, 25'000.);
+
+                if (double forestShareAll = cell.forestShareAll(-1); forestShareAll > maxForestShare) {
+                    const double dFor = forestShareAll - maxForestShare;
+                    cell.U.forestShare.back() = max(0., cell.U.forestShare.back() - dFor);
+                    // TODO TO BE IMPROVED!
+                }
+                const double OForestShareTmp = cell.forestShareOld(-1);
+
+                double deforestationRate = 0;
+                if (plot.agrSuit > 0 && cell.U.forestShare.back() > 0) {
+                    const double popDens = plot.popDens(year);
+                    deforestationRate = 0.05 / (1. + exp(1.799e+00 + 2.200e-01 / cell.forestShareOld(-1) +
+                                                         1.663e-01 / plot.agrSuit +
+                                                         (-4.029e-02 + 5.305e-04 * popDens) * popDens +
+                                                         1.282e-04 * gdp));
+                    if constexpr (deforestationInit)
+                        if (plot.potVeg == VegetationType::TropicalEvergreenForest ||
+                            plot.potVeg == VegetationType::TropicalDeciduousForest) {
+                            if (year == coef.bYear) {
+                                if (deforestationRate > 1.e-17) {
+                                    // To match observed deforestation rate in the tropics
+                                    // cell.deforestPrev = plot.forLoss at this point
+                                    cell.deforestationRateCoefCell =
+                                            max(cell.deforestPrev, 0.000139) / deforestationRate;
+                                    // less than 0.00014, the threshold of increased agriculture attractiveness
+                                }
+                            } else
+                                deforestationRate *= cell.deforestationRateCoefCell;
+                        }
+                    if (year <= 2005) {
+                        if (year <= 1995) {
+                            if (year == 1990)
+                                deforestationRate *= coef_df_mod1990[plot.country];
+                            else
+                                deforestationRate *= coef_df_mod1995[plot.country];
+                        } else {
+                            if (year <= 2000)
+                                deforestationRate *= coef_df_mod2000[plot.country];
+                            else
+                                deforestationRate *= coef_df_mod2005[plot.country];
+                        }
+                    } else {
+                        if (year <= 2015) {
+                            if (year <= 2010)
+                                deforestationRate *= coef_df_mod2010[plot.country];
+                            else
+                                deforestationRate *= coef_df_mod2015[plot.country];
+                        } else if (year <= 2020)
+                            deforestationRate *= coef_df_mod2020[plot.country];
+                    }
+                    double deforestationRateCorrection = 1;
+                    // (year - 2020) / 30. = (year - 2020) / (2050 - 2020)
+                    if (year > 2020 && year <= 2050 && coef_df_mod2020[plot.country] != 1)
+                        deforestationRateCorrection = lerp(coef_df_mod2020[plot.country], 1, (year - 2020) / 30.);
+
+                    deforestationRate *= deforestationRateCorrection * deforRate_opt[plot.country];
+                    // 11.04.2023 smoothing deforestation for Romania to keep it within the historical range
+                    if (plot.country == 183 && year > 2020 && year < 2040) {
+                        // (year - 2020) / 35. = (year - 2020) / (2055 - 2020)
+                        const double kdf = max(0., lerp(coef_df_mod2020[plot.country], 1, (year - 2020) / 35.));
+                        deforestationRate *= kdf;
+                    }
+                    // MG: End of gdp definition
+                    // pay if carbon gets to air (Harvest goes to products)
+                    // MG: mistake: must be DECRATES but not DECRATEL
+                    // Income from selling the deforested wood, taking into account the carbon tax
+                    const double R = plot.R(year);
+                    const double CO2Price = dms.CO2Price.at(plot.country)(year);
+
+                    const double pDeforestationIncome
+                            = plot.CAboveHa * (timberPrice * plot.fTimber * (1 - coef.harvLoos) -
+                                               CO2Price * (1 + R) *
+                                               (plot.fracLongProd * coef.decRateL / (coef.decRateL + R) +
+                                                plot.fracLongProd * coef.decRateS / (coef.decRateS + R)));
+                    const double pDeforestationLoss
+                            = -CO2Price * (1 + R) * (plot.CLitterHa * (0.3 * plot.decWood / (plot.decWood + R) +
+                                                                       0.7 * plot.decHerb / (plot.decHerb + R)) +
+                                                     plot.CBelowHa * 0.3 * plot.decHerb / (plot.decHerb + R) +
+                                                     plot.SOCHa * plot.decSOC / (plot.decSOC + R));
+                    // immediate pay if deforested (Slash and Burn)
+                    const double sDeforestationIncome =
+                            plot.CAboveHa * (timberPrice * plot.fTimber * (1 - coef.harvLoos) - CO2Price);
+                    const double sDeforestationLoss = -CO2Price * (plot.CDeadHa + plot.CBelowHa * 0.7);
+
+                    double deforestationIncome =
+                            lerp(pDeforestationIncome, sDeforestationIncome, plot.slashBurn) + pDeforestationLoss +
+                            sDeforestationLoss;
+                    // MG: adjust the multiplier to account for a forest saving policy in some countries
+                    if (agriculturalValue + deforestationIncome > forestryValue * hurdle_opt[plot.country]) {
+                        cell.U.forestShare.back() -= deforestationRate * modTimeStep; // decrease forest share
+                        cell.U.forestShare.back() = max(0., cell.U.forestShare.back());
+                        // TODO TO BE IMPROVED!
+                    }
+                    if (double forestShareAll = cell.forestShareAll(-1); forestShareAll > maxForestShare) {
+                        const double dFor = forestShareAll - maxForestShare;
+                        cell.U.forestShare.back() = max(0., cell.U.forestShare.back() - dFor);
+                        // TODO TO BE IMPROVED!
+                    }
+                }
+                // policy to deforest 43 kha in 2020-2023 for building railway according to MS comments to EUCLIMIT2 in February 2016
+                if (plot.country == 130 && year >= 2020 && year <= 2023 &&
+                    OForestShareTmp - cell.forestShareOld(-1) < 0.003255846)
+                    cell.U.forestShare.back() = max(0., cell.U.forestShare.back() - 0.001706064);
+
+                double afforestationRate = 0;
+                if (OForestShareTmp + cell.N.forestShare.back() < maxForestShare &&
+                    cell.N.forestShare.back() < afforMax &&
+                    countriesNForestCover1990.getVal(plot.country, year) < afforMaxCountry &&
+                    countriesNForestCover1990.getVal(plot.country, year) +
+                    countriesOForestCover.getVal(plot.country, year) +
+                    globiomReservedCountry < countryLandArea[plot.country] * 1'000) {
+                    // MG: We afforest only places, where potential vegetation is forest and savanna
+                    if (0 < static_cast<uint8_t>(plot.potVeg) && static_cast<uint8_t>(plot.potVeg) <= 9 &&
+                        plot.NPP(year) > 0) {
+                        afforestationRate = 0.01 / (1 + exp(1 + 0.1 / plot.agrSuit + 1 / (0.001 * gdp)));
+                        if (afforestationRate < 1e-6 / plot.landArea)
+                            afforestationRate = 0; // minimum one tree (1m^2)
+                        else
+                            afforestationRate *= afforRate_opt[plot.country];
+                        forestryValuePlus = forestryValue + dms.CO2Price.at(plot.country)(year) *
+                                                            (((plot.SOCHa * 0.4 / (8 * decision.rotInter())) +
+                                                              5 / (1.053 * decision.rotInter())) / plot.R(year));
+                        // afforestation grants in UK till 2020, approx 180 GBP/ha year during 20 years,
+                        // exchange rate GBP/USD for 2000-2016 approx 1.7
+                        if (plot.country == 78 && year < 2021) {
+                            const double R_year = plot.R(year);
+                            // sum of geometric series, b_0 = 180 * 1.7 = 306, q = 1 / (1 + plot.R(year)), n = 20
+                            const double capUK = 306 * (1 - pow(1 + R_year, -20)) * (1 + 1 / R_year);
+                            forestryValuePlus += capUK;
+                        }
+                        if (year <= 2005) {
+                            if (year <= 1995) {
+                                if (year == 1990)
+                                    afforestationRate *= coef_af_mod1990[plot.country];
+                                else
+                                    afforestationRate *= coef_af_mod1995[plot.country];
+                            } else {
+                                if (year <= 2000)
+                                    afforestationRate *= coef_af_mod2000[plot.country];
+                                else
+                                    afforestationRate *= coef_af_mod2005[plot.country];
+                            }
+                        } else {
+                            if (year <= 2015) {
+                                if (year <= 2010)
+                                    afforestationRate *= coef_af_mod2010[plot.country];
+                                else
+                                    afforestationRate *= coef_af_mod2015[plot.country];
+                            } else if (year <= 2020)
+                                afforestationRate *= coef_af_mod2020[plot.country];
+                        }
+                        switch (plot.country) {
+                            case 20:
+                                if (year <= 2040) {
+                                    if (year > 2020)
+                                        afforestationRate *= 1 - 0.6 * (year - 2020) / 20.;
+                                } else if (year <= 2045)
+                                    afforestationRate *= 1 - 0.6 + 0.6 * (year - 2040) / 5.;
+                                break;
+                            case 61:
+                                if (year > 2020 && year <= 2070)
+                                    afforestationRate *= 0.6;
+                                break;
+                            case 71:    // Finland
+                                // limit total afforestation to 350 kha as discussed with A.Deppermann 01.03.2021
+                                if (year > 2020 && countriesNForestCover.getVal(71, year - 1) >= 350'000)
+                                    afforestationRate = 0;
+                                else if (year >= 2047 && year <= 2070)  // limit afforestation 9 Jan 2021
+                                    afforestationRate *= 1 - 0.7 * (year - 2047) / 23.;
+                                // no break!
+                            case 58:
+                            case 204:
+                                if (year <= 2030) {
+                                    if (year > 2020)
+                                        afforestationRate *= 1 - 0.5 * (year - 2020) / 10.;
+                                } else if (year <= 2040)
+                                    afforestationRate *= 1 - 0.5 + 0.5 * (year - 2030) / 10.;
+                                break;
+                            case 103:   // Ireland
+                                // limit afforestation to 9 kha / year after 2030, request by national experts and Rene, December 2020
+                                if (year <= 2040) {
+                                    if (year > 2020)
+                                        afforestationRate *= 1 - 0.4 * (year - 2020) / 20.;
+                                } else if (year <= 2070)
+                                    afforestationRate *= 1 - 0.4;
+                                break;
+                            case 161:   // Netherlands
+                                if (year <= 2026) {
+                                    if (year > 2020)
+                                        afforestationRate *= 1 - 0.8 * (year - 2020) / 9.;
+                                } else if (year <= 2035) {
+                                    if (year == 2027)
+                                        afforestationRate *= 0.25;
+                                    else
+                                        afforestationRate *= 0.2;
+                                } else if (year <= 2040)
+                                    afforestationRate *= 1 - 0.8 + 0.8 * (year - 2035) / 5.;
+                                break;
+                        }
+                        if (agriculturalValue < forestryValuePlus * hurdle_opt[plot.country]) {
+                            cell.N.forestShare.back() += afforestationRate * modTimeStep;
+                            // MG: 20 April 2018: added to limit afforestation to a share of other natural land
+                            cell.N.forestShare.back() = min(min(afforMax, maxForestShare - OForestShareTmp),
+                                                            cell.N.forestShare.back());
+                        }
+                    } else {
+                        // MG: added 20 April 2018
+                        cell.N.forestShare.back() = min(afforMax, cell.N.forestShare.back());
+
+                        if (double forestShareAll = cell.forestShareAll(-1); forestShareAll > maxForestShare) {
+                            const double dFor = forestShareAll - maxForestShare;
+                            cell.U.forestShare.back() = max(0., cell.U.forestShare.back() - dFor);
+                            // TODO TO BE IMPROVED!
+                        }
+                    }
+                }
+            }
+            cell.correctForestShareDynamics();
+
+            const ptrdiff_t age = (year - coef.bYear + 1) / modTimeStep;
+            // Limit afforestation speed to 2% of cell area (0.5deg) per year Hannes Bottcher personal communication, 2013
+            cell.afforestationShareTimeA[age] = clamp(cell.N.forestShare.back() - cell.N.forestShare.end()[-2],
+                                                      0., 0.02 * modTimeStep);
+            cell.N.forestShare.back() = cell.N.forestShare.end()[-2] + cell.afforestationShareTimeA[age];
+
+            countriesNForestCover1990.inc(plot.country, year, cell.N.forestShare.back() * cell.landAreaHa);
+            countriesAfforestationHaYear1990.inc(plot.country, year,
+                                                 cell.afforestationShareTimeA[age] * cell.landAreaHa / modTimeStep);
+
+            // limit deforestation speed to 5% of cell area (0.5deg) per year (see Kindermann et al. 2007)
+            cell.deforestationShareTimeA[age] = clamp(cell.forestShareOld(-2) - cell.forestShareOld(-1), 0.,
+                                                      0.05 * modTimeStep);
+            cell.U.forestShare.back() = cell.U.forestShare.end()[-2] - cell.deforestationShareTimeA[age];
+
+            // MG: We start deforestation after 2000, because we have initial data for 2000 (discussion with Hannes Bottcher 10.09.09)
+            if (year <= 2000)
+                cell.restoreForestShareSnapshot();
+            // 31.03.2023 all afforested before 2000 is already in the initial LC therefore we afforest after 2000
+            appCohortsN[plot.asID].afforest(cell.afforestationShareTimeA[age]);
+
+            FMResult resultDeforestation;
+            if (cell.deforestationShareTimeA[age] > 0 && (resU.realArea > 0 || resULost.realArea > 0)) {
+                // MG: Correcting the bug causing relAreaO approaching zero before real deforestation starts
+                // MG: We start deforestation after 2000, because we have initial data for 2000 (discussion with Hannes Bottcher 10.09.09)
+                if (year <= 2000)
+                    resultDeforestation = AgeStruct{appCohortsU[plot.asID]}.deforest(
+                            cell.deforestationShareTimeA[age]);
+                else
+                    resultDeforestation = appCohortsU[plot.asID].deforest(cell.deforestationShareTimeA[age]);
+            }
+            cell.deforestHaYear = cell.deforestationShareTimeA[age] * cell.landAreaHa;
+            cell.deforestHaTotal += cell.deforestHaYear;
+            cell.afforestHaYear = cell.afforestationShareTimeA[age] * cell.landAreaHa;
+            // TODO 10.03.2023 adjusting to Ireland Fl-Fl reporting other way
+            cell.afforestHaTotal += cell.afforestHaYear;
+
+            cell.deforestationWoodyProductsLongLivedA.back()[age] =
+                    resultDeforestation.biomass * plot.fracLongProd * (1 - coef.harvLoos) * (1 - plot.slashBurn) *
+                    cell.deforestHaYear;
+            cell.deforestationWoodyProductsShortLivedA[age] = cell.deforestationWoodyProductsLongLivedA[age];
+            // MG:BEF: we assume that the non-stem above-ground biomass goes to the litter pool
+            cell.deforestationLitterTimeA.back()[age] =
+                    (plot.CLitterHa + (plot.BEF(resultDeforestation.biomass) - 1) * resultDeforestation.biomass) *
+                    cell.deforestHaYear;
+            cell.fineRootA.back()[age] = plot.CBelowHa * 0.3 * cell.deforestHaYear;
+            // According to Karjalainen & Liski 1997, p.?? about 38% of SOC is in the "fast" SOC1 pool
+            cell.deforestationSoilTimeA1.back()[age] = 0.38 * plot.SOCHa * cell.deforestHaYear;
+            cell.deforestationSoilTimeA.back()[age] = 0.62 * plot.SOCHa * cell.deforestHaYear;
+            cell.afforestationSoilTimeA.back()[age] = plot.SOCHa * cell.afforestHaYear;
+            cell.afforestationLitterTimeA.back()[age] = plot.CLitterHa * cell.afforestHaYear;
+
+            // Emissions from deforestation
+            const double emissionsProductCur =
+                    (ranges::fold_left(cell.deforestationWoodyProductsLongLivedA.back(), 0., plus{}) * coef.decRateL +
+                     ranges::fold_left(cell.deforestationWoodyProductsShortLivedA.back(), 0., plus{}) * coef.decRateS) *
+                    modTimeStep;
+
+            // a share of decomposed litter and SOM transferred to the pool below according to SOM2 model in Karjalainen & Liski 1997, p.56
+            const double p = 0.115;   // p in equation
+            // litter pools of foliage and branches (fine roots and coarse roots as well) are approximately of the same size according to Karjalainen and Liski 1997, p.69
+            const double emissionsLitterCur =
+                    (ranges::fold_left(cell.deforestationLitterTimeA.back(), 0., plus{}) *
+                     midpoint(plot.decWood, plot.decHerb) +
+                     ranges::fold_left(cell.fineRootA.back(), 0., plus{}) * plot.decHerb) * (1 - p) * modTimeStep;
+
+//            for (const auto value: cell.deforestationLitterTimeA)
+//                println("{}", value);
+//            FATAL("Negative forest share in year = {}, asID = {}, cell: {}", year, plot.asID, cell.str());
+
+            // 05.06.2023: Testing: deadwood is a mixture of branches and stems (to be estimated better!)
+            const double decStem = plot.decWood * 0.5;
+            // we make it to correspond to SOC1 decomposition in Karjalainen & Liski 1997, p.56
+            const double decSOC1 = 0.9 * decStem;
+            // to make it to correspond to SOC2  decomposition in Karjalainen & Liski 1997, p.56
+            const double decSOC = plot.decSOC / 3;
+            // deforestation emissions from soil, tCO2/year
+            double emissionsSOCCur = 0;
+            for (const auto [SOCA, SOCA1, deforestA]:
+                    rv::zip(cell.deforestationSoilTimeA.back(), cell.deforestationSoilTimeA1.back(),
+                            cell.deforestationShareTimeA))
+                if (SOCA + SOCA1 > 0.6 * plot.SOCHa * deforestA * cell.landAreaHa)
+                    emissionsSOCCur += SOCA * decSOC + SOCA1 * decSOC1 * (1 - p);
+            emissionsSOCCur *= modTimeStep;
+            // alternative estimate of soil carbon emissions at deforestation [tC/ha year]
+            // alternative estimation of SOC change (tC/ha year) due to conversion from forest to farmland
+            // [Deng et al. (2016) Global patterns of the effects of land-use changes on soil carbon stocks.
+            // Global Ecology and Conservation N5, pp. 127-138]
+            double emissionsSOCCur1 = 0;
+            // alternative estimate of soil carbon emissions at deforestation [tC/ha year] based on average UNFCCC emissions for countries
+            double emissionsSOCCur2 = 0;
+            if (plot.SOCHa > 0) {
+                for (const auto [i, deforestA]: cell.deforestationShareTimeA | rv::enumerate) {
+                    double denominator = static_cast<double>(i) * modTimeStep;
+                    double tmp = plot.SOCHa - (-0.53 * plot.SOCHa - 0.25 * denominator + 19.22);
+                    if (deforestA > 0 && tmp <= 21.05)
+                        emissionsSOCCur1 += deforestA * tmp / (i > 0 ? denominator : 1);
+                }
+                for (const auto [i, deforestA]: cell.deforestationShareTimeA | rv::enumerate |
+                                                rv::drop(max(ptrdiff_t{0}, age - 20)))
+                    if (deforestA > 0)
+                        emissionsSOCCur2 += defor_sl_em_unfccc_tCha[plot.country] * 10 * 0.2 *
+                                            exp(-0.22 * static_cast<double>(age - i) * modTimeStep) * deforestA;
+
+                emissionsSOCCur1 *= cell.landAreaHa;
+                emissionsSOCCur2 *= cell.landAreaHa;
+            }
+            // MG: Recalculate carbon pools
+            const double decRateL_dec = max(0., 1 - coef.decRateL * modTimeStep);
+            const double decRateS_dec = max(0., 1 - coef.decRateS * modTimeStep);
+            // corresponds to foliage in Karjalainen & Liski 1997, p.56
+            const double decHerb_dec = max(0., 1 - plot.decHerb * modTimeStep);
+            // corresponds to branches of birch in Karjalainen & Liski 1997, p.56
+            const double decWood_dec = max(0., 1 - plot.decWood * modTimeStep);
+            const double decHerb_decWood_dec_avg = midpoint(decHerb_dec, decWood_dec);
+            const double decSOC1_dec = max(0., 1 - decSOC1 * modTimeStep);
+            // corresponds to SOC2 in Karjalainen & Liski 1997, p.56
+            const double decSOC_dec = max(0., 1 - decSOC * modTimeStep);
+
+            for (auto &value: cell.deforestationWoodyProductsLongLivedA.back())
+                value *= decRateL_dec;
+            for (auto &value: cell.deforestationWoodyProductsShortLivedA.back())
+                value *= decRateS_dec;
+            for (auto &value: cell.deforestationLitterTimeA.back())
+                value *= decHerb_decWood_dec_avg;
+            for (auto &value: cell.fineRootA.back())
+                value *= decHerb_dec;
+
+            // litter pools of foliage and branches (fine roots and coarse roots as well) are approximately of the same size according to Karjalainen and Liski 1997, p.69
+            vector<double> emissionsLitterCurTmp;
+            emissionsLitterCurTmp.reserve(age + 1);
+            for (double decWood_decHerb_avg = midpoint(plot.decWood, plot.decHerb); const auto [litterA, fineRootA]:
+                    rv::zip(cell.deforestationLitterTimeA.back(), cell.fineRootA.back()))
+                emissionsLitterCurTmp.push_back(
+                        (litterA * decWood_decHerb_avg + fineRootA * plot.decHerb) * (1 - p) * modTimeStep);
+
+            for (auto &&[SOCA, SOCA1, deforestA, emissionsLitterCurA]:
+                    rv::zip(cell.deforestationSoilTimeA.back(), cell.deforestationSoilTimeA1.back(),
+                            cell.deforestationShareTimeA, emissionsLitterCurTmp))
+                if (SOCA + SOCA1 > 0.6 * plot.SOCHa * deforestA * cell.landAreaHa) {
+                    SOCA1 = SOCA1 * decSOC1_dec + p * emissionsLitterCurA;
+                    SOCA = SOCA * decSOC_dec + p * SOCA1 * decSOC1 * modTimeStep;
+                }
+            // Emissions from deforestation in current cell for current year caused by burning
+            const double emissionsSlashBurnCur = cell.U.stemBiomass.back() * plot.slashBurn * cell.deforestHaYear;
+            const double emissionsDeadBurnCur = plot.CDeadHa * cell.deforestHaYear;
+            const double emissionsCRootBurnCur = 0.7 * plot.CBelowHa * cell.deforestHaYear;
+            // emissions for current cell summed over years
+            cell.emissionsProduct += emissionsProductCur;
+            cell.emissionsLitter += emissionsLitterCur;
+            cell.emissionsSOC += emissionsSOCCur;
+            cell.emissionsSlashBurn += emissionsSlashBurnCur;
+            cell.emissionsDeadBurn += emissionsDeadBurnCur;
+            cell.emissionsCRootBurn += emissionsCRootBurnCur;
+            // total emissions in current cell for current year
+            const double emissionsCur =
+                    emissionsProductCur + emissionsLitterCur + emissionsSOCCur +
+                    emissionsSlashBurnCur + emissionsDeadBurnCur + emissionsCRootBurnCur;
+            // total emissions in current cell summed over years
+            cell.emissionsTotal += emissionsCur;
+            // *************** END Emissions from deforestation ****************
+            // *************** Afforestation "negative" emissions block ********
+            // alternative estimate of soil carbon emissions at afforestation [tC/ha year]
+            // Initialisation of alternative SOC emissions (sink) at afforestation
+            double emissionsSOCAfforCur1 = cell.afforestationShareTimeA[age] > 0 ?
+                                           (-5.76 - 0.52 * modTimeStep) * cell.afforestationShareTimeA[age] : 0;
+
+            double testNewArea = 0;
+
+            double emissionsBmAfforCur_gl = 0;      // afforestation biomass emissions in forest stands Gain-Loss method
+            double emissionsBmAfforCur_age20o = 0;  // afforestation biomass emissions in forest stands of age over 20 years old Gain-Loss method
+            double emissionsBmAfforCur_age20b = 0;  // afforestation biomass emissions in forest stands of age <= 20 years old Gain-Loss method
+            double plantArea20_rel = 0;
+            double emissionsSOCAfforCur = 0;
+            double emissionsSOCAfforCur20o = 0;
+            double emissionsSOCAfforCur20b = 0;
+            double emissionsSOCAfforCur20 = 0;
+            double emissionsLitterAfforCur = 0;
+            double emissionsLitterAfforCur20 = 0;
+            double emissionsLitterAfforCur20b = 0;
+
+            for (const auto [i, afforestA]: cell.afforestationShareTimeA | rv::enumerate) {
+                const double cohortArea = appCohortsN[plot.asID].getArea(static_cast<size_t>(age - i));   // made by idx
+
+                if (afforestA > 0 || cohortArea > 0) {
+                    // Correct cohorts area to the final cut harvest.
+                    // We ignore the replanting thus underestimating the sink in the forest stands moved to the category FL-FL
+                    testNewArea += cohortArea;
+                    // afforested (stem) biomass of age (Age-ia) * modTimeStep per ha
+                    double abovePhCur = appCohortsN[plot.asID].getBm(static_cast<double>(age - i) * modTimeStep);
+
+                    if ((age - i) * modTimeStep <= 20) {    // age cohorts younger than 21 year
+                        if (afforestA < cohortArea) { // a share of the age cohort has been replanted after final cut
+                            // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
+                            cell.N_abovegroundBiomassBelow20yoAge.back()[age - i] =
+                                    abovePhCur * plot.BEF(abovePhCur) * afforestA;
+                            // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
+                            cell.N_abovegroundBiomassOver20yoAge.back()[age - i] =
+                                    abovePhCur * plot.BEF(abovePhCur) * (cohortArea - afforestA);
+                        } else {  //  a share of the age cohort has been under final cut or no final cut in current age cohort
+                            // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
+                            cell.N_abovegroundBiomassBelow20yoAge.back()[age - i] =
+                                    abovePhCur * plot.BEF(abovePhCur) * cohortArea;
+                        }
+                    } else {    // age cohorts older than 20 years
+                        // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
+                        cell.N_abovegroundBiomassOver20yoAge.back()[age - i] =
+                                abovePhCur * plot.BEF(abovePhCur) * cohortArea;
+                    }
+                    // increment of biomass in the forest stand of age (Age-ia) * modTimeStep per ha * afforShare[ia] per modTimeStep period
+                    double emissionsBmAfforCur_age = 0;
+                    if (i < age) {
+                        double abovePhPrev = appCohortsN[plot.asID].getBm(
+                                static_cast<double>(age - i - 1) * modTimeStep);
+                        emissionsBmAfforCur_age =
+                                (abovePhCur * plot.BEF(abovePhCur) - abovePhPrev * plot.BEF(abovePhPrev)) *
+                                cohortArea;
+                    }
+                    abovePhCur *= cohortArea;   // afforested (stem) biomass per ha * afforShare[ia]
+                    cell.N.stemBiomass.back() += abovePhCur; // stem biomass of planted forest, tC in the cell
+
+                    emissionsBmAfforCur_gl += emissionsBmAfforCur_age;  // biomass increment of all stands Gain-Loss method
+                    if ((age - i) * modTimeStep > 20) {    // we track area and phytomass of new forest over 20 y.o.
+                        if (year > 2000)    // 13.04.2023 adjusting to Ireland Fl-Fl reporting
+                            plantArea20_rel += afforestA;   // relative area of forest over 20 y.o.
+                        // biomass increment of all stands of age over 20 years old per ha * afforShare[ia] per modTimeStep period Gain-Loss method
+                        emissionsBmAfforCur_age20o += emissionsBmAfforCur_age;
+                    } else  // we track area and phytomass of new forest below 20 y.o.
+                        // biomass increment of all  stands of age <= 20 years old per ha * afforShare[ia] per modTimeStep period Gain-Loss method
+                        emissionsBmAfforCur_age20b += emissionsBmAfforCur_age;
+                    if (afforestA > 0) {
+                        if (cell.afforestationLitterTimeA.back()[i] < 5 * afforestA * cell.landAreaHa) {
+                            double curEmissionsLitterAfforCur = cell.afforestationLitterInput(i);
+                            emissionsLitterAfforCur += curEmissionsLitterAfforCur;
+                            cell.afforestationLitterTimeA.back()[i] += curEmissionsLitterAfforCur;
+
+                            if ((age - i) * modTimeStep > 20)  // we track litter emissions of new forest over 20 y.o.
+                                emissionsLitterAfforCur20 += curEmissionsLitterAfforCur;
+                            else
+                                emissionsLitterAfforCur20b += curEmissionsLitterAfforCur;
+                        }
+                        if (cell.afforestationSoilTimeA.back()[i] <= 1.4 * plot.SOCHa * afforestA * cell.landAreaHa) {
+                            double asi = cell.afforestationSoilInput(i) * plot.afforestationSoilInputCoef();
+                            emissionsSOCAfforCur += asi;
+                            cell.afforestationSoilTimeA.back()[i] += asi;
+                            // we track area and phytomass or soil emissions of new forest over 20 y.o.
+                            if ((age - i) * modTimeStep > 20)
+                                emissionsSOCAfforCur20o += asi;
+                            else
+                                emissionsSOCAfforCur20b += asi;
+                            // alternative estimation of SOC change (tC/ha year) due to conversion from farmland to forest
+                            // [Deng et al. (2016) Global patterns of the effects of land-use changes on soil carbon stocks.
+                            // Global Ecology and Conservation N5, pp. 127-138]
+                            emissionsSOCAfforCur1 += 0.52 * modTimeStep * afforestA;
+                        }
+                    }
+                }
+            }
+            emissionsSOCAfforCur1 *= cell.landAreaHa;   // tC/year per cell
+
+            cell.N_belowgroundBiomass.back() = cell.N_abovegroundBiomass(-1) * plot.coefBL(); // below-ground phytomass
+            // above-ground phytomass increment in the cell, tC/modTimeStep
+            double curPlantPhytBmGr = (cell.N_abovegroundBiomass(-1) - cell.N_abovegroundBiomass(-2)) * cell.landAreaHa;
+            // stem phytomass increment in the cell, tC/modTimeStep
+            double curPlantPhytStem = (cell.N.stemBiomass.back() - cell.N.stemBiomass.end()[-2]) * cell.landAreaHa;
+            // below-ground phytomass increment in the cell, tC/modTimeStep
+            double curPlantPhytBlGr =
+                    (cell.N_belowgroundBiomass.back() - cell.N_belowgroundBiomass.end()[-2]) * cell.landAreaHa;
+
+            cell.emissionsLitterAffor += emissionsLitterAfforCur;
+            cell.emissionsSOCAffor += emissionsSOCAfforCur;
+            // total (negative) emissions from afforestation for current year and current cell
+            double emissionsAfforCur =
+                    curPlantPhytBmGr + curPlantPhytBlGr + emissionsLitterAfforCur + emissionsSOCAfforCur;
+            cell.emissionsAffor += emissionsAfforCur;
+            // END Afforestation "negative" emissions block
+            // wood obtained at deforestation, m^3/ha
+            double harvestDfM3Ha = 0;
+            // harvested new and old wood (from FM) in the cell
+            double harvestFmTotalM3 = 0;
+            // total wood (from FM and deforestation) of "usual" forest in the cell (usual forest means not primary and not under the 10 or 30% policy)
+            double harvestTotalM3 = 0;
+            // total wood (from FM) of 10% policy forest in the cell
+            double harvest10_M3 = 0;
+            // total wood (from FM) of 30% policy forest in the cell
+            double harvest30_M3 = 0;
+            // total wood (from FM and deforestation) in the cell
+            double harvestTotalAllM3 = 0;
+            // total current harvested wood in the cell, m^3, including residues (harvest losses)
+            double harvestTotalPlusM3 = 0;
+
+            if (!plot.protect) {
+                harvestDfM3Ha = resultDeforestation.getWood() * (1 - plot.slashBurn) * plot.fTimber;
+                cell.deforestationWoodTotalM3 = harvestDfM3Ha * cell.deforestHaYear;
+                harvestFmTotalM3 = (harvestWoodPlusU * cell.U.forestShare.back() +
+                                    harvestWoodPlusN * cell.N.forestShare.end()[-2]) * cell.landAreaHa;
+                harvestTotalM3 = harvestFmTotalM3 + cell.deforestationWoodTotalM3;
+
+                harvest10_M3 = harvestWoodPlus10 * cell.O10.forestShare.back() * cell.landAreaHa;
+                harvest30_M3 = harvestWoodPlus30 * cell.O30.forestShare.back() * cell.landAreaHa;
+
+                harvestTotalAllM3 = harvestTotalM3 + harvest10_M3 + harvest30_M3 + salvageLogging(plot.x, plot.y);
+
+                cell.U.fellings.back() = (resU.getTotalHarvestedBiomass() +
+                                          cleanedWoodUseCurrent * resULost.getTotalHarvestedBiomass()) * plot.fTimber *
+                                         cell.U.forestShare.back() * cell.landAreaHa;
+                cell.N.fellings.back() = (resN.getTotalHarvestedBiomass() +
+                                          cleanedWoodUseCurrent * resNLost.getTotalHarvestedBiomass()) * plot.fTimber *
+                                         cell.N.forestShare.end()[-2] * cell.landAreaHa;
+                cell.O10.fellings.back() = (res10.getTotalHarvestedBiomass() +
+                                            cleanedWoodUseCurrent10 * res30Lost.getTotalHarvestedBiomass()) *
+                                           plot.fTimber *
+                                           cell.O10.forestShare.back() * cell.landAreaHa;
+                cell.O30.fellings.back() = (res30.getTotalHarvestedBiomass() +
+                                            cleanedWoodUseCurrent30 * res30Lost.getTotalHarvestedBiomass()) *
+                                           plot.fTimber *
+                                           cell.O30.forestShare.back() * cell.landAreaHa;
+
+                cell.harvestFcM3Ha = (resU.getFinalCutWood() + resN.getFinalCutWood()) * plot.fTimber;
+                cell.harvestThM3Ha = (resU.getThinnedWood() + resN.getThinnedWood()) * plot.fTimber;
+                cell.harvestScM3Ha =
+                        cleanedWoodUseCurrent * (resULost.getTotalWoodRemoval() + resNLost.getTotalWoodRemoval()) *
+                        plot.fTimber;
+            }
+            appHarvestGrid(plot.x, plot.y) = harvestTotalAllM3;
+
+            cell.U.CAI.back() = (cell.U.stemBiomass.back() - cell.U.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
+            cell.O10.CAI.back() =
+                    (cell.O10.stemBiomass.back() - cell.O10.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
+            cell.O30.CAI.back() =
+                    (cell.O30.stemBiomass.back() - cell.O30.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
+            cell.P.CAI.back() = (cell.P.stemBiomass.back() - cell.P.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
+
+            if (!plot.protect) {
+                cell.U.CAI.back() += (resU.getTotalHarvestedBiomass() +
+                                      cleanedWoodUseCurrent * resULost.getTotalHarvestedBiomass()) * plot.fTimber;
+                cell.O10.CAI.back() += (res10.getTotalHarvestedBiomass() +
+                                        cleanedWoodUseCurrent10 * res10Lost.getTotalHarvestedBiomass()) * plot.fTimber;
+                cell.O30.CAI.back() += (res30.getTotalHarvestedBiomass() +
+                                        cleanedWoodUseCurrent30 * res30Lost.getTotalHarvestedBiomass()) * plot.fTimber;
+            }
+            double phytNewIncr = cell.N.forestShare.back() > 0 ?
+                                 curPlantPhytStem / (cell.N.forestShare.back() * cell.landAreaHa) : 0;
+            cell.N.CAI.back() = (phytNewIncr + resN.getTotalHarvestedBiomass() +
+                                 cleanedWoodUseCurrent * resNLost.getTotalHarvestedBiomass()) * plot.fTimber;
+            // 22.12.2015 Net Annual Increment
+            double NAI_old_m3ha = ((cell.U.stemBiomass.back() - cell.U.stemBiomass.end()[-2]) / modTimeStep +
+                                   resU.getTotalHarvestedBiomass() +
+                                   cleanedWoodUseCurrent * resULost.getTotalHarvestedBiomass()) * plot.fTimber;
+            // Gross Current Annual Increment, m3/ha
+            double grossCAI_m3ha = max(resU.thinning.grossInc, resULost.thinning.grossInc) * plot.fTimber;
+            // Net Current Annual Increment, m3/ha
+            double netCAI_m3ha = max(resU.thinning.netInc, resULost.thinning.netInc) * plot.fTimber;
+            // Gross Current Annual Increment, m3/ha
+            double grossCAI_new_m3ha = max(resN.thinning.grossInc, resNLost.thinning.grossInc) * plot.fTimber;
+            // Net Current Annual Increment, m3/ha
+            double netCAI_new_m3ha = max(resN.thinning.netInc, resNLost.thinning.netInc) * plot.fTimber;
+
+            const double unitConvCoef = molarRatio * 1e-6 / modTimeStep;
+
+            cell.U.biomassChange_ab.back() = (cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) -
+                                              cell.U.stemBiomass.end()[-2] * plot.BEF(cell.U.stemBiomass.end()[-2])) *
+                                             unitConvCoef;
+            cell.U.biomassChange_total.back() = cell.U.biomassChange_ab.back() * (1 + plot.coefBL());
+
+            cell.O10.biomassChange_ab.back() = (cell.O10.stemBiomass.back() * plot.BEF(cell.O10.stemBiomass.back()) -
+                                                cell.O10.stemBiomass.end()[-2] *
+                                                plot.BEF(cell.O10.stemBiomass.end()[-2])) *
+                                               unitConvCoef;
+            cell.O10.biomassChange_total.back() = cell.O10.biomassChange_ab.back() * (1 + plot.coefBL());
+
+            cell.O30.biomassChange_ab.back() = (cell.O30.stemBiomass.back() * plot.BEF(cell.O30.stemBiomass.back()) -
+                                                cell.O30.stemBiomass.end()[-2] *
+                                                plot.BEF(cell.O30.stemBiomass.end()[-2])) *
+                                               unitConvCoef;
+            cell.O30.biomassChange_total.back() = cell.O30.biomassChange_ab.back() * (1 + plot.coefBL());
+
+            cell.P.biomassChange_ab.back() = (cell.P.stemBiomass.back() * plot.BEF(cell.P.stemBiomass.back()) -
+                                              cell.P.stemBiomass.end()[-2] * plot.BEF(cell.P.stemBiomass.end()[-2])) *
+                                             unitConvCoef;
+            cell.P.biomassChange_total.back() = cell.P.biomassChange_ab.back() * (1 + plot.coefBL());
+
+            if (appThinningForest(plot.x, plot.y) < 0)
+                cell.rotationBiomass.back() =
+                        species.at(plot.speciesType).getU(cell.U.stemBiomass.back(), appMaiForest(plot.x, plot.y));
+            else
+                cell.rotationBiomass.back() =
+                        species.at(plot.speciesType).getUSdTab(cell.U.stemBiomass.back(), appMaiForest(plot.x, plot.y),
+                                                               appThinningForest(plot.x, plot.y));
+
+            double rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
+                                                                   OptRotTimes::Mode::MaxBm);
+            cell.emissionsD_Bm = (resultDeforestation.biomass * plot.BEF(resultDeforestation.biomass) + plot.CBelowHa) *
+                                 unitConvCoef;
+
+            double plantPhytHaBm = testNewArea > 0 ? plantPhytHaBm = cell.N_abovegroundBiomass(-1) / testNewArea : 0;
+
+            rf.detailsBuffer +=
+                    format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
+                           "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}"
+                           "\n",
+                           plot.asID, plot.simuID, year, plot.country, cell.forestShareOld(-1),
+                           cell.N.forestShare.back(), plot.CAboveHa,
+                           cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()),
+                           plantPhytHaBm, appMaiForest(plot.x, plot.y) * plot.fTimber, rotMAI,
+                           resU.getThinnedWood() * plot.fTimber, resU.getFinalCutWood() * plot.fTimber,
+                           resN.getThinnedWood() * plot.fTimber, resN.getFinalCutWood() * plot.fTimber,
+                           harvestTotalM3, harvMAI, netCAI_m3ha, grossCAI_m3ha, cell.rotationBiomass.back(),
+                           forestryValuePlus * hurdle_opt[plot.country], forestryValue, agriculturalValue,
+                           cell.rotation.back(), rotationForestNew(plot.x, plot.y), timberPrice,
+                           appThinningForest(plot.x, plot.y), appCohortsN[plot.asID].getStockingDegree(),
+                           species.at(plot.speciesType).getTOptT(appMaiForest(plot.x, plot.y),
+                                                                 OptRotTimes::Mode::MAI),
+                           resU.realArea, cell.deforestationShareTimeA.back(), resultDeforestation.area,
+                           plot.BEF(cell.U.stemBiomass.back()), plot.BEF(cell.U.stemBiomass.end()[-2]), NAI_old_m3ha,
+                           NAI_old_m3ha * cell.U.forestShare.back() * cell.landAreaHa * 0.001,
+                           cell.U.fellings.back() * 0.001,
+                           (resU.getTotalHarvestedBiomass() +
+                            cleanedWoodUseCurrent * resULost.getTotalHarvestedBiomass()) * plot.fTimber / NAI_old_m3ha,
+                           (NAI_old_m3ha - (resU.getTotalHarvestedBiomass() + resULost.getTotalHarvestedBiomass()) *
+                                           plot.fTimber) * cell.U.forestShare.back() * cell.landAreaHa,
+                           (cell.U.stemBiomass.back() - cell.U.stemBiomass.end()[-2]) * plot.fTimber *
+                           cell.U.forestShare.back() *
+                           cell.landAreaHa,
+                           (cell.emissionsD_Bm * cell.deforestHaYear +
+                            cell.U.biomassChange_total.back() * cell.U.forestShare.back() * cell.landAreaHa -
+                            (cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) *
+                             cell.U.forestShare.back() -
+                             cell.U.stemBiomass.end()[-2] * plot.BEF(cell.U.stemBiomass.end()[-2]) *
+                             cell.U.forestShare.end()[-2]) * cell.landAreaHa * unitConvCoef) * (1 + plot.coefBL()),
+                           resULost.getTotalHarvestedBiomass() * plot.fTimber * cell.U.forestShare.back() *
+                           cell.landAreaHa, cell.U.stemBiomass.back() * cell.U.forestShare.back() * cell.landAreaHa,
+                           cell.U.stemBiomass.end()[-2] * cell.U.forestShare.end()[-2] * cell.landAreaHa,
+                           cell.U.stemBiomass.back(), cell.U.stemBiomass.end()[-2], cell.U.forestShare.back(),
+                           cell.U.forestShare.end()[-2], cell.landAreaHa,
+                           cell.U.biomassChange_ab.back() * cell.U.forestShare.back() * cell.landAreaHa,
+                           cell.U.biomassChange_total.back() * cell.U.forestShare.back() * cell.landAreaHa,
+                           rotMaxBm, appCohortsU[plot.asID].getActiveAge(), appCohortsN[plot.asID].getActiveAge(),
+                           cleanedWoodUseCurrent * resULost.getFinalCutWood() * plot.fTimber *
+                           cell.U.forestShare.back() * cell.landAreaHa * 0.001,
+                           cleanedWoodUseCurrent * resULost.getThinnedWood() * plot.fTimber *
+                           cell.U.forestShare.back() * cell.landAreaHa * 0.001,
+                           (cell.U.biomassChange_total.back() - (NAI_old_m3ha - (harvestWoodPlusU +
+                                                                                 (resU.getHarvestLosses() +
+                                                                                  resULost.getHarvestLosses()) *
+                                                                                 plot.fTimber)) *
+                                                                plot.BEF(cell.U.stemBiomass.back()) *
+                                                                unitConvCoef * (1 + plot.coefBL()) / plot.fTimber) *
+                           cell.U.forestShare.back() * cell.landAreaHa,
+                           plot.GLOBIOM_reserved(year), plot.afforMax(year),
+                           cell.forestShareAll(-1) + plot.GLOBIOM_reserved(year)
+                    );
+            // output results for countries
+            countriesNForestCover.inc(plot.country, year, cell.N.forestShare.back() * cell.landAreaHa);
+            countriesAfforestationHaYear.inc(plot.country, year, cell.afforestHaYear / modTimeStep);
+            countriesAfforestationAccumulationHa.inc(plot.country, year, cell.afforestHaTotal);
+            // accumulated total living biomass of planted forest, tC
+            double aForBm = (cell.N_abovegroundBiomass(-1) + cell.N_belowgroundBiomass.back()) * cell.landAreaHa;
+            countriesNForestTotalC.inc(plot.country, year, aForBm);
+            // accumulated living stem biomass of planted forest, tC
+            countriesNForestStemC.inc(plot.country, year, cell.N.stemBiomass.back() * cell.landAreaHa);
+            // accumulated living above-ground biomass of planted forest, tC
+            countriesNForestAbC.inc(plot.country, year, cell.N_abovegroundBiomass(-1) * cell.landAreaHa);
+
+            cell.N.biomassChange_ab.back() = curPlantPhytBmGr * unitConvCoef;
+            cell.N.biomassChange_total.back() = (curPlantPhytBmGr + curPlantPhytBlGr) * unitConvCoef;
+            // ????? per year or modTimeStep???
+            countriesAfforestationCYear.inc(plot.country, year, emissionsAfforCur * unitConvCoef);
+
+            countriesAfforestationCYear_ab.inc(plot.country, year, cell.N.biomassChange_ab.back());
+            // ????? per year or modTimeStep???
+            countriesAfforestationCYear_bl.inc(plot.country, year, curPlantPhytBlGr * unitConvCoef);
+
+            // ????? per year or modTimeStep???
+            countriesAfforestationCYear_biomass.inc(plot.country, year, cell.N.biomassChange_total.back());
+            countriesAfforestationCYear_dom.inc(plot.country, year, emissionsLitterAfforCur * unitConvCoef);
+            countriesAfforestationCYear_soil.inc(plot.country, year, emissionsSOCAfforCur * unitConvCoef);
+            countriesAfforestationCYear_soil_altern.inc(plot.country, year, emissionsSOCAfforCur1 * unitConvCoef);
+            // ????? per year or modTimeStep???
+            countriesAfforestationCover20.inc(plot.country, year, plantArea20_rel * cell.landAreaHa);
+            countriesAfforestationTotalC20.inc(plot.country, year,
+                                               cell.N_abovegroundBiomassBelow20yo(-1) * cell.landAreaHa);
+            double emAffBm20bs = 0;
+            for (size_t i = 0; i < cell.N_abovegroundBiomassBelow20yoAge.end()[-2].size(); ++i)
+                emAffBm20bs += cell.N_abovegroundBiomassBelow20yoAge.back()[i + 1] -
+                               cell.N_abovegroundBiomassBelow20yoAge.end()[-2][i];
+            emAffBm20bs *= (1 + plot.coefBL()) * cell.landAreaHa * unitConvCoef;
+
+            countriesAfforestationCYear_biomass20.inc(plot.country, year, emAffBm20bs);
+            double emAffBm20o2 = cell.N.biomassChange_total.back() - emAffBm20bs;
+            countriesAfforestationCYear_biomass20os.inc(plot.country, year, emAffBm20o2);
+            countriesAfforestationCYear_biomass20o.inc(plot.country, year, emissionsBmAfforCur_age20o *
+                                                                           (1 + plot.coefBL()) * unitConvCoef *
+                                                                           cell.landAreaHa);
+            countriesAfforestationCYear_biomass20b.inc(plot.country, year, emissionsBmAfforCur_age20b *
+                                                                           (1 + plot.coefBL()) * unitConvCoef *
+                                                                           cell.landAreaHa);
+            countriesAfforestationCYear_biomassGL.inc(plot.country, year, emissionsBmAfforCur_gl * (1 + plot.coefBL())
+                                                                          * unitConvCoef * cell.landAreaHa);
+            countriesAfforestationCYear_dom20b.inc(plot.country, year, emissionsLitterAfforCur20b * unitConvCoef);
+            countriesAfforestationCYear_soil20b.inc(plot.country, year, emissionsSOCAfforCur20b * unitConvCoef);
+
+            countriesOForestCover.inc(plot.country, year, cell.forestShareOld(-1) * cell.landAreaHa);
+            countriesOForestCoverU.inc(plot.country, year, cell.U.forestShare.back() * cell.landAreaHa);
+            countriesOForestCover10.inc(plot.country, year, cell.O10.forestShare.back() * cell.landAreaHa);
+            countriesOForestCover30.inc(plot.country, year, cell.O30.forestShare.back() * cell.landAreaHa);
+            countriesOForestCoverP.inc(plot.country, year, cell.P.forestShare.back() * cell.landAreaHa);
+
+            countriesOForestCoverFAWSOld.inc(plot.country, year, !plot.protect ?
+                                                                 (cell.U.forestShare.back() +
+                                                                  cell.O10.forestShare.back() +
+                                                                  cell.O30.forestShare.back()) * cell.landAreaHa : 0);
+
+            countriesDeforestationHaYear.inc(plot.country, year, cell.deforestHaYear / modTimeStep);  // ha/year
+            countriesOForest_stem_C.inc(plot.country, year,
+                                        cell.U.stemBiomass.back() * cell.U.forestShare.back() * cell.landAreaHa);
+            countriesOForest_ab_C.inc(plot.country, year,
+                                      cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) *
+                                      cell.U.forestShare.back() * cell.landAreaHa);
+            countriesOForest10_ab_C.inc(plot.country, year,
+                                        cell.O10.stemBiomass.back() * plot.BEF(cell.O10.stemBiomass.back()) *
+                                        cell.O10.forestShare.back() * cell.landAreaHa);
+            countriesOForest30_ab_C.inc(plot.country, year,
+                                        cell.O30.stemBiomass.back() * plot.BEF(cell.O30.stemBiomass.back()) *
+                                        cell.O30.forestShare.back() * cell.landAreaHa);
+            countriesOForestP_ab_C.inc(plot.country, year,
+                                       cell.P.stemBiomass.back() * plot.BEF(cell.P.stemBiomass.back()) *
+                                       cell.P.forestShare.back() * cell.landAreaHa);
+            // TODO why plot.CBelowHa?
+            // total living biomass of old forest, tC/ha
+            cell.U.totalBiomass =
+                    cell.U.stemBiomass.back() > 0 ? (cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) +
+                                                     plot.CBelowHa) : 0;
+            // total living biomass of old forest, tC/ha
+            cell.O10.totalBiomass = cell.O10.stemBiomass.back() > 0 ? (
+                    cell.O10.stemBiomass.back() * plot.BEF(cell.O10.stemBiomass.back()) + plot.CBelowHa) : 0;
+            // total living biomass of old forest, tC/ha
+            cell.O30.totalBiomass = cell.O30.stemBiomass.back() > 0 ? (
+                    cell.O30.stemBiomass.back() * plot.BEF(cell.O30.stemBiomass.back()) + plot.CBelowHa) : 0;
+            // total living biomass of old forest, tC/ha
+            cell.P.totalBiomass =
+                    cell.P.stemBiomass.back() > 0 ? (cell.P.stemBiomass.back() * plot.BEF(cell.P.stemBiomass.back()) +
+                                                     plot.CBelowHa) : 0;
+
+            countriesOForestC_biomass.inc(plot.country, year,
+                                          cell.U.totalBiomass * cell.U.forestShare.back() * cell.landAreaHa);
+            countriesDeforestationCYear.inc(plot.country, year, emissionsCur * unitConvCoef);  // tC/year
+            countriesDeforestationCYear_ab.inc(plot.country, year,
+                                               resultDeforestation.biomass * plot.BEF(resultDeforestation.biomass) *
+                                               cell.deforestHaYear * unitConvCoef);
+            countriesDeforestationCYear_bl.inc(plot.country, year, plot.CBelowHa * cell.deforestHaYear * unitConvCoef);
+            // tC/ha/year
+            countriesDeforestationCYear_biomass.inc(plot.country, year, cell.emissionsD_Bm * cell.deforestHaYear);
+            countriesDeforestationCYear_dom.inc(plot.country, year,
+                                                (emissionsDeadBurnCur + emissionsLitterCur) * unitConvCoef);
+            countriesDeforestationCYear_soil.inc(plot.country, year, emissionsSOCCur * unitConvCoef);
+            countriesDeforestationCYear_soil_altern.inc(plot.country, year, emissionsSOCCur2 * unitConvCoef);
+
+            countriesWoodHarvestM3Year.inc(plot.country, year, harvestTotalAllM3);
+            countriesWoodHarvestPlusM3Year.inc(plot.country, year, harvestTotalPlusM3);
+            countriesWoodHarvestFmM3Year.inc(plot.country, year, harvestFmTotalM3);
+            countriesWoodHarvestDfM3Year.inc(plot.country, year, cell.deforestationWoodTotalM3);
+            countriesWoodHarvestUNM3Year.inc(plot.country, year, harvestTotalM3);
+            countriesWoodHarvest10M3Year.inc(plot.country, year, harvest10_M3);
+            countriesWoodHarvest30M3Year.inc(plot.country, year, harvest30_M3);
+
+            countriesWoodHarvestFc_oldM3Year.inc(
+                    plot.country, year,
+                    (resU.getFinalCutWood() * cell.U.forestShare.back() +
+                     res10.getFinalCutWood() * cell.O10.forestShare.back() +
+                     res30.getFinalCutWood() * cell.O30.forestShare.back()) * plot.fTimber * cell.landAreaHa);
+            countriesWoodHarvestTh_oldM3Year.inc(
+                    plot.country, year,
+                    (resU.getThinnedWood() * cell.U.forestShare.back() +
+                     res10.getThinnedWood() * cell.O10.forestShare.back() +
+                     res30.getThinnedWood() * cell.O30.forestShare.back()) * plot.fTimber * cell.landAreaHa);
+            countriesWoodHarvestLostFc_oldM3Year.inc(
+                    plot.country, year,
+                    (cleanedWoodUseCurrent * resULost.getFinalCutWood() * cell.U.forestShare.back() +
+                     cleanedWoodUseCurrent10 * res10Lost.getFinalCutWood() * cell.O10.forestShare.back() +
+                     cleanedWoodUseCurrent30 * res30Lost.getFinalCutWood() * cell.O30.forestShare.back()) *
+                    plot.fTimber * cell.landAreaHa);
+            countriesWoodHarvestLostTh_oldM3Year.inc(
+                    plot.country, year,
+                    (cleanedWoodUseCurrent * resULost.getThinnedWood() * cell.U.forestShare.back() +
+                     cleanedWoodUseCurrent10 * res10Lost.getThinnedWood() * cell.O10.forestShare.back() +
+                     cleanedWoodUseCurrent30 * res30Lost.getThinnedWood() * cell.O30.forestShare.back()) *
+                    plot.fTimber * cell.landAreaHa);
+            countriesWoodHarvestSc_oldM3Year.inc(
+                    plot.country, year,
+                    (cleanedWoodUseCurrent * resULost.getTotalWoodRemoval() * cell.U.forestShare.back() +
+                     cleanedWoodUseCurrent10 * res10Lost.getTotalWoodRemoval() * cell.O10.forestShare.back() +
+                     cleanedWoodUseCurrent30 * res30Lost.getTotalWoodRemoval() * cell.O30.forestShare.back()) *
+                    plot.fTimber * cell.landAreaHa);
+
+            countriesWoodHarvestSalvage_oldM3Year.inc(plot.country, year, salvageLogging(plot.x, plot.y));
+            // corrected 21.08.2013
+            countriesWoodHarvestFc_newM3Year.inc(
+                    plot.country, year,
+                    resN.getFinalCutWood() * plot.fTimber * cell.N.forestShare.end()[-2] * cell.landAreaHa);
+            // corrected 21.08.2013
+            countriesWoodHarvestTh_newM3Year.inc(
+                    plot.country, year,
+                    resN.getThinnedWood() * plot.fTimber * cell.N.forestShare.end()[-2] * cell.landAreaHa);
+            countriesWoodHarvestSc_newM3Year.inc(
+                    plot.country, year,
+                    cleanedWoodUseCurrent * resN.getTotalWoodRemoval() * plot.fTimber * cell.N.forestShare.end()[-2] *
+                    cell.landAreaHa);
+            countriesHarvLossesYear.inc(
+                    plot.country, year, (resU.getHarvestLosses() * cell.U.forestShare.back() +
+                                         resN.getHarvestLosses() * cell.N.forestShare.end()[-2]) * plot.fTimber *
+                                        cell.landAreaHa);
+            countriesHarvLossesOldYear.inc(
+                    plot.country, year,
+                    (resU.getHarvestLosses() + resN.getHarvestLosses()) * cell.U.forestShare.back() * plot.fTimber *
+                    cell.landAreaHa);
+            countriesHarvLossesOldFcYear.inc(
+                    plot.country, year, (resU.getFinalCutHarvestLosses() + resULost.getFinalCutHarvestLosses()) *
+                                        cell.U.forestShare.back() * plot.fTimber * cell.landAreaHa);
+            countriesHarvLossesOldThYear.inc(
+                    plot.country, year, (resU.getThinningHarvestLosses() + resULost.getThinningHarvestLosses()) *
+                                        cell.U.forestShare.back() * plot.fTimber * cell.landAreaHa);
+            countriesFellingsNAIYear.inc(
+                    plot.country, year,
+                    resU.getTotalHarvestedBiomass() * plot.fTimber * cell.U.forestShare.back() * cell.landAreaHa /
+                    NAI_old_m3ha);
+
+            if (appThinningForest(plot.x, plot.y) > 0 || appThinningForest10(plot.x, plot.y) > 0 ||
+                appThinningForest30(plot.x, plot.y) > 0) {
+                if (appThinningForest(plot.x, plot.y) > 0) {
+                    countriesManagedCount.inc(plot.country, year, 1);
+                    countriesManagedForHa.inc(
+                            plot.country, year,
+                            (cell.N.forestShare.back() + cell.U.forestShare.back()) * cell.landAreaHa);
+                    // Area of old used forest
+                    countriesManagedForOldHa.inc(plot.country, year, cell.U.forestShare.back() * cell.landAreaHa);
+                    // Area of old used forest
+                    countriesManagedNewHa.inc(plot.country, year, cell.N.forestShare.back() * cell.landAreaHa);
+                    // Gross Current Annual Increment, m3/ha
+                    countriesGCAI_mng.inc(plot.country, year,
+                                          grossCAI_m3ha * cell.U.forestShare.back() * cell.landAreaHa);
+                    // Net Current Annual Increment, m3/ha
+                    countriesNCAI_mng.inc(plot.country, year,
+                                          netCAI_m3ha * cell.U.forestShare.back() * cell.landAreaHa);
+                    // Gross Current Annual Increment, m3/ha
+                    countriesGCAI_new_mng.inc(plot.country, year,
+                                              grossCAI_new_m3ha * cell.U.forestShare.back() * cell.landAreaHa);
+                    // Net Current Annual Increment, m3/ha
+                    countriesNCAI_new_mng.inc(plot.country, year,
+                                              netCAI_new_m3ha * cell.U.forestShare.back() * cell.landAreaHa);
+                }
+                if (appThinningForest10(plot.x, plot.y) > 0)
+                    countriesManagedForHa.inc(plot.country, year, cell.O10.forestShare.back() * cell.landAreaHa);
+                if (appThinningForest30(plot.x, plot.y) > 0)
+                    countriesManagedForHa.inc(plot.country, year, cell.O30.forestShare.back() * cell.landAreaHa);
+            } else
+                countriesManagedForHa.setVal(plot.country, year, 0);
+
+            countriesMAI.inc(plot.country, year, appMaiForest(plot.x, plot.y) * plot.fTimber);
+            countriesCAI.inc(plot.country, year, cell.U.CAI.back() * cell.U.forestShare.back() * cell.landAreaHa);
+
+            double CAI_FAWS_O = cell.U.CAI.back() * cell.U.forestShare.back() +
+                                cell.O10.CAI.back() * cell.O10.forestShare.back() +
+                                cell.O30.CAI.back() * cell.O30.forestShare.back();
+            double CAI_P = cell.P.CAI.back() * cell.P.forestShare.back();
+            double CAI_N = cell.N.CAI.back() * cell.N.forestShare.end()[-2];
+
+            if (plot.protect) {
+                countriesCAI_FAWS_old.inc(plot.country, year, 0);
+                countriesCAI_FAWS_all.inc(plot.country, year, 0);
+            } else {
+                countriesCAI_FAWS_old.inc(plot.country, year, CAI_FAWS_O * cell.landAreaHa);
+                countriesCAI_FAWS_all.inc(plot.country, year, (CAI_FAWS_O + CAI_N) * cell.landAreaHa);
+            }
+            countriesCAI_ALL_old.inc(plot.country, year, (CAI_FAWS_O + CAI_P) * cell.landAreaHa);
+            countriesCAI_ALL_all.inc(plot.country, year, (CAI_FAWS_O + CAI_P + CAI_N) * cell.landAreaHa);
+            countriesCAI_new.inc(plot.country, year, CAI_N * cell.landAreaHa);
+
+            countriesNAI_old.inc(plot.country, year, NAI_old_m3ha * cell.U.forestShare.back() * cell.landAreaHa);
+            countriesGCAI.inc(plot.country, year, grossCAI_m3ha * cell.U.forestShare.back() *
+                                                  cell.landAreaHa); // Gross Current Annual Increment, m3/ha
+            countriesNCAI.inc(plot.country, year, netCAI_m3ha * cell.U.forestShare.back() *
+                                                  cell.landAreaHa);// Net Current Annual Increment, m3/ha
+            countriesGCAI_new.inc(plot.country, year, grossCAI_new_m3ha * cell.N.forestShare.end()[-2] *
+                                                      cell.landAreaHa); // Gross Current Annual Increment, m3/ha
+            countriesNCAI_new.inc(plot.country, year, netCAI_new_m3ha * cell.N.forestShare.end()[-2] *
+                                                      cell.landAreaHa);// Net Current Annual Increment, m3/ha
+
+            double biomassChange_ab_all = (cell.U.biomassChange_ab.back() * cell.U.forestShare.back() +
+                                           cell.O10.biomassChange_ab.back() * cell.O10.forestShare.back() +
+                                           cell.O30.biomassChange_ab.back() * cell.O30.forestShare.back() +
+                                           cell.P.biomassChange_ab.back() * cell.P.forestShare.back());
+            double biomassChange_total_all = (cell.U.biomassChange_total.back() * cell.U.forestShare.back() +
+                                              cell.O10.biomassChange_total.back() * cell.O10.forestShare.back() +
+                                              cell.O30.biomassChange_total.back() * cell.O30.forestShare.back() +
+                                              cell.P.biomassChange_total.back() * cell.P.forestShare.back());
+
+            double biomassChange_total_faws = 0;
+            if (!plot.protect)
+                biomassChange_total_faws = (cell.U.biomassChange_total.back() * cell.U.forestShare.back() +
+                                            cell.O10.biomassChange_total.back() * cell.O10.forestShare.back() +
+                                            cell.O30.biomassChange_total.back() * cell.O30.forestShare.back());
+
+            countriesFM.inc(plot.country, year, biomassChange_ab_all * cell.landAreaHa);
+            countriesFMbm.inc(plot.country, year, biomassChange_total_all * cell.landAreaHa);
+
+            countriesFMbmFAWS_old.inc(plot.country, year, biomassChange_total_faws * cell.landAreaHa);
+
+            double dAbovegroundBiomassU =
+                    cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) * cell.U.forestShare.back() -
+                    cell.U.stemBiomass.end()[-2] * plot.BEF(cell.U.stemBiomass.end()[-2]) *
+                    cell.U.forestShare.end()[-2];
+            double dTotalBiomassN =
+                    cell.N_abovegroundBiomass(-1) - cell.N_abovegroundBiomass(-2) +
+                    cell.N_belowgroundBiomass.back() - cell.N_belowgroundBiomass.end()[-2];
+
+            // profit only from harvesting old forest per ha
+            double profit = !plot.protect ? (
+                    (resU.getTotalWoodRemoval() + cleanedWoodUseCurrent * resULost.getTotalWoodRemoval()) *
+                    plot.fTimber * timberPrice - plantingCosts * appCohortsU[plot.asID].getArea(size_t{0})) : 0;
+            countriesProfit.inc(plot.country, year, profit);
+
+            countryRotation.inc(plot.country, year, cell.rotation.back());
+            if (cell.rotation.back() > 0)
+                countryRotationUsed.inc(plot.country, year, cell.rotation.back());
+            else if (cell.rotation.back() < 0)
+                countryRotationUnused.inc(plot.country, year, cell.rotation.back());
+
+            if (plot.protect) {
+                countryRegWoodHarvestM3Year.inc(plot.country, year, 0);
+                countryRegWoodHarvestFmM3Year.inc(plot.country, year, 0);
+                countryRegWoodHarvestDfM3Year.inc(plot.country, year, 0);
+                countryRegMaxHarvest.inc(plot.country, year, 0);
+            } else {
+                countryRegWoodHarvestM3Year.inc(plot.country, year, harvestTotalAllM3);
+                countryRegWoodHarvestFmM3Year.inc(plot.country, year, harvestFmTotalM3);
+                countryRegWoodHarvestDfM3Year.inc(plot.country, year, cell.deforestationWoodTotalM3);
+                countryRegMaxHarvest.inc(
+                        plot.country, year, cell.deforestationWoodTotalM3 +
+                                            (appMaiForest(plot.x, plot.y) * plot.fTimber * (1 - coef.harvLoos) *
+                                             (cell.U.forestShare.back() + cell.O10.forestShare.back() +
+                                              cell.O30.forestShare.back()) +
+                                             harvestWoodPlusN * cell.N.forestShare.back()) * cell.landAreaHa);
+            }
+            countryRegWoodProd.setVal(plot.country, year, dms.woodDemand.at(plot.country)(year));
+
+            if (plot.managed_UNFCCC) {
+                countriesOForestCoverUNFCCC.inc(plot.country, year, cell.forestShareOld(-1) * cell.landAreaHa);
+                countriesFMbmUNFCCC.inc(plot.country, year, biomassChange_total_all * cell.landAreaHa);
+            }
+
+            // Estimation of harvest residues (branches and leaves) per grid in tC deprecated
+            // Harvest details for Fulvio deprecated
+
+            if (!plot.protect) {
+                cell.resultDeforestation = resultDeforestation;
+
+                cell.U.harvestFc_m3 =
+                        resU.getFinalCutWood() * plot.fTimber * cell.U.forestShare.back() * cell.landAreaHa;
+                cell.U.harvestTh_m3 =
+                        resU.getThinnedWood() * plot.fTimber * cell.U.forestShare.back() * cell.landAreaHa;
+                cell.U.harvestSc_m3 = harvestWoodLU * cell.U.forestShare.back() * cell.landAreaHa;
+
+                cell.N.harvestFc_m3 =
+                        resN.getFinalCutWood() * plot.fTimber * cell.N.forestShare.end()[-2] * cell.landAreaHa;
+                cell.N.harvestTh_m3 =
+                        resN.getThinnedWood() * plot.fTimber * cell.N.forestShare.end()[-2] * cell.landAreaHa;
+                cell.N.harvestSc_m3 = harvestWoodLN * cell.N.forestShare.end()[-2] * cell.landAreaHa;
+
+                // harvest of broadleaf
+                if (5 <= static_cast<uint8_t>(plot.speciesType) && static_cast<uint8_t>(plot.speciesType) <= 7) {
+                    countriesWoodHarvBroadleafFc_oldM3Year.inc(plot.country, year, cell.U.harvestFc_m3);
+                    countriesWoodHarvBroadleafTh_oldM3Year.inc(plot.country, year, cell.U.harvestTh_m3);
+                    countriesWoodHarvBroadleafSc_oldM3Year.inc(plot.country, year, cell.U.harvestSc_m3);
+
+                    countriesWoodHarvBroadleafFc_newM3Year.inc(plot.country, year, cell.N.harvestFc_m3);
+                    countriesWoodHarvBroadleafTh_newM3Year.inc(plot.country, year, cell.N.harvestTh_m3);
+                    countriesWoodHarvBroadleafSc_newM3Year.inc(plot.country, year, cell.N.harvestSc_m3);
+
+                    cell.U.harvestBroadleafFc_m3 = cell.U.harvestFc_m3;
+                    cell.U.harvestBroadleafTh_m3 = cell.U.harvestTh_m3;
+                    cell.U.harvestBroadleafSc_m3 = cell.U.harvestSc_m3;
+
+                    cell.N.harvestBroadleafFc_m3 = cell.N.harvestFc_m3;
+                    cell.N.harvestBroadleafTh_m3 = cell.N.harvestTh_m3;
+                    cell.N.harvestBroadleafSc_m3 = cell.N.harvestSc_m3;
+
+                    if (appThinningForest(plot.x, plot.y) > 0) {
+                        countriesAreaUsedBroadleaf_oldHa.inc(plot.country, year,
+                                                             cell.U.forestShare.back() * cell.landAreaHa);
+                        countriesAreaUsedBroadleaf_newdHa.inc(plot.country, year,
+                                                              cell.N.forestShare.end()[-2] * cell.landAreaHa);
+                        if (resU.positiveAreas())
+                            countriesAreaHarvBroadleafFc_oldHaYear.inc(plot.country, year,
+                                                                       resU.getAreaRatio() * cell.U.forestShare.back() *
+                                                                       cell.landAreaHa);
+                        if (resN.positiveAreas())
+                            countriesAreaHarvBroadleafFc_newHaYear.inc(plot.country, year, resN.getAreaRatio() *
+                                                                                           cell.N.forestShare.end()[-2] *
+                                                                                           cell.landAreaHa);
+                    } else {
+                        countriesAreaScBroadleaf_oldHa.inc(plot.country, year,
+                                                           cell.U.forestShare.back() * cell.landAreaHa);
+                        countriesAreaScBroadleaf_newHa.inc(plot.country, year,
+                                                           cell.N.forestShare.end()[-2] * cell.landAreaHa);
+                    }
+                } else { // harvest of conifers
+                    countriesWoodHarvConiferFc_oldM3Year.inc(plot.country, year, cell.U.harvestFc_m3);
+                    countriesWoodHarvConiferTh_oldM3Year.inc(plot.country, year, cell.U.harvestTh_m3);
+                    countriesWoodHarvConiferSc_oldM3Year.inc(plot.country, year, cell.U.harvestSc_m3);
+
+                    countriesWoodHarvConiferFc_newM3Year.inc(plot.country, year, cell.N.harvestFc_m3);
+                    countriesWoodHarvConiferTh_newM3Year.inc(plot.country, year, cell.N.harvestTh_m3);
+                    countriesWoodHarvConiferSc_newM3Year.inc(plot.country, year, cell.N.harvestSc_m3);
+
+                    cell.U.harvestConiferFc_m3 = cell.U.harvestFc_m3;
+                    cell.U.harvestConiferTh_m3 = cell.U.harvestTh_m3;
+                    cell.U.harvestConiferSc_m3 = cell.U.harvestSc_m3;
+
+                    cell.N.harvestConiferFc_m3 = cell.N.harvestFc_m3;
+                    cell.N.harvestConiferTh_m3 = cell.N.harvestTh_m3;
+                    cell.N.harvestConiferSc_m3 = cell.N.harvestSc_m3;
+
+                    if (appThinningForest(plot.x, plot.y) > 0) {
+                        countriesAreaUsedConifer_oldHa.inc(plot.country, year,
+                                                           cell.U.forestShare.back() * cell.landAreaHa);
+                        countriesAreaUsedConifer_newdHa.inc(plot.country, year,
+                                                            cell.N.forestShare.end()[-2] * cell.landAreaHa);
+                        if (resU.positiveAreas())
+                            countriesAreaHarvConiferFc_oldHaYear.inc(plot.country, year,
+                                                                     resU.getAreaRatio() * cell.U.forestShare.back() *
+                                                                     cell.landAreaHa);
+                        if (resN.positiveAreas())
+                            countriesAreaHarvConiferFc_newHaYear.inc(plot.country, year, resN.getAreaRatio() *
+                                                                                         cell.N.forestShare.end()[-2] *
+                                                                                         cell.landAreaHa);
+                    } else {
+                        countriesAreaScConifer_oldHa.inc(plot.country, year,
+                                                         cell.U.forestShare.back() * cell.landAreaHa);
+                        countriesAreaScConifer_newHa.inc(plot.country, year,
+                                                         cell.N.forestShare.end()[-2] * cell.landAreaHa);
+                    }
+                }
+                // deadwood_dynamics
+                if (plot.protect) {
+                    if (cell.U.forestShare.back() > 0) {
+                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                        year, "U", false);
+                        tie(cell.U.deadwoodInput.back(), cell.U.litterInput.back()) =
+                                deadwoodPoolCalcFunc(plot, resULost, true, 0, 0, 0, 0, 0);
+                    }
+                    if (cell.O10.forestShare.back() > 0) {
+                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                        year, "O10", false);
+                        tie(cell.O10.deadwoodInput.back(), cell.O10.litterInput.back()) =
+                                deadwoodPoolCalcFunc(plot, res10Lost, true, 0, 0, 0, 0, 0);
+                    }
+                    if (cell.O30.forestShare.back() > 0) {
+                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                        year, "O30", false);
+                        tie(cell.O30.deadwoodInput.back(), cell.O30.litterInput.back()) =
+                                deadwoodPoolCalcFunc(plot, res30Lost, true, 0, 0, 0, 0, 0);
+                    }
+                    // No New forest in the protected cell (no afforestation)
+                } else {
+                    if (cell.U.forestShare.back() > 0) {
+                        bool used = appThinningForest(plot.x, plot.y) > 0;
+                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                        year, "U", used);
+                        tie(cell.U.deadwoodInput.back(), cell.U.litterInput.back()) =
+                                used ?
+                                deadwoodPoolCalcFunc(plot, resU, false, cell.U.extractedResidues,
+                                                     cell.U.extractedStump, cell.U.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], 1) :
+                                deadwoodPoolCalcFunc(plot, resULost, true, cell.U.extractedResidues,
+                                                     cell.U.extractedStump, cell.U.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent);
+                    }
+                    // TODO decide if U or N extracted
+                    if (cell.N.forestShare.back() > 0) {
+                        bool used = thinningForestNew(plot.x, plot.y) > 0;
+                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                        year, "N", used);
+                        tie(cell.N.deadwoodInput.back(), cell.N.litterInput.back()) =
+                                used ?
+                                deadwoodPoolCalcFunc(plot, resN, false, cell.U.extractedResidues,
+                                                     cell.U.extractedStump, cell.U.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], 1) :
+                                deadwoodPoolCalcFunc(plot, resNLost, true, cell.U.extractedResidues,
+                                                     cell.U.extractedStump, cell.U.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent);
+                    }
+                    // To be set according to BIOCLIMA scenario for the 10% forest
+                    if (cell.O10.forestShare.back() > 0) {
+                        bool used = appThinningForest10(plot.x, plot.y) > 0;
+                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                        year, "O10", used);
+                        tie(cell.O10.deadwoodInput.back(), cell.O10.litterInput.back()) =
+                                used ?
+                                deadwoodPoolCalcFunc(plot, res10, false, cell.O10.extractedResidues,
+                                                     cell.O10.extractedStump, cell.O10.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], 1) :
+                                deadwoodPoolCalcFunc(plot, res10Lost, true, cell.O10.extractedResidues,
+                                                     cell.O10.extractedStump, cell.O10.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent10);
+                    }
+                    if (cell.O30.forestShare.back() > 0) {
+                        bool used = appThinningForest30(plot.x, plot.y) > 0;
+                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                        year, "O30", used);
+                        tie(cell.O30.deadwoodInput.back(), cell.O30.litterInput.back()) =
+                                used ?
+                                deadwoodPoolCalcFunc(plot, res30, false, cell.O30.extractedResidues,
+                                                     cell.O30.extractedStump, cell.O30.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], 1) :
+                                deadwoodPoolCalcFunc(plot, res30Lost, true, cell.O30.extractedResidues,
+                                                     cell.O30.extractedStump, cell.O30.extractedCleaned,
+                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent30);
+                    }
+                }
+                if (cell.P.forestShare.back() > 0) {
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                    year, "P", false);
+                    tie(cell.P.deadwoodInput.back(), cell.P.litterInput.back()) =
+                            deadwoodPoolCalcFunc(plot, resPLost, true, 0, 0, 0, 0, 0);
+                }
+
+                cell.resetExtracted();
+
+                cell.U.deadwood += cell.U.deadwoodInput.back();
+                cell.N.deadwood += cell.N.deadwoodInput.back();
+                cell.O10.deadwood += cell.O10.deadwoodInput.back();
+                cell.O30.deadwood += cell.O30.deadwoodInput.back();
+                cell.P.deadwood += cell.P.deadwoodInput.back();
+
+                cell.U.litter += cell.U.litterInput.back();
+                cell.N.litter += cell.N.litterInput.back();
+                cell.O10.litter += cell.O10.litterInput.back();
+                cell.O30.litter += cell.O30.litterInput.back();
+                cell.P.litter += cell.P.litterInput.back();
+
+                double decStem_dec = max(0., 1 - decStem * modTimeStep);
+
+                // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
+                cell.U.deadwood *= decStem_dec;
+                cell.N.deadwood *= decStem_dec;
+                cell.O10.deadwood *= decStem_dec;
+                cell.O30.deadwood *= decStem_dec;
+                cell.P.deadwood *= decStem_dec;
+
+                cell.U.deadwood *= decHerb_decWood_dec_avg;
+                cell.N.deadwood *= decHerb_decWood_dec_avg;
+                cell.O10.deadwood *= decHerb_decWood_dec_avg;
+                cell.O30.deadwood *= decHerb_decWood_dec_avg;
+                cell.P.deadwood *= decHerb_decWood_dec_avg;
+
+                // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
+                double deadwoodPoolOut_U = (cell.U.deadwood * decStem) + cell.U.burntDeadwood;
+                double deadwoodPoolOut_N = (cell.N.deadwood * decStem) + cell.N.burntDeadwood;
+                double deadwoodPoolOut_O10 = (cell.O10.deadwood * decStem) + cell.O10.burntDeadwood;
+                double deadwoodPoolOut_O30 = (cell.O30.deadwood * decStem) + cell.O30.burntDeadwood;
+                double deadwoodPoolOut_P = (cell.P.deadwood * decStem) + cell.P.burntDeadwood;
+
+                double decWood_decHerb_avg = midpoint(plot.decWood, plot.decHerb);
+
+                double litterPoolOut_U = (cell.U.litter * decWood_decHerb_avg) + cell.U.burntLitter;
+                double litterPoolOut_N = (cell.N.litter * decWood_decHerb_avg) + cell.N.burntLitter;
+                double litterPoolOut_O10 = (cell.O10.litter * decWood_decHerb_avg) + cell.O10.burntLitter;
+                double litterPoolOut_O30 = (cell.O30.litter * decWood_decHerb_avg) + cell.O30.burntLitter;
+                double litterPoolOut_P = (cell.P.litter * decWood_decHerb_avg) + cell.P.burntLitter;
+
+                cell.U.deadwood_em = deadwoodPoolOut_U * modTimeStep - cell.U.deadwoodInput.back();
+                cell.N.deadwood_em = deadwoodPoolOut_N * modTimeStep - cell.N.deadwoodInput.back();
+                cell.O10.deadwood_em = deadwoodPoolOut_O10 * modTimeStep - cell.O10.deadwoodInput.back();
+                cell.O30.deadwood_em = deadwoodPoolOut_O30 * modTimeStep - cell.O30.deadwoodInput.back();
+                cell.P.deadwood_em = deadwoodPoolOut_P * modTimeStep - cell.P.deadwoodInput.back();
+
+                cell.U.litter_em = litterPoolOut_U * modTimeStep - cell.U.litterInput.back();
+                cell.N.litter_em = litterPoolOut_N * modTimeStep - cell.N.litterInput.back();
+                cell.O10.litter_em = litterPoolOut_O10 * modTimeStep - cell.O10.litterInput.back();
+                cell.O30.litter_em = litterPoolOut_O30 * modTimeStep - cell.O30.litterInput.back();
+                cell.P.litter_em = litterPoolOut_P * modTimeStep - cell.P.litterInput.back();
+
+                countriesDeadwood_old_tCha.inc(plot.country, year,
+                                               (cell.U.deadwood * cell.U.forestShare.back() +
+                                                cell.O10.deadwood * cell.O10.forestShare.back() +
+                                                cell.O30.deadwood * cell.O30.forestShare.back() +
+                                                cell.P.deadwood * cell.P.forestShare.back()) * cell.landAreaHa);
+                countriesDeadwood_new_tCha.inc(plot.country, year,
+                                               cell.N.deadwood * cell.N.forestShare.back() * cell.landAreaHa);
+                countriesLitter_old_tCha.inc(plot.country, year,
+                                             (cell.U.litter * cell.U.forestShare.back() +
+                                              cell.O10.litter * cell.O10.forestShare.back() +
+                                              cell.O30.litter * cell.O30.forestShare.back() +
+                                              cell.P.litter * cell.P.forestShare.back()) * cell.landAreaHa);
+                countriesLitter_new_tCha.inc(plot.country, year,
+                                             cell.N.litter * cell.N.forestShare.back() * cell.landAreaHa);
+                // TODO cell.N.forestShare.back() or cell.N.forestShare.end()[-2]?
+                countriesDeadwoodEm_old_mtco2year.inc(plot.country, year,
+                                                      (cell.U.deadwood_em * cell.U.forestShare.back() +
+                                                       cell.O10.deadwood_em * cell.O10.forestShare.back() +
+                                                       cell.O30.deadwood_em * cell.O30.forestShare.back() +
+                                                       cell.P.deadwood_em * cell.P.forestShare.back()) *
+                                                      cell.landAreaHa * unitConvCoef);
+                countriesDeadwoodEm_new_mtco2year.inc(plot.country, year,
+                                                      cell.N.deadwood_em * cell.N.forestShare.end()[-2] *
+                                                      cell.landAreaHa * unitConvCoef);
+                countriesLitterEm_old_mtco2year.inc(plot.country, year,
+                                                    (cell.U.litter_em * cell.U.forestShare.back() +
+                                                     cell.O10.litter_em * cell.O10.forestShare.back() +
+                                                     cell.O30.litter_em * cell.O30.forestShare.back() +
+                                                     cell.P.litter_em * cell.P.forestShare.back()) * cell.landAreaHa *
+                                                    unitConvCoef);
+                countriesLitterEm_new_mtco2year.inc(plot.country, year,
+                                                    cell.N.litter_em * cell.N.forestShare.end()[-2] * cell.landAreaHa *
+                                                    unitConvCoef);
+
+                appOForestShGrid(plot.x, plot.y) = cell.forestShareOld(-1);
+                cell.SD.back() = appThinningForest(plot.x, plot.y);
+
+                cell.U.OAC.back() = appCohortsU[plot.asID].getActiveAge();
+                cell.N.OAC.back() = appCohortsN[plot.asID].getActiveAge();
+                cell.O10.OAC.back() = appCohorts10[plot.asID].getActiveAge();
+                cell.O30.OAC.back() = appCohorts30[plot.asID].getActiveAge();
+                cell.P.OAC.back() = appCohortsP[plot.asID].getActiveAge();
+
+                if (year > 2000) {
+                    cell.deforestShare = cell.deforestationShareTimeA[age];
+                    cell.deforestPrev = cell.deforestationShareTimeA[age];
+                }
+            }
+            // TODO in Dat
+        }
+
+        // Deadwood input (d > 10cm) in the cell, tC/ha, in the old forest
+        // Litter input (d <= 10cm) in the cell, tC/ha, in the old forest
+        // returns pair<deadwoodPoolIn, litterPoolIn>
+        pair<double, double>
+        deadwoodPoolCalcFunc(const DataStruct &plot, const CohortRes &cr, const bool lost,
+                             const double extractedResidues, // share of extracted logging residues
+                             const double extractedStump, // share of extracted stump
+                             const double extractedCleaned, // share of extracted dead trees in the multifunctional forests
+                             const double harvestedWoodUse, // share of harvested wood use in the production forests
+                             const double cleanedWoodUse // share of cleaned wood use in the multifunctional forests
+        ) {
+            const double shareLargeBranches = 0.3; // share of branches greater than 10 cm in diameter
+            // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests not used for intensive wood production
+            // Total current harvested wood in the cell which is not used for intensive wood production, m^3/ha
+            double deadwood_fc_unmanaged = 0;
+            // deadwood (stem) of trees dying in each age cohort and at the end of lifespan in the old forests used for intensive wood production
+            // Total current harvested wood in the cell which is used for intensive wood production, m^3/ha
+            double deadwood_fc_managed = 0;
+            // Litter from harvest losses in intensively managed old forest
+            double litter_hRes_managed = 0;
+            // Litter from harvest losses in non-intensively managed old forest
+            double litter_hRes_unmanaged = 0;
+
+            if (lost) {
+                deadwood_fc_unmanaged = (1 - cleanedWoodUse) * cr.getTotalWoodRemoval();
+                litter_hRes_unmanaged = cr.getHarvestLosses();
+            } else {
+                deadwood_fc_managed = (1 - harvestedWoodUse) * cr.getTotalWoodRemoval();
+                litter_hRes_managed = cr.getHarvestLosses();
+            }
+
+            // deadwood (stem) due to mortality in old forest that is not classified as potentially merchantable
+            double deadwood_mort = cr.realArea > 0 ? cr.thinning.deadwood / cr.realArea : 0;
+            // litter (stem) due to mortality in old forest that is not classified as potentially merchantable
+            double litter_mort = cr.realArea > 0 ? cr.thinning.litter / cr.realArea : 0;
+            // thinned wood area-weighted, tC/ha
+            double thinned_weight = cr.thinning.thinnedWeight;
+            // area-weighted deadwood (stem) due to mortality in old forest that is not classified as potentially merchantable
+            double deadwood_mort_weight = cr.thinning.deadwoodWeight;
+            // area-weighted litter (stem) due to mortality in old forest that is not classified as potentially merchantable
+            double litter_mort_weight = cr.thinning.litterWeight;
+
+            double fcDBH = cr.finalCut.DBH;
+            double fcH = cr.finalCut.H;
+            double fcGS = cr.getHarvestGrowingStock();
+
+            double thDBH_old = cr.thinning.DBH;
+            double thH_old = cr.thinning.H;
+
+            double deadwoodStump_fc = 0;
+            double deadwoodStump_th = plot.DBHHToStump(thDBH_old, thH_old, cr.biomassThinning);
+            // tC/ha in the cell
+            double deadwoodBranches_fc = 0;
+
+            if (cr.positiveAreas()) {
+                deadwoodStump_fc = plot.DBHHToStump(fcDBH, fcH, fcGS) * cr.getAreaRatio();
+                deadwoodBranches_fc = shareLargeBranches * cr.biomassHarvest * (plot.BEF(fcGS) - 1);
+            }
+
+            double litterBranches_fc = deadwoodBranches_fc * (1 / shareLargeBranches - 1);
+
+            double deadwoodBranches_th = shareLargeBranches * cr.biomassThinning * (plot.BEF(thinned_weight) - 1);
+            double litterBranches_th = deadwoodBranches_th * (1 / shareLargeBranches - 1);
+
+            double deadwoodBranches_mort = shareLargeBranches * deadwood_mort * (plot.BEF(deadwood_mort_weight) - 1);
+            double litterBranches_mort = litter_mort * (plot.BEF(litter_mort_weight) - 1);
+
+            litterBranches_mort += deadwoodBranches_mort * (1 / shareLargeBranches - 1);
+
+            double deadwoodStump_mort = plot.DBHHToStump(cr.thinning.mortDeadwoodDBH, cr.thinning.mortDeadwoodH,
+                                                         deadwood_mort);
+            double litterStump_mort = plot.DBHHToStump(cr.thinning.mortLitterDBH, cr.thinning.mortLitterH, litter_mort);
+
+            double residuesLeftShare = 1 - extractedResidues * plot.residuesUseShare;
+            double stumpLeftShare = 1 - extractedStump * plot.residuesUseShare;
+            double cleanedLeftShare = 1 - extractedCleaned * plot.residuesUseShare;
+
+            double deadwoodPoolIn =
+                    // branches from harvested trees
+                    cleanedWoodUse * (deadwoodBranches_fc + deadwoodBranches_th) * residuesLeftShare
+                    // branches from dead trees in multifunction forest collected for bioenergy
+                    + (1 - cleanedWoodUse) * (deadwoodBranches_fc + deadwoodBranches_th) * cleanedLeftShare
+                    // + (deadwoodStump_fc + deadwoodStump_th) * stumpLeftShare
+                    + deadwood_fc_managed
+                    // stem of dead trees in multifunction forest collected for bioenergy
+                    + deadwood_fc_unmanaged * cleanedLeftShare
+                    + deadwood_mort
+                    + deadwoodBranches_mort
+            // + deadwoodStump_mort
+            ;
+            double litterPoolIn =
+                    // branches from harvested trees
+                    cleanedWoodUse * (litterBranches_fc + litterBranches_th) * residuesLeftShare
+                    // branches from dead trees in multifunction forest collected for bioenergy
+                    + (1 - cleanedWoodUse) * (litterBranches_fc + litterBranches_th) * cleanedLeftShare
+                    + litter_mort
+                    + litterBranches_mort
+                    // + litterStump_mort
+                    + litter_hRes_managed * residuesLeftShare
+                    + litter_hRes_unmanaged * residuesLeftShare * cleanedWoodUse
+                    + litter_hRes_unmanaged * cleanedLeftShare * (1 - cleanedWoodUse);
+
+            rf.deadwoodTestBuffer +=
+                    format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                           extractedResidues, extractedCleaned, plot.residuesUseShare, deadwoodBranches_fc,
+                           deadwoodBranches_th,
+                           cleanedWoodUse * (deadwoodBranches_fc + deadwoodBranches_th) * residuesLeftShare,
+                           (1 - cleanedWoodUse) * (deadwoodBranches_fc + deadwoodBranches_th) * cleanedLeftShare,
+                           deadwood_fc_managed, deadwood_fc_unmanaged, deadwood_fc_unmanaged * cleanedLeftShare,
+                           deadwood_mort, deadwoodBranches_mort, deadwoodStump_mort, deadwoodPoolIn, litterBranches_fc,
+                           litterBranches_th,
+                           cleanedWoodUse * (litterBranches_fc + litterBranches_th) * residuesLeftShare,
+                           (1 - cleanedWoodUse) * (litterBranches_fc + litterBranches_th) * cleanedLeftShare,
+                           litter_mort, litterBranches_mort, litterStump_mort, litter_hRes_managed,
+                           litter_hRes_unmanaged, litter_hRes_managed * residuesLeftShare * cleanedWoodUse,
+                           litter_hRes_unmanaged * cleanedLeftShare * (1 - cleanedWoodUse), litterPoolIn);
+
+            return {deadwoodPoolIn, litterPoolIn};
         }
     };
 }

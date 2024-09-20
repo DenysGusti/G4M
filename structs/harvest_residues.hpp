@@ -47,16 +47,10 @@ namespace g4m::structs {
 
         HarvestResidues() = default;
 
-        explicit HarvestResidues(const DataStruct &plot) {
-            simuId = plot.simuID;
-            asID = plot.asID;
-            country = plot.country;
-            fTimber = plot.fTimber.data.at(2000);
-            costsSuit1 = plot.residuesUseCosts;
-            costsSuit2 = plot.residuesUseCosts + 10;
-            costsSuit3 = plot.residuesUseCosts;
-            costsSuit4_notTaken = plot.residuesUseCosts * 10;
-
+        explicit HarvestResidues(const DataStruct &plot)
+                : simuId{plot.simuID}, asID{plot.asID}, country{plot.country}, fTimber{plot.fTimber},
+                  costsSuit1{plot.residuesUseCosts}, costsSuit2{plot.residuesUseCosts + 10},
+                  costsSuit3{plot.residuesUseCosts}, costsSuit4_notTaken{plot.residuesUseCosts * 10} {
             if (country < 0 || country >= numberOfCountries) {
                 FATAL("HarvestResidues: provide correct country code!!!\ncountry = {}", country);
                 throw runtime_error{"HarvestResidues: provide correct country code!!!"};
@@ -108,7 +102,7 @@ namespace g4m::structs {
             if (year <= midYears[1])
                 em_factor = lerp(emissionsResUseSust[country][0], emissionsResUseSust[country][1],
                                  (year - midYears[0]) / (midYears[1] - midYears[0]));
-            else if (year > midYears[1] && year <= midYears[2])
+            else if (year <= midYears[2])
                 em_factor = lerp(emissionsResUseSust[country][1], emissionsResUseSust[country][2],
                                  (year - midYears[1]) / (midYears[2] - midYears[1]));
             else
