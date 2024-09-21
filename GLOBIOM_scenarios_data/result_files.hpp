@@ -75,7 +75,9 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "deadwood_in_N,litter_in_U,litter_in_O10,litter_in_O30,litter_in_P,litter_in_N,rotation,rotBiomass,"
                     "SD,biomassChange_ab_U,biomassChange_ab_O10,biomassChange_ab_O30,biomassChange_ab_P,"
                     "biomassChange_ab_N,biomassChange_total_U,biomassChange_total_O10,biomassChange_total_O30,"
-                    "biomassChange_total_P,biomassChange_total_N\n";
+                    "biomassChange_total_P,biomassChange_total_N,total_biomass_U,total_biomass_O10,total_biomass_O30,"
+                    "total_biomass_P,total_biomass_N,total_harvest_U,total_harvest_O10,total_harvest_O30,"
+                    "total_harvest_P,total_harvest_N\n";
             deadwoodTestBuffer +=
                     "asID,simuID,country,year,forest_share_type,managed,extractedResidues,extractedCleaned,"
                     "RESIDUESUSESHARE,deadwoodBranches_fc,deadwoodBranches_th,branches_harvtrees_tot,"

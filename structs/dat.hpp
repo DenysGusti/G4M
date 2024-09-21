@@ -12,7 +12,6 @@ using namespace std;
 using namespace g4m::init;
 
 namespace g4m::structs {
-
     struct Dat {
         double landAreaHa = 0;
 
@@ -25,11 +24,6 @@ namespace g4m::structs {
         double harvestEfficiencyMultifunction = 0;  // Gained (additional) efficiency of collecting wood in multifunctional forests
         double constructedRoadsMultifunction = 0;   // Additional constructed road in multifunctional forest
         double currentYearRoadInvestment = 0;       // Investment in forest road construction in current year
-
-        double savedCarbonPrev = 0;
-        double gainedCarbonPrev = 0;
-        double emissionsTotPrev = 0;
-        double emissionsAfforPrev = 0;
 
         vector<double> N_belowgroundBiomass;     // new forest below-ground biomass, N.forestShare * tC/ha
 
@@ -74,37 +68,31 @@ namespace g4m::structs {
         double emissionsSOCAffor = 0;
         double emissionsAffor = 0;
 
-        double abBiomassTotPrev = 0;
-        int iReportYear = 0;
-        //TODO wood obtained from deforestation in the cell, m^3
-        double deforestationWoodTotalM3 = 0;    // stem wood obtained from deforestation averaged for last 5 years
-        array<double, 5> deforWoodArray{};      // stem wood obtained from deforestation for last 5 years
-        array<double, 5> deforAreaArray{};      // deforested area for the last 5 years
+        double deforestationWoodTotalM3 = 0;    // wood obtained from deforestation in the cell, m^3
         double deforestShare = 0;
         double afforestHaYear = 0;
         double deforestHaYear = 0;
         double harvestTot_all = 0;
+
         double harvestFcM3Ha = 0;
         double harvestThM3Ha = 0;
         double harvestScM3Ha = 0;
-        double emissionsD_Bm = 0;   // CO2 lost from living biomass of old forests due to deforestation, mtCO2/ha year
+
+        double emissionsD_Bm = 0;   // CO2 lost from living biomass of old forests due to deforestation, mtCO2 / (ha * year)
         double emissionsD_S = 0;
-        double emissionsA_Bm = 0;   // CO2 sink in forest living biomass of planted forest, mtCO2/ha year
+        double emissionsA_Bm = 0;   // CO2 sink in forest living biomass of planted forest, mtCO2 / (ha * year)
         double emissionsA_S = 0;
-        double road = 0;
 
         double deforestPrev = 0;
         double deforestationRateCoefCell = 0;
 
-        FMResult resultDeforestation;
-        double slashBurn = 0;               // share of burnt wood at deforestation
+        FMResult resultDeforestation{};
 
         Dat() = default;
 
         Dat(const DataStruct &plot, const uint16_t bYear_, const double rotation_, const double abBiomass0,
             const double cohort10Bm, const double cohort30Bm, const double cohortPrimaryBm, const double thinning) :
-                bYear{bYear_}, landAreaHa{plot.landArea * 100}, deforestPrev{plot.forLoss},
-                road{plot.road.data.at(2000)}, slashBurn{plot.slashBurn} {
+                bYear{bYear_}, landAreaHa{plot.landArea * 100}, deforestPrev{plot.forLoss} {
             U.forestShare = {plot.forest};
             O10.forestShare = {plot.oldGrowthForest_ten};
             O30.forestShare = {plot.oldGrowthForest_thirty};
@@ -166,12 +154,35 @@ namespace g4m::structs {
             P.biomassChange_total = {0}; // for consistency
             N.biomassChange_total = {0}; // for consistency
 
-            // TODO check if right
-            U.totalBiomass = U.stemBiomass.back();
-            O10.totalBiomass = O10.stemBiomass.back();
-            O30.totalBiomass = O30.stemBiomass.back();
-            P.totalBiomass = P.stemBiomass.back();
-            N.totalBiomass = N.stemBiomass.back(); // for consistency
+            if (U.stemBiomass.back() > 0)
+                U.totalBiomass = {U.stemBiomass.back() * plot.BEF(U.stemBiomass.back()) + plot.CBelowHa};
+            else
+                U.totalBiomass = {0};
+            if (O10.stemBiomass.back() > 0)
+                O10.totalBiomass = {O10.stemBiomass.back() * plot.BEF(O10.stemBiomass.back()) + plot.CBelowHa};
+            else
+                O10.totalBiomass = {0};
+            if (O30.stemBiomass.back() > 0)
+                O30.totalBiomass = {O30.stemBiomass.back() * plot.BEF(O30.stemBiomass.back()) + plot.CBelowHa};
+            else
+                O30.totalBiomass = {0};
+            if (P.stemBiomass.back() > 0)
+                P.totalBiomass = {P.stemBiomass.back() * plot.BEF(P.stemBiomass.back()) + plot.CBelowHa};
+            else
+                P.totalBiomass = {0};
+            N.totalBiomass = {0}; // for consistency
+
+            U.totalHarvest = {0}; // for consistency
+            O10.totalHarvest = {0}; // for consistency
+            O30.totalHarvest = {0}; // for consistency
+            P.totalHarvest = {0}; // for consistency
+            N.totalHarvest = {0}; // for consistency
+
+            U.biomassChange_total = {0}; // for consistency
+            O10.biomassChange_total = {0}; // for consistency
+            O30.biomassChange_total = {0}; // for consistency
+            P.biomassChange_total = {0}; // for consistency
+            N.biomassChange_total = {0}; // for consistency
 
             N_belowgroundBiomass = {0}; // for consistency
             N_belowgroundBiomass.reserve(128);
@@ -292,6 +303,18 @@ namespace g4m::structs {
             P.biomassChange_total.push_back(0);
             N.biomassChange_total.push_back(0);
 
+            U.totalBiomass.push_back(0);
+            O10.totalBiomass.push_back(0);
+            O30.totalBiomass.push_back(0);
+            P.totalBiomass.push_back(0);
+            N.totalBiomass.push_back(0);
+
+            U.totalHarvest.push_back(0);
+            O10.totalHarvest.push_back(0);
+            O30.totalHarvest.push_back(0);
+            P.totalHarvest.push_back(0);
+            N.totalHarvest.push_back(0);
+
             N_belowgroundBiomass.push_back(0);
 
             afforestationShareTimeA.push_back(0);
@@ -340,31 +363,6 @@ namespace g4m::structs {
         }
 
         [[nodiscard]] string csv(const string_view line_prefix) const noexcept {
-//            constexpr int width = 15;
-//            constexpr int precision = 6;
-
-//            output += format(
-//                    "{1:^120}{2:^65}{3:^76}{4:^126}{5:^32}\n{6:{0}}{7:{0}}{8:{0}}{9:{0}}{10:{0}}{11:{0}}{12:{0}}{13:{0}}"
-//                    "  {14:{0}}{15:{0}}{16:{0}}{17:{0}}{18:{0}}{19:{0}}{20:{0}}{21:{0}}{22:{0}}   {23:{0}}{24:{0}}   "
-//                    "{25:{0}}{26:{0}}{27:{0}}{28:{0}}{29:{0}}   {30:{0}}{31:{0}}{32:{0}}{33:{0}}{34:{0}}\n", width,
-//                    "Forest Share", "Stem Biomass", "New Forest", "Fellings", "Current Annual Increment", "", "U",
-//                    "O10", "O30", "P", "N", "Old", "All", "U", "O10", "O30", "P", "N", "BG_B", "AG_B_B20", "AG_B_O20",
-//                    "AG_B", "afforestA", "deforestA", "U", "O10", "O30", "P", "N", "U", "O10", "O30", "P", "N");
-
-//                output += format(
-//                        "{2}{3:{0}.{1}f}{4:{0}.{1}f}{5:{0}.{1}f}{6:{0}.{1}f}{7:{0}.{1}f}{8:{0}.{1}f}{9:{0}.{1}f}  |"
-//                        "{10:{0}.{1}f}{11:{0}.{1}f}{12:{0}.{1}f}{13:{0}.{1}f}{14:{0}.{1}f}  |{15:{0}.{1}f}{16:{0}.{1}f}"
-//                        "{17:{0}.{1}f}{18:{0}.{1}f}  |{19:{0}.{1}f}{20:{0}.{1}f}  |{21:{0}.{1}f}{22:{0}.{1}f}"
-//                        "{23:{0}.{1}f}{24:{0}.{1}f}{25:{0}.{1}f}  |{26:{0}.{1}f}{27:{0}.{1}f}{28:{0}.{1}f}{29:{0}.{1}f}"
-//                        "{30:{0}.{1}f}\n",
-//                        width, precision, year, U.forestShare[i], O10.forestShare[i], O30.forestShare[i],
-//                        P.forestShare[i], N.forestShare[i], forestShareOld, forestShareAll, U.stemBiomass[i],
-//                        O10.stemBiomass[i], O30.stemBiomass[i], P.stemBiomass[i], N.stemBiomass[i],
-//                        N_belowgroundBiomass[i], N_abovegroundBiomassBelow20yo, N_abovegroundBiomassOver20yo,
-//                        N_abovegroundBiomass, afforestationShareTimeA[i], deforestationShareTimeA[i], U.fellings[i],
-//                        O10.fellings[i], O30.fellings[i], P.fellings[i], N.fellings[i], U.CAI[i], O10.CAI[i],
-//                        O30.CAI[i], P.CAI[i], N.CAI[i]);
-
             string output;
             output.reserve(1'000'000);
 
@@ -379,7 +377,8 @@ namespace g4m::structs {
 
                 output += format(
                         "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
-                        "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                        "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
+                        "{},{},{},{},{},{}\n",
                         line_prefix, year, U.forestShare[i], O10.forestShare[i], O30.forestShare[i],
                         P.forestShare[i], N.forestShare[i], forestShareOld, forestShareAll, U.stemBiomass[i],
                         O10.stemBiomass[i], O30.stemBiomass[i], P.stemBiomass[i], N.stemBiomass[i],
@@ -392,7 +391,9 @@ namespace g4m::structs {
                         N.litterInput[i], rotation[i], rotationBiomass[i], SD[i], U.biomassChange_ab[i],
                         O10.biomassChange_ab[i], O30.biomassChange_ab[i], P.biomassChange_ab[i], N.biomassChange_ab[i],
                         U.biomassChange_total[i], O10.biomassChange_total[i], O30.biomassChange_total[i],
-                        P.biomassChange_total[i], N.biomassChange_total[i]);
+                        P.biomassChange_total[i], N.biomassChange_total[i], U.totalBiomass[i], O10.totalBiomass[i],
+                        O30.totalBiomass[i], P.totalBiomass[i], N.totalBiomass[i], U.totalHarvest[i],
+                        O10.totalHarvest[i], O30.totalHarvest[i], P.totalHarvest[i], N.totalHarvest[i]);
             }
             return output;
         }

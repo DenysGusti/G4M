@@ -560,6 +560,7 @@ namespace g4m::application::concrete {
                 doneList.clear();
                 for (uint8_t maxDiffCountry = 0;
                      doneList.size() < countriesList.size(); doneList.insert(maxDiffCountry)) {
+                    // TODO maybe heap, improve?
                     while (doneList.contains(maxDiffCountry)) {
                         harvDiff[maxDiffCountry] = 0;
                         maxDiffCountry = distance(harvDiff.begin(), ranges::max_element(harvDiff));
@@ -1162,7 +1163,7 @@ namespace g4m::application::concrete {
         // Not necessary for release.
         // woodHarvestDetailed[country]: 0 - woodHarvestTotal, 1 - UN, 2 - O10, 3 - O30, 4 - salvageLogging
         // returns woodHarvestDetailed, harvestGridLocal
-        [[nodiscard]] pair<array<array<double, numberOfCountries>, 5>, DataGrid<double> >
+        [[nodiscard]] pair<array<array<double, numberOfCountries>, 5>, DataGrid<double>>
 
         calculateHarvestDetailed(const bool toAdjustOnly) const {
             // 0 - woodHarvestTotal, 1 - UN, 2 - O10, 3 - O30, 4 - salvageLogging
@@ -3039,8 +3040,8 @@ namespace g4m::application::concrete {
                 }
                 // presence of road increases the probability of deforestation
                 if constexpr (roadInfo)
-                    if (cell.road > 0)
-                        agriculturalValue *= 1.2 + cell.road * 0.0044;
+                    if (plot.road.data.at(2000) > 0)
+                        agriculturalValue *= 1.2 + plot.road.data.at(2000) * 0.0044;
                 // higher agriculture value if closer to recently deforested places
                 if constexpr (deforestationInit)
                     if ((plot.potVeg == VegetationType::TropicalEvergreenForest ||
@@ -3479,7 +3480,7 @@ namespace g4m::application::concrete {
                     testNewArea += cohortArea;
                     // afforested (stem) biomass of age (Age-ia) * modTimeStep per ha
                     double abovePhCur = appCohortsN[plot.asID].getBm(static_cast<double>(age - i) * modTimeStep);
-
+                    // TODO make units per ha
                     if ((age - i) * modTimeStep <= 20) {    // age cohorts younger than 21 year
                         if (afforestA < cohortArea) { // a share of the age cohort has been replanted after final cut
                             // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
@@ -3606,7 +3607,7 @@ namespace g4m::application::concrete {
                                             cleanedWoodUseCurrent30 * res30Lost.getTotalHarvestedBiomass()) *
                                            plot.fTimber *
                                            cell.O30.forestShare.back() * cell.landAreaHa;
-
+                // TODO maybe deprecate
                 cell.harvestFcM3Ha = (resU.getFinalCutWood() + resN.getFinalCutWood()) * plot.fTimber;
                 cell.harvestThM3Ha = (resU.getThinnedWood() + resN.getThinnedWood()) * plot.fTimber;
                 cell.harvestScM3Ha =
@@ -3745,9 +3746,12 @@ namespace g4m::application::concrete {
             countriesNForestCover.inc(plot.country, year, cell.N.forestShare.back() * cell.landAreaHa);
             countriesAfforestationHaYear.inc(plot.country, year, cell.afforestHaYear / modTimeStep);
             countriesAfforestationAccumulationHa.inc(plot.country, year, cell.afforestHaTotal);
-            // accumulated total living biomass of planted forest, tC
-            double aForBm = (cell.N_abovegroundBiomass(-1) + cell.N_belowgroundBiomass.back()) * cell.landAreaHa;
-            countriesNForestTotalC.inc(plot.country, year, aForBm);
+
+            cell.N.totalBiomass.back() =
+                    cell.N.forestShare.back() > 0 ? (cell.N_abovegroundBiomass(-1) + cell.N_belowgroundBiomass.back()) /
+                                                    cell.N.forestShare.back() : 0;
+            countriesNForestTotalC.inc(plot.country, year,
+                                       cell.N.totalBiomass.back() * cell.N.forestShare.back() * cell.landAreaHa);
             // accumulated living stem biomass of planted forest, tC
             countriesNForestStemC.inc(plot.country, year, cell.N.stemBiomass.back() * cell.landAreaHa);
             // accumulated living above-ground biomass of planted forest, tC
@@ -3818,23 +3822,23 @@ namespace g4m::application::concrete {
                                        cell.P.stemBiomass.back() * plot.BEF(cell.P.stemBiomass.back()) *
                                        cell.P.forestShare.back() * cell.landAreaHa);
             // TODO why plot.CBelowHa?
-            // total living biomass of old forest, tC/ha
-            cell.U.totalBiomass =
-                    cell.U.stemBiomass.back() > 0 ? (cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) +
-                                                     plot.CBelowHa) : 0;
-            // total living biomass of old forest, tC/ha
-            cell.O10.totalBiomass = cell.O10.stemBiomass.back() > 0 ? (
-                    cell.O10.stemBiomass.back() * plot.BEF(cell.O10.stemBiomass.back()) + plot.CBelowHa) : 0;
-            // total living biomass of old forest, tC/ha
-            cell.O30.totalBiomass = cell.O30.stemBiomass.back() > 0 ? (
-                    cell.O30.stemBiomass.back() * plot.BEF(cell.O30.stemBiomass.back()) + plot.CBelowHa) : 0;
-            // total living biomass of old forest, tC/ha
-            cell.P.totalBiomass =
-                    cell.P.stemBiomass.back() > 0 ? (cell.P.stemBiomass.back() * plot.BEF(cell.P.stemBiomass.back()) +
-                                                     plot.CBelowHa) : 0;
+            cell.U.totalBiomass.back() = cell.U.stemBiomass.back() > 0 ?
+                                         cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) + plot.CBelowHa
+                                                                       : 0;
+            cell.O10.totalBiomass.back() = cell.O10.stemBiomass.back() > 0 ?
+                                           cell.O10.stemBiomass.back() * plot.BEF(cell.O10.stemBiomass.back()) +
+                                           plot.CBelowHa
+                                                                           : 0;
+            cell.O30.totalBiomass.back() = cell.O30.stemBiomass.back() > 0 ?
+                                           cell.O30.stemBiomass.back() * plot.BEF(cell.O30.stemBiomass.back()) +
+                                           plot.CBelowHa
+                                                                           : 0;
+            cell.P.totalBiomass.back() = cell.P.stemBiomass.back() > 0 ?
+                                         cell.P.stemBiomass.back() * plot.BEF(cell.P.stemBiomass.back()) + plot.CBelowHa
+                                                                       : 0;
 
             countriesOForestC_biomass.inc(plot.country, year,
-                                          cell.U.totalBiomass * cell.U.forestShare.back() * cell.landAreaHa);
+                                          cell.U.totalBiomass.back() * cell.U.forestShare.back() * cell.landAreaHa);
             countriesDeforestationCYear.inc(plot.country, year, emissionsCur * unitConvCoef);  // tC/year
             countriesDeforestationCYear_ab.inc(plot.country, year,
                                                resultDeforestation.biomass * plot.BEF(resultDeforestation.biomass) *
@@ -4132,195 +4136,195 @@ namespace g4m::application::concrete {
                                                          cell.N.forestShare.end()[-2] * cell.landAreaHa);
                     }
                 }
-                // deadwood_dynamics
-                if (plot.protect) {
-                    if (cell.U.forestShare.back() > 0) {
-                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                        year, "U", false);
-                        tie(cell.U.deadwoodInput.back(), cell.U.litterInput.back()) =
-                                deadwoodPoolCalcFunc(plot, resULost, true, 0, 0, 0, 0, 0);
-                    }
-                    if (cell.O10.forestShare.back() > 0) {
-                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                        year, "O10", false);
-                        tie(cell.O10.deadwoodInput.back(), cell.O10.litterInput.back()) =
-                                deadwoodPoolCalcFunc(plot, res10Lost, true, 0, 0, 0, 0, 0);
-                    }
-                    if (cell.O30.forestShare.back() > 0) {
-                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                        year, "O30", false);
-                        tie(cell.O30.deadwoodInput.back(), cell.O30.litterInput.back()) =
-                                deadwoodPoolCalcFunc(plot, res30Lost, true, 0, 0, 0, 0, 0);
-                    }
-                    // No New forest in the protected cell (no afforestation)
-                } else {
-                    if (cell.U.forestShare.back() > 0) {
-                        bool used = appThinningForest(plot.x, plot.y) > 0;
-                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                        year, "U", used);
-                        tie(cell.U.deadwoodInput.back(), cell.U.litterInput.back()) =
-                                used ?
-                                deadwoodPoolCalcFunc(plot, resU, false, cell.U.extractedResidues,
-                                                     cell.U.extractedStump, cell.U.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], 1) :
-                                deadwoodPoolCalcFunc(plot, resULost, true, cell.U.extractedResidues,
-                                                     cell.U.extractedStump, cell.U.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent);
-                    }
-                    // TODO decide if U or N extracted
-                    if (cell.N.forestShare.back() > 0) {
-                        bool used = thinningForestNew(plot.x, plot.y) > 0;
-                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                        year, "N", used);
-                        tie(cell.N.deadwoodInput.back(), cell.N.litterInput.back()) =
-                                used ?
-                                deadwoodPoolCalcFunc(plot, resN, false, cell.U.extractedResidues,
-                                                     cell.U.extractedStump, cell.U.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], 1) :
-                                deadwoodPoolCalcFunc(plot, resNLost, true, cell.U.extractedResidues,
-                                                     cell.U.extractedStump, cell.U.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent);
-                    }
-                    // To be set according to BIOCLIMA scenario for the 10% forest
-                    if (cell.O10.forestShare.back() > 0) {
-                        bool used = appThinningForest10(plot.x, plot.y) > 0;
-                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                        year, "O10", used);
-                        tie(cell.O10.deadwoodInput.back(), cell.O10.litterInput.back()) =
-                                used ?
-                                deadwoodPoolCalcFunc(plot, res10, false, cell.O10.extractedResidues,
-                                                     cell.O10.extractedStump, cell.O10.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], 1) :
-                                deadwoodPoolCalcFunc(plot, res10Lost, true, cell.O10.extractedResidues,
-                                                     cell.O10.extractedStump, cell.O10.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent10);
-                    }
-                    if (cell.O30.forestShare.back() > 0) {
-                        bool used = appThinningForest30(plot.x, plot.y) > 0;
-                        rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                        year, "O30", used);
-                        tie(cell.O30.deadwoodInput.back(), cell.O30.litterInput.back()) =
-                                used ?
-                                deadwoodPoolCalcFunc(plot, res30, false, cell.O30.extractedResidues,
-                                                     cell.O30.extractedStump, cell.O30.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], 1) :
-                                deadwoodPoolCalcFunc(plot, res30Lost, true, cell.O30.extractedResidues,
-                                                     cell.O30.extractedStump, cell.O30.extractedCleaned,
-                                                     harvestedWoodUse[plot.country], cleanedWoodUseCurrent30);
-                    }
-                }
-                if (cell.P.forestShare.back() > 0) {
+            }
+            // deadwood_dynamics
+            if (plot.protect) {
+                if (cell.U.forestShare.back() > 0) {
                     rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "P", false);
-                    tie(cell.P.deadwoodInput.back(), cell.P.litterInput.back()) =
-                            deadwoodPoolCalcFunc(plot, resPLost, true, 0, 0, 0, 0, 0);
+                                                    year, "U", false);
+                    tie(cell.U.deadwoodInput.back(), cell.U.litterInput.back()) =
+                            deadwoodPoolCalcFunc(plot, resULost, true, 0, 0, 0, 0, 0);
                 }
-
-                cell.resetExtracted();
-
-                cell.U.deadwood += cell.U.deadwoodInput.back();
-                cell.N.deadwood += cell.N.deadwoodInput.back();
-                cell.O10.deadwood += cell.O10.deadwoodInput.back();
-                cell.O30.deadwood += cell.O30.deadwoodInput.back();
-                cell.P.deadwood += cell.P.deadwoodInput.back();
-
-                cell.U.litter += cell.U.litterInput.back();
-                cell.N.litter += cell.N.litterInput.back();
-                cell.O10.litter += cell.O10.litterInput.back();
-                cell.O30.litter += cell.O30.litterInput.back();
-                cell.P.litter += cell.P.litterInput.back();
-
-                double decStem_dec = max(0., 1 - decStem * modTimeStep);
-
-                // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
-                cell.U.deadwood *= decStem_dec;
-                cell.N.deadwood *= decStem_dec;
-                cell.O10.deadwood *= decStem_dec;
-                cell.O30.deadwood *= decStem_dec;
-                cell.P.deadwood *= decStem_dec;
-
-                cell.U.deadwood *= decHerb_decWood_dec_avg;
-                cell.N.deadwood *= decHerb_decWood_dec_avg;
-                cell.O10.deadwood *= decHerb_decWood_dec_avg;
-                cell.O30.deadwood *= decHerb_decWood_dec_avg;
-                cell.P.deadwood *= decHerb_decWood_dec_avg;
-
-                // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
-                double deadwoodPoolOut_U = (cell.U.deadwood * decStem) + cell.U.burntDeadwood;
-                double deadwoodPoolOut_N = (cell.N.deadwood * decStem) + cell.N.burntDeadwood;
-                double deadwoodPoolOut_O10 = (cell.O10.deadwood * decStem) + cell.O10.burntDeadwood;
-                double deadwoodPoolOut_O30 = (cell.O30.deadwood * decStem) + cell.O30.burntDeadwood;
-                double deadwoodPoolOut_P = (cell.P.deadwood * decStem) + cell.P.burntDeadwood;
-
-                double decWood_decHerb_avg = midpoint(plot.decWood, plot.decHerb);
-
-                double litterPoolOut_U = (cell.U.litter * decWood_decHerb_avg) + cell.U.burntLitter;
-                double litterPoolOut_N = (cell.N.litter * decWood_decHerb_avg) + cell.N.burntLitter;
-                double litterPoolOut_O10 = (cell.O10.litter * decWood_decHerb_avg) + cell.O10.burntLitter;
-                double litterPoolOut_O30 = (cell.O30.litter * decWood_decHerb_avg) + cell.O30.burntLitter;
-                double litterPoolOut_P = (cell.P.litter * decWood_decHerb_avg) + cell.P.burntLitter;
-
-                cell.U.deadwood_em = deadwoodPoolOut_U * modTimeStep - cell.U.deadwoodInput.back();
-                cell.N.deadwood_em = deadwoodPoolOut_N * modTimeStep - cell.N.deadwoodInput.back();
-                cell.O10.deadwood_em = deadwoodPoolOut_O10 * modTimeStep - cell.O10.deadwoodInput.back();
-                cell.O30.deadwood_em = deadwoodPoolOut_O30 * modTimeStep - cell.O30.deadwoodInput.back();
-                cell.P.deadwood_em = deadwoodPoolOut_P * modTimeStep - cell.P.deadwoodInput.back();
-
-                cell.U.litter_em = litterPoolOut_U * modTimeStep - cell.U.litterInput.back();
-                cell.N.litter_em = litterPoolOut_N * modTimeStep - cell.N.litterInput.back();
-                cell.O10.litter_em = litterPoolOut_O10 * modTimeStep - cell.O10.litterInput.back();
-                cell.O30.litter_em = litterPoolOut_O30 * modTimeStep - cell.O30.litterInput.back();
-                cell.P.litter_em = litterPoolOut_P * modTimeStep - cell.P.litterInput.back();
-
-                countriesDeadwood_old_tCha.inc(plot.country, year,
-                                               (cell.U.deadwood * cell.U.forestShare.back() +
-                                                cell.O10.deadwood * cell.O10.forestShare.back() +
-                                                cell.O30.deadwood * cell.O30.forestShare.back() +
-                                                cell.P.deadwood * cell.P.forestShare.back()) * cell.landAreaHa);
-                countriesDeadwood_new_tCha.inc(plot.country, year,
-                                               cell.N.deadwood * cell.N.forestShare.back() * cell.landAreaHa);
-                countriesLitter_old_tCha.inc(plot.country, year,
-                                             (cell.U.litter * cell.U.forestShare.back() +
-                                              cell.O10.litter * cell.O10.forestShare.back() +
-                                              cell.O30.litter * cell.O30.forestShare.back() +
-                                              cell.P.litter * cell.P.forestShare.back()) * cell.landAreaHa);
-                countriesLitter_new_tCha.inc(plot.country, year,
-                                             cell.N.litter * cell.N.forestShare.back() * cell.landAreaHa);
-                // TODO cell.N.forestShare.back() or cell.N.forestShare.end()[-2]?
-                countriesDeadwoodEm_old_mtco2year.inc(plot.country, year,
-                                                      (cell.U.deadwood_em * cell.U.forestShare.back() +
-                                                       cell.O10.deadwood_em * cell.O10.forestShare.back() +
-                                                       cell.O30.deadwood_em * cell.O30.forestShare.back() +
-                                                       cell.P.deadwood_em * cell.P.forestShare.back()) *
-                                                      cell.landAreaHa * unitConvCoef);
-                countriesDeadwoodEm_new_mtco2year.inc(plot.country, year,
-                                                      cell.N.deadwood_em * cell.N.forestShare.end()[-2] *
-                                                      cell.landAreaHa * unitConvCoef);
-                countriesLitterEm_old_mtco2year.inc(plot.country, year,
-                                                    (cell.U.litter_em * cell.U.forestShare.back() +
-                                                     cell.O10.litter_em * cell.O10.forestShare.back() +
-                                                     cell.O30.litter_em * cell.O30.forestShare.back() +
-                                                     cell.P.litter_em * cell.P.forestShare.back()) * cell.landAreaHa *
-                                                    unitConvCoef);
-                countriesLitterEm_new_mtco2year.inc(plot.country, year,
-                                                    cell.N.litter_em * cell.N.forestShare.end()[-2] * cell.landAreaHa *
-                                                    unitConvCoef);
-
-                appOForestShGrid(plot.x, plot.y) = cell.forestShareOld(-1);
-                cell.SD.back() = appThinningForest(plot.x, plot.y);
-
-                cell.U.OAC.back() = appCohortsU[plot.asID].getActiveAge();
-                cell.N.OAC.back() = appCohortsN[plot.asID].getActiveAge();
-                cell.O10.OAC.back() = appCohorts10[plot.asID].getActiveAge();
-                cell.O30.OAC.back() = appCohorts30[plot.asID].getActiveAge();
-                cell.P.OAC.back() = appCohortsP[plot.asID].getActiveAge();
-
-                if (year > 2000) {
-                    cell.deforestShare = cell.deforestationShareTimeA[age];
-                    cell.deforestPrev = cell.deforestationShareTimeA[age];
+                if (cell.O10.forestShare.back() > 0) {
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                    year, "O10", false);
+                    tie(cell.O10.deadwoodInput.back(), cell.O10.litterInput.back()) =
+                            deadwoodPoolCalcFunc(plot, res10Lost, true, 0, 0, 0, 0, 0);
+                }
+                if (cell.O30.forestShare.back() > 0) {
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                    year, "O30", false);
+                    tie(cell.O30.deadwoodInput.back(), cell.O30.litterInput.back()) =
+                            deadwoodPoolCalcFunc(plot, res30Lost, true, 0, 0, 0, 0, 0);
+                }
+                // No new forest in the protected cell (no afforestation)
+            } else {
+                if (cell.U.forestShare.back() > 0) {
+                    bool used = appThinningForest(plot.x, plot.y) > 0;
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                    year, "U", used);
+                    tie(cell.U.deadwoodInput.back(), cell.U.litterInput.back()) =
+                            used ?
+                            deadwoodPoolCalcFunc(plot, resU, false, cell.U.extractedResidues,
+                                                 cell.U.extractedStump, cell.U.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], 1) :
+                            deadwoodPoolCalcFunc(plot, resULost, true, cell.U.extractedResidues,
+                                                 cell.U.extractedStump, cell.U.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], cleanedWoodUseCurrent);
+                }
+                // TODO decide if U or N extracted
+                if (cell.N.forestShare.back() > 0) {
+                    bool used = thinningForestNew(plot.x, plot.y) > 0;
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                    year, "N", used);
+                    tie(cell.N.deadwoodInput.back(), cell.N.litterInput.back()) =
+                            used ?
+                            deadwoodPoolCalcFunc(plot, resN, false, cell.U.extractedResidues,
+                                                 cell.U.extractedStump, cell.U.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], 1) :
+                            deadwoodPoolCalcFunc(plot, resNLost, true, cell.U.extractedResidues,
+                                                 cell.U.extractedStump, cell.U.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], cleanedWoodUseCurrent);
+                }
+                // To be set according to BIOCLIMA scenario for the 10% forest
+                if (cell.O10.forestShare.back() > 0) {
+                    bool used = appThinningForest10(plot.x, plot.y) > 0;
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                    year, "O10", used);
+                    tie(cell.O10.deadwoodInput.back(), cell.O10.litterInput.back()) =
+                            used ?
+                            deadwoodPoolCalcFunc(plot, res10, false, cell.O10.extractedResidues,
+                                                 cell.O10.extractedStump, cell.O10.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], 1) :
+                            deadwoodPoolCalcFunc(plot, res10Lost, true, cell.O10.extractedResidues,
+                                                 cell.O10.extractedStump, cell.O10.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], cleanedWoodUseCurrent10);
+                }
+                if (cell.O30.forestShare.back() > 0) {
+                    bool used = appThinningForest30(plot.x, plot.y) > 0;
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                    year, "O30", used);
+                    tie(cell.O30.deadwoodInput.back(), cell.O30.litterInput.back()) =
+                            used ?
+                            deadwoodPoolCalcFunc(plot, res30, false, cell.O30.extractedResidues,
+                                                 cell.O30.extractedStump, cell.O30.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], 1) :
+                            deadwoodPoolCalcFunc(plot, res30Lost, true, cell.O30.extractedResidues,
+                                                 cell.O30.extractedStump, cell.O30.extractedCleaned,
+                                                 harvestedWoodUse[plot.country], cleanedWoodUseCurrent30);
                 }
             }
-            // TODO in Dat
+            if (cell.P.forestShare.back() > 0) {
+                rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
+                                                year, "P", false);
+                tie(cell.P.deadwoodInput.back(), cell.P.litterInput.back()) =
+                        deadwoodPoolCalcFunc(plot, resPLost, true, 0, 0, 0, 0, 0);
+            }
+
+            cell.resetExtracted();
+
+            cell.U.deadwood += cell.U.deadwoodInput.back();
+            cell.N.deadwood += cell.N.deadwoodInput.back();
+            cell.O10.deadwood += cell.O10.deadwoodInput.back();
+            cell.O30.deadwood += cell.O30.deadwoodInput.back();
+            cell.P.deadwood += cell.P.deadwoodInput.back();
+
+            cell.U.litter += cell.U.litterInput.back();
+            cell.N.litter += cell.N.litterInput.back();
+            cell.O10.litter += cell.O10.litterInput.back();
+            cell.O30.litter += cell.O30.litterInput.back();
+            cell.P.litter += cell.P.litterInput.back();
+
+            double decStem_dec = max(0., 1 - decStem * modTimeStep);
+
+            // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
+            cell.U.deadwood *= decStem_dec;
+            cell.N.deadwood *= decStem_dec;
+            cell.O10.deadwood *= decStem_dec;
+            cell.O30.deadwood *= decStem_dec;
+            cell.P.deadwood *= decStem_dec;
+
+            cell.U.deadwood *= decHerb_decWood_dec_avg;
+            cell.N.deadwood *= decHerb_decWood_dec_avg;
+            cell.O10.deadwood *= decHerb_decWood_dec_avg;
+            cell.O30.deadwood *= decHerb_decWood_dec_avg;
+            cell.P.deadwood *= decHerb_decWood_dec_avg;
+
+            // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
+            double deadwoodPoolOut_U = (cell.U.deadwood * decStem) + cell.U.burntDeadwood;
+            double deadwoodPoolOut_N = (cell.N.deadwood * decStem) + cell.N.burntDeadwood;
+            double deadwoodPoolOut_O10 = (cell.O10.deadwood * decStem) + cell.O10.burntDeadwood;
+            double deadwoodPoolOut_O30 = (cell.O30.deadwood * decStem) + cell.O30.burntDeadwood;
+            double deadwoodPoolOut_P = (cell.P.deadwood * decStem) + cell.P.burntDeadwood;
+
+            double decWood_decHerb_avg = midpoint(plot.decWood, plot.decHerb);
+
+            double litterPoolOut_U = (cell.U.litter * decWood_decHerb_avg) + cell.U.burntLitter;
+            double litterPoolOut_N = (cell.N.litter * decWood_decHerb_avg) + cell.N.burntLitter;
+            double litterPoolOut_O10 = (cell.O10.litter * decWood_decHerb_avg) + cell.O10.burntLitter;
+            double litterPoolOut_O30 = (cell.O30.litter * decWood_decHerb_avg) + cell.O30.burntLitter;
+            double litterPoolOut_P = (cell.P.litter * decWood_decHerb_avg) + cell.P.burntLitter;
+
+            cell.U.deadwood_em = deadwoodPoolOut_U * modTimeStep - cell.U.deadwoodInput.back();
+            cell.N.deadwood_em = deadwoodPoolOut_N * modTimeStep - cell.N.deadwoodInput.back();
+            cell.O10.deadwood_em = deadwoodPoolOut_O10 * modTimeStep - cell.O10.deadwoodInput.back();
+            cell.O30.deadwood_em = deadwoodPoolOut_O30 * modTimeStep - cell.O30.deadwoodInput.back();
+            cell.P.deadwood_em = deadwoodPoolOut_P * modTimeStep - cell.P.deadwoodInput.back();
+
+            cell.U.litter_em = litterPoolOut_U * modTimeStep - cell.U.litterInput.back();
+            cell.N.litter_em = litterPoolOut_N * modTimeStep - cell.N.litterInput.back();
+            cell.O10.litter_em = litterPoolOut_O10 * modTimeStep - cell.O10.litterInput.back();
+            cell.O30.litter_em = litterPoolOut_O30 * modTimeStep - cell.O30.litterInput.back();
+            cell.P.litter_em = litterPoolOut_P * modTimeStep - cell.P.litterInput.back();
+
+            countriesDeadwood_old_tCha.inc(plot.country, year,
+                                           (cell.U.deadwood * cell.U.forestShare.back() +
+                                            cell.O10.deadwood * cell.O10.forestShare.back() +
+                                            cell.O30.deadwood * cell.O30.forestShare.back() +
+                                            cell.P.deadwood * cell.P.forestShare.back()) * cell.landAreaHa);
+            countriesDeadwood_new_tCha.inc(plot.country, year,
+                                           cell.N.deadwood * cell.N.forestShare.back() * cell.landAreaHa);
+            countriesLitter_old_tCha.inc(plot.country, year,
+                                         (cell.U.litter * cell.U.forestShare.back() +
+                                          cell.O10.litter * cell.O10.forestShare.back() +
+                                          cell.O30.litter * cell.O30.forestShare.back() +
+                                          cell.P.litter * cell.P.forestShare.back()) * cell.landAreaHa);
+            countriesLitter_new_tCha.inc(plot.country, year,
+                                         cell.N.litter * cell.N.forestShare.back() * cell.landAreaHa);
+
+            countriesDeadwoodEm_old_mtco2year.inc(plot.country, year,
+                                                  (cell.U.deadwood_em * cell.U.forestShare.back() +
+                                                   cell.O10.deadwood_em * cell.O10.forestShare.back() +
+                                                   cell.O30.deadwood_em * cell.O30.forestShare.back() +
+                                                   cell.P.deadwood_em * cell.P.forestShare.back()) *
+                                                  cell.landAreaHa * unitConvCoef);
+            countriesDeadwoodEm_new_mtco2year.inc(plot.country, year,
+                                                  cell.N.deadwood_em * cell.N.forestShare.end()[-2] *
+                                                  cell.landAreaHa * unitConvCoef);
+            countriesLitterEm_old_mtco2year.inc(plot.country, year,
+                                                (cell.U.litter_em * cell.U.forestShare.back() +
+                                                 cell.O10.litter_em * cell.O10.forestShare.back() +
+                                                 cell.O30.litter_em * cell.O30.forestShare.back() +
+                                                 cell.P.litter_em * cell.P.forestShare.back()) * cell.landAreaHa *
+                                                unitConvCoef);
+            countriesLitterEm_new_mtco2year.inc(plot.country, year,
+                                                cell.N.litter_em * cell.N.forestShare.end()[-2] * cell.landAreaHa *
+                                                unitConvCoef);
+
+            appOForestShGrid(plot.x, plot.y) = cell.forestShareOld(-1);
+            cell.SD.back() = appThinningForest(plot.x, plot.y);
+
+            cell.U.OAC.back() = appCohortsU[plot.asID].getActiveAge();
+            cell.N.OAC.back() = appCohortsN[plot.asID].getActiveAge();
+            cell.O10.OAC.back() = appCohorts10[plot.asID].getActiveAge();
+            cell.O30.OAC.back() = appCohorts30[plot.asID].getActiveAge();
+            cell.P.OAC.back() = appCohortsP[plot.asID].getActiveAge();
+
+            if (year > 2000) {
+                cell.deforestShare = cell.deforestationShareTimeA[age];
+                cell.deforestPrev = cell.deforestationShareTimeA[age];
+            }
+            // TODO add harvest and emissions
         }
 
         // Deadwood input (d > 10cm) in the cell, tC/ha, in the old forest

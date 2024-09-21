@@ -55,11 +55,11 @@ namespace g4m::init {
         double forest_correction = 0;
         double GL_correction = 0;
         double natLnd_correction = 0;
-        double grLnd_protect = 0;  // Natural vegetation and heathland protected under Nature2000 or to be protected! EU27 only!
+        double grLnd_protect = 0;   // Natural vegetation and heathland protected under Nature2000 or to be protected! EU27 only!
         double corruption = 0;
         double fTimber = 0;
         double priceIndex = 0;
-        double slashBurn = 0;
+        double slashBurn = 0;       // share of burnt wood at deforestation
         double fracLongProd = 0;
         double decHerb = 0;
         double decWood = 0;
