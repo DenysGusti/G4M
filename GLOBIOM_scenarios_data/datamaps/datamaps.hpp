@@ -71,8 +71,10 @@ namespace g4m::GLOBIOM_scenarios_data {
                 string str;
                 for (const auto &[fileName, countries]: missingFileCountries) {
                     str += format("{}: ", fileName);
+                    // we take all countries except the last one
                     for (const auto country: countries | rv::take(countries.size() - 1))
                         str += format("{} ({}), ", country, idCountryGLOBIOM.at(country));
+                    // we take the last country
                     str += format("{} ({});\n", countries.back(), idCountryGLOBIOM.at(countries.back()));
                 }
                 FATAL("Countries to consider are missing in datamap files!\n{}", str);
