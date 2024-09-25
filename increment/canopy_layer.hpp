@@ -368,20 +368,17 @@ namespace g4m::increment {
             // change back to ranges later
             if (dat.size() + 1 <= currentMaxSize) {
                 initNewAgeClasses(1, sd, avgMai);
-                shift_right(dat.begin(), dat.end(), 1);
-                // ranges::shift_right(dat, 1);  // shift right 1
+                ranges::shift_right(dat, 1);  // shift right 1
                 dat[0] = AgeClass{};
                 return;
             }
             if (dat.back().area == 0) {
-                shift_right(dat.begin(), dat.end(), 1);
-                // ranges::shift_right(dat, 1);  // shift right 1
+                ranges::shift_right(dat, 1);  // shift right 1
                 dat[0] = AgeClass{};
                 return;
             }
             dat.back() = dat.back().getWeightedAgeClass(dat.end()[-2]);
-            shift_right(dat.begin(), dat.end() - 1, 1);
-            // ranges::shift_right(dat | rv::take(dat.size() - 1), 1);  // shift right 1 dat except last element
+            ranges::shift_right(dat | rv::take(dat.size() - 1), 1);  // shift right 1 dat except last element
             dat[0] = AgeClass{};
         }
 
@@ -451,8 +448,8 @@ namespace g4m::increment {
         [[nodiscard]] size_t getActiveAgeClassIdx() const noexcept {
             if (dat.empty())
                 return 0;
-            ptrdiff_t i = distance(ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; }),
-                                   dat.rend());
+            auto it = ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; });
+            ptrdiff_t i = distance(it, dat.rend());
             i = max(ptrdiff_t{0}, i - 1);
             return i;
         }

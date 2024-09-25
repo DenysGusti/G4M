@@ -444,8 +444,8 @@ namespace g4m::StartData {
             AgeStruct &newCohort = commonCohortsN.back();
             newCohort.createNormalForest(rotation, 0, thinning_tmp);
 
-            commonDats.emplace_back(plot, coef.bYear, commonRotationForest(plot.x, plot.y), abBiomass0,
-                                    cohort10.getBm(), cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
+            commonDats.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohort10.getBm(),
+                                    cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
 
             commonHarvestResiduesCountry[plot.country].emplace_back(plot);
         }

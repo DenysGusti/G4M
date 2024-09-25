@@ -63,7 +63,7 @@ namespace g4m::init {
             {VegetationType::OpenShrubland,                      "Open Shrubland"},
             {VegetationType::Tundra,                             "Tundra"},
             {VegetationType::Desert,                             "Desert"},
-            {VegetationType::PolarDesert,                        "PolarDesert"}
+            {VegetationType::PolarDesert,                        "Polar Desert"}
     };
 }
 

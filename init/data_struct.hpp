@@ -47,7 +47,7 @@ namespace g4m::init {
         double managedShare = 0;
         double residuesUseShare = 0;
         double residuesUseCosts = 0;
-        double deadWood = 0;
+        double deadwood = 0;
         double oldGrowthForest_ten = 0;
         double oldGrowthForest_thirty = 0;
         double strictProtected = 0;  // PRIMARYFOREST
@@ -166,7 +166,7 @@ namespace g4m::init {
                     else if (name == "RESIDUESUSECOSTS")
                         residuesUseCosts = cell;
                     else if (name == "DEADWOOD")
-                        deadWood = cell;
+                        deadwood = cell;
                     else if (name == "OLDGROWTHFOREST_TEN")
                         oldGrowthForest_ten = cell;
                     else if (name == "OLDGROWTHFOREST_THIRTY")
@@ -231,13 +231,13 @@ namespace g4m::init {
             string format_floating_point = format(
                     "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\n"
                     "CBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\n"
-                    "residuesUseShare = {}\nresiduesUseCosts = {}\ndeadWood = {}\noldGrowthForest_ten = {}\n"
+                    "residuesUseShare = {}\nresiduesUseCosts = {}\ndeadwood = {}\noldGrowthForest_ten = {}\n"
                     "oldGrowthForest_thirty = {}\nstrictProtected = {}\nforestAll = {}\nforest_correction = {}\n"
                     "GL_correction = {}\nnatLnd_correction = {}\ngrLnd_protect = {}\ncorruption = {}\nfTimber = {}\n"
                     "priceIndex = {}\nfracLongProd = {}\nslashBurn = {}\ndecHerb = {}\ndecWood = {}\ndecSOC = {}\n"
                     "harvestCosts = {}\n",
                     landArea, forest, forLoss, agrSuit, sAgrSuit, CAboveHa, CBelowHa, CDeadHa, CLitterHa, SOCHa,
-                    managedShare, residuesUseShare, residuesUseCosts, deadWood, oldGrowthForest_ten,
+                    managedShare, residuesUseShare, residuesUseCosts, deadwood, oldGrowthForest_ten,
                     oldGrowthForest_thirty, strictProtected, forestAll, forest_correction, GL_correction,
                     natLnd_correction, grLnd_protect, corruption, fTimber, priceIndex, fracLongProd, slashBurn, decHerb,
                     decWood, decSOC, harvestCosts);

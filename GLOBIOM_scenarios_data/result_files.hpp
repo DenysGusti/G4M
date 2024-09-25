@@ -12,8 +12,10 @@ namespace fs = filesystem;
 namespace g4m::GLOBIOM_scenarios_data {
     class ResultFiles {
     public:
-        vector<vector<double> > biomassBau;
-        vector<vector<double> > profitBau;
+        static constexpr size_t initialBufferSize = 10'000'000;
+
+        vector<vector<double>> biomassBau;
+        vector<vector<double>> profitBau;
 
         fs::path outputPath;
 
@@ -46,19 +48,17 @@ namespace g4m::GLOBIOM_scenarios_data {
 
             biomassBau.reserve(256);
 
-            detailsBuffer.reserve(10'000'000);
-            cellInfoBuffer.reserve(10'000'000);
-            deadwoodTestBuffer.reserve(10'000'000);
-            harvestDetailsBuffer.reserve(10'000'000);
-            residueExtractDetailsBuffer.reserve(10'000'000);
-            bioclimaDetailsBuffer.reserve(10'000'000);
-
-            addHeadersToBuffers();
+            detailsBuffer.reserve(initialBufferSize);
+            cellInfoBuffer.reserve(initialBufferSize);
+            deadwoodTestBuffer.reserve(initialBufferSize);
+            harvestDetailsBuffer.reserve(initialBufferSize);
+            residueExtractDetailsBuffer.reserve(initialBufferSize);
+            bioclimaDetailsBuffer.reserve(initialBufferSize);
         }
 
-        void addHeadersToBuffers() noexcept {
+        void addHeadersToBuffers(const string_view cellCSVHeader) noexcept {
             detailsBuffer +=
-                    "asID,simuID,year,country,OForestShare,AForestShare,CAb,abFM,abFMNew,MAI_M3Ha,rotMAI,"
+                    "asID,simuID,country,year,OForestShare,AForestShare,CAb,abFM,abFMNew,MAI_M3Ha,rotMAI,"
                     "harvestThM3HaOld,harvestFctM3HaOld,harvestThM3HaNew,harvestFctM3HaNew,harvTotCur,harvMAI,"
                     "netCAI_m3ha,grossCAI_m3ha,rotBiomass,forNPV_CH,fVal,aVal,rotationTimeCurr,rotationTimeCurrNew,"
                     "timberPrice,thinningForest,thinningForestNew,rotMAI_gTOpt,realAreaO,defShare,defArea_virtFor,BEF,"
@@ -66,18 +66,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "balanceO,lost_bm_m3,bm_stem_tC,bm_stem_prev_tC,bm_stem_tCha,bm_stem_prev_tCha,oForShare,"
                     "oForSharePrev,landAreaHa,FM_sink_ab_mtCO2year,FM_sink_bm_mtCO2year,trotMaxBm,oldestAge,"
                     "oldestAgeNew,lostW_fc_thm3,lostW_th_thm3,em_fm_check,globiomReserved,maxAff,landBalance\n";
-            cellInfoBuffer +=
-                    "asID,simuID,country,year,forest_share_U,forest_share_O10,forest_share_O30,forest_share_P,"
-                    "forest_share_N,forest_share_Old,forest_share_All,stem_biomass_U,stem_biomass_O10,stem_biomass_O30,"
-                    "stem_biomass_P,stem_biomass_N,N_BGB,N_AGB_B20,N_AGB_O20,N_AGB,afforestA,deforestA,"
-                    "fellings_U,fellings_O10,fellings_O30,fellings_P,fellings_N,CAI_U,CAI_O10,CAI_O30,CAI_P,CAI_N,"
-                    "OAC_U,OAC_O10,OAC_O30,OAC_P,OAC_N,deadwood_in_U,deadwood_in_O10,deadwood_in_O30,deadwood_in_P,"
-                    "deadwood_in_N,litter_in_U,litter_in_O10,litter_in_O30,litter_in_P,litter_in_N,rotation,rotBiomass,"
-                    "SD,biomassChange_ab_U,biomassChange_ab_O10,biomassChange_ab_O30,biomassChange_ab_P,"
-                    "biomassChange_ab_N,biomassChange_total_U,biomassChange_total_O10,biomassChange_total_O30,"
-                    "biomassChange_total_P,biomassChange_total_N,total_biomass_U,total_biomass_O10,total_biomass_O30,"
-                    "total_biomass_P,total_biomass_N,total_harvest_U,total_harvest_O10,total_harvest_O30,"
-                    "total_harvest_P,total_harvest_N\n";
+            cellInfoBuffer += format("asID,simuID,country,year,{}\n", cellCSVHeader);
             deadwoodTestBuffer +=
                     "asID,simuID,country,year,forest_share_type,managed,extractedResidues,extractedCleaned,"
                     "RESIDUESUSESHARE,deadwoodBranches_fc,deadwoodBranches_th,branches_harvtrees_tot,"
@@ -131,6 +120,57 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "oldest_age30,oldest_age_primary\n";
         }
 
+        /*
+        a  ,  b  _  U  ,  c  ,  d  _  N  ,  e
+        0  1  2  3  4  5  6  7  8  9 10 11 12
+              fd _              ld _
+        ___c1___|_______c2________|
+           1           2     3           4
+        fc _              lc _
+        0        1        2        3        4
+                |_________s_________|
+        grouping
+        0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19
+        0  4  8 12 16  1  5  9 13 17  2  6 10 14 18  3  7 11 15 19
+        */
+        void sortCellInfo() {
+            auto rows = cellInfoBuffer | rv::split('\n') | ranges::to<vector<string> >();
+            rows.pop_back();    // empty line
+            string &header = rows.front();
+
+            ptrdiff_t first_data = header.find("_U");
+            ptrdiff_t last_data = header.rfind("_N");
+
+            size_t first_comma = ranges::count(header | rv::take(first_data), ',');
+            size_t last_comma =
+                    first_comma + ranges::count(header | rv::drop(first_data) | rv::take(last_data - first_data), ',');
+
+            constexpr size_t number_of_cell_forests = 5;
+            const size_t param_size = (last_comma - first_comma + 1) / number_of_cell_forests;
+
+            if ((last_comma - first_comma + 1) % number_of_cell_forests != 0) {
+                FATAL("(last_comma - first_comma + 1) % number_of_cell_forests != 0");
+                throw runtime_error{"bad csv file!"};
+            }
+
+            for (auto &row: rows) {
+                auto cells = row | rv::split(',') | ranges::to<vector<string> >();
+                auto cell_forest_data = span{cells}.subspan(first_comma, last_comma - first_comma + 1);
+
+                vector<string> data{cell_forest_data.begin(), cell_forest_data.end()};
+                // group by variable name
+                for (size_t i = 0; i < cell_forest_data.size(); ++i)
+                    cell_forest_data[i] = data[i / number_of_cell_forests + i % number_of_cell_forests * param_size];
+
+                row = cells | rv::join_with(',') | ranges::to<string>();
+            }
+
+            string header_row = rows.front();
+            rows.erase(rows.begin());
+            ranges::sort(rows);
+            cellInfoBuffer = header_row + '\n' + (rows | rv::join_with('\n') | ranges::to<string>());
+        }
+
         void saveFiles() const {
             {
                 ofstream of{detailsFile};
@@ -147,6 +187,12 @@ namespace g4m::GLOBIOM_scenarios_data {
                 of << deadwoodTestBuffer;
                 INFO("{} bytes written to {}", deadwoodTestBuffer.length(), deadwoodTestFile.string());
             }
+            size_t maxBufferSize = max({detailsBuffer.length(), cellInfoBuffer.length(), harvestDetailsBuffer.length(),
+                                        residueExtractDetailsBuffer.length(), bioclimaDetailsBuffer.length(),
+                                        deadwoodTestBuffer.length()});
+            if (initialBufferSize < maxBufferSize)
+                WARN("Increase initialBufferSize! initialBufferSize = {}, maxBufferSize = {}",
+                     initialBufferSize, maxBufferSize);
         }
     };
 }
