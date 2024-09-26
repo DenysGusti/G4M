@@ -59,7 +59,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                 if (countryISO == "GB")
                     countryISO = "UK";
 
-                const uint32_t MAX_RADIUS = 3;  // 3 for remote islands
+                constexpr uint32_t MAX_RADIUS = 3;  // 3 for remote islands
 
                 if (auto it_nuts2 = nuts2id.find({plot.x, plot.y}); it_nuts2 != nuts2id.end()) {
                     auto &[coords, NUTS2] = *it_nuts2;

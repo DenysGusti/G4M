@@ -15,17 +15,23 @@ namespace g4m::GLOBIOM_scenarios_data {
             datamapType datamapDest = datamapScenarios.at(string{full_scenario});
             datamapType histDatamap = datamapScenarios.at(bauScenario);
 
-            for (auto &[id, ipol]: datamapDest)
+            bool obsolete = false;
+
+            for (auto &[id, ipol]: datamapDest) {
                 ipol.data.merge(histDatamap.at(id).data);
+                obsolete |= !histDatamap.at(id).data.empty();
+            }
 
             TRACE("Merged {}:", message);
             for (const auto &[id, ipol]: datamapDest)
                 TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
 
-            TRACE("Obsolete {}:", message);
-            for (const auto &[id, ipol]: histDatamap)
-                if (!ipol.data.empty())
-                    TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
+            if (obsolete) {
+                TRACE("Obsolete {}:", message);
+                for (const auto &[id, ipol]: histDatamap)
+                    if (!ipol.data.empty())
+                        TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
+            }
 
             return datamapDest;
         }

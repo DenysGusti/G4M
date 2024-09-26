@@ -10,9 +10,8 @@ namespace g4m::structs {
     struct CellForest {
         static string csvHeader(const string_view forestType) noexcept {
             return format("forestShare_{0},stemBiomass_{0},fellings_{0},CAI_{0},OAC_{0},biomassChangeAb_{0},"
-                          "biomassChangeTotal_{0},totalBiomass_{0},totalHarvest_{0},harvestConiferFc_{0},"
-                          "harvestConiferTh_{0},harvestConiferSc_{0},harvestBroadleafFc_{0},harvestBroadleafTh_{0},"
-                          "harvestBroadleafSc_{0},deadwood_{0},litter_{0},deadwoodInput_{0},litterInput_{0},"
+                          "biomassChangeTotal_{0},totalBiomass_{0},harvestFc_{0},harvestTh_{0},harvestSc_{0},"
+                          "deadwood_{0},litter_{0},deadwoodInput_{0},litterInput_{0},"
                           "deadwoodEmissions_{0},litterEmissions_{0},burntDeadwood_{0},burntLitter_{0},"
                           "extractedResidues_{0},extractedStump_{0},extractedCleaned_{0}", forestType);
         }
@@ -27,14 +26,10 @@ namespace g4m::structs {
         double biomassChangeAb = 0;     // change in above-ground biomass, MtCO2 / (ha * year)
         double biomassChangeTotal = 0;  // change in above and below-ground biomass, MtCO2 / (ha * year)
         double totalBiomass = 0;        // total living biomass (above-ground + below-ground) of forest, tC / ha
-        double totalHarvest = 0;        // total wood (from FM) of forest in the cell, m^3 / year
 
-        double harvestConiferFc = 0;    // wood removals from final cut of coniferous forest in the cell, m^3 / year
-        double harvestConiferTh = 0;    // wood removals from thinning of coniferous forest in the cell, m^3 / year
-        double harvestConiferSc = 0;    // wood removals from selective cut of multifunctional coniferous forest in the cell, m^3 / year
-        double harvestBroadleafFc = 0;  // wood removals from final cut of broadleaf forest in the cell, m^3 / year
-        double harvestBroadleafTh = 0;  // wood removals from thinning of broadleaf forest in the cell, m^3 / year
-        double harvestBroadleafSc = 0;  // wood removals from selective cut of multifunctional broadleaf forest in the cell, m^3 / year
+        double harvestFc = 0;           // wood removals from final cut of forest in the cell, m^3 / year
+        double harvestTh = 0;           // wood removals from thinning of forest in the cell, m^3 / year
+        double harvestSc = 0;           // wood removals from selective cut of multifunctional forest in the cell, m^3 / year
 
         double deadwood = 0;            // deadwood in the forest in the cell, tC / ha
         double litter = 0;              // litter in forest in the cell, tC / ha
@@ -62,14 +57,10 @@ namespace g4m::structs {
             biomassChangeAb = 0;
             biomassChangeTotal = 0;
             totalBiomass = 0;
-            totalHarvest = 0;
 
-            harvestConiferFc = 0;
-            harvestConiferTh = 0;
-            harvestConiferSc = 0;
-            harvestBroadleafFc = 0;
-            harvestBroadleafTh = 0;
-            harvestBroadleafSc = 0;
+            harvestFc = 0;
+            harvestTh = 0;
+            harvestSc = 0;
 
             deadwoodInput = 0;
             litterInput = 0;
@@ -85,11 +76,15 @@ namespace g4m::structs {
             extractedCleaned = 0;
         }
 
+        // total wood (from FM) of forest in the cell, m^3 / year
+        [[nodiscard]] inline double totalHarvest() const noexcept {
+            return harvestFc + harvestTh + harvestSc;
+        }
+
         [[nodiscard]] string csv() const noexcept {
-            return format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            return format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                           forestShare.back(), stemBiomass.back(), fellings, CAI, OAC, biomassChangeAb,
-                          biomassChangeTotal, totalBiomass, totalHarvest, harvestConiferFc, harvestConiferTh,
-                          harvestConiferSc, harvestBroadleafFc, harvestBroadleafTh, harvestBroadleafSc, deadwood,
+                          biomassChangeTotal, totalBiomass, harvestFc, harvestTh, harvestSc, deadwood,
                           litter, deadwoodInput, litterInput, deadwoodEmissions, litterEmissions, burntDeadwood,
                           burntLitter, extractedResidues, extractedStump, extractedCleaned);
         }

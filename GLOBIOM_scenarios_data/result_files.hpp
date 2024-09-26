@@ -22,26 +22,26 @@ namespace g4m::GLOBIOM_scenarios_data {
         fs::path detailsFile;
         fs::path cellInfoFile;
         fs::path deadwoodTestFile;
+        fs::path bioclimaDetailsFile;
         fs::path harvestDetailsFile;
         fs::path residueExtractDetailsFile;
-        fs::path bioclimaDetailsFile;
         fs::path NPVFile;
 
         string detailsBuffer;
         string cellInfoBuffer;
+        string deadwoodTestBuffer;
+        string bioclimaDetailsBuffer;
         string harvestDetailsBuffer;
         string residueExtractDetailsBuffer;
-        string bioclimaDetailsBuffer;
-        string deadwoodTestBuffer;
 
         ResultFiles(const string_view outputFolder, const string_view local_suffix) noexcept:
                 outputPath{format("{}/{}", outputFolder, local_suffix)},
                 detailsFile{outputPath / "details.csv"},
                 cellInfoFile{outputPath / "cellInfo.csv"},
                 deadwoodTestFile{outputPath / "deadwoodTest.csv"},
+                bioclimaDetailsFile{outputPath / "bioclimaDetails.csv"},
                 harvestDetailsFile{outputPath / "harvestDetails.csv"},
                 residueExtractDetailsFile{outputPath / "residueExtractDetails.csv"},
-                bioclimaDetailsFile{outputPath / "bioclimaDetails.csv"},
                 NPVFile{outputPath / "NPV.csv"} {
             if (!fs::exists(outputPath))
                 fs::create_directories(outputPath);
@@ -51,9 +51,9 @@ namespace g4m::GLOBIOM_scenarios_data {
             detailsBuffer.reserve(initialBufferSize);
             cellInfoBuffer.reserve(initialBufferSize);
             deadwoodTestBuffer.reserve(initialBufferSize);
+            bioclimaDetailsBuffer.reserve(initialBufferSize);
             harvestDetailsBuffer.reserve(initialBufferSize);
             residueExtractDetailsBuffer.reserve(initialBufferSize);
-            bioclimaDetailsBuffer.reserve(initialBufferSize);
         }
 
         void addHeadersToBuffers(const string_view cellCSVHeader) noexcept {
@@ -75,6 +75,21 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "litterBranches_th,branches_harvtrees_lit,branches_deadtrees_multifunction_lit,litter_mort,"
                     "litterBranches_mort,litterStump_mort,litter_hRes_mng,litter_hRes_unmng,"
                     "litter_hRes_unmng_harv_litterin,litter_hRes_unmng_ded_litterin,litterPoolIn\n";
+            bioclimaDetailsBuffer +=
+                    "x,y,simuID,country,nuts2,year,land_area_ha,species,protected,area_forest_U_ha,"
+                    "area_forest_O10_ha,area_forest_O30_ha,area_P_ha,area_forest_N_ha,SD_U,SD_O10,SD_O30,"
+                    "rotation_mai,rotation_max_bm,rotation_U,rotation_O10,rotation_O30,rotation_P,cai_U_m3,"
+                    "cai_O10_m3,cai_O30_m3,cai_P_m3,cai_N_m3,biomass_U_tCha,biomass_O10_tCha,biomass_O30_tCha,"
+                    "biomass_P_tCha,biomass_N_tCha,harvest_U_m3year,harvest_O10_m3year,harvest_O30_m3year,"
+                    "harvest_N_m3year,fellings_U_m3year,fellings_O10_m3year,fellings_O30_m3year,fellings_N_m3year,"
+                    "deadwood_U_tCha,deadwood_O10_tCha,deadwood_O30_tCha,deadwood_P_tCha,deadwood_N_tCha,"
+                    "deadwood_in_U_tChaYear,deadwood_in_O10_tChaYear,deadwood_in_O30_tChaYear,deadwood_in_P_tChaYear,"
+                    "deadwood_in_N_tChaYear,deadwood_em_U_tChaYear,deadwood_em_O10_tChaYear,deadwood_em_O30_tChaYear,"
+                    "deadwood_em_P_tChaYear,deadwood_em_N_tChaYear,litter_U_tCha,litter_O10_tCha,litter_O30_tCha,"
+                    "litter_P_tCha,litter_N_tCha,litter_U_in_tChaYear,litter_O10_in_tChaYear,litter_O30_in_tChaYear,"
+                    "litter_P_in_tChaYear,litter_N_in_tChaYear,litter_em_U_tChaYear,litter_em_O10_tChaYear,"
+                    "litter_em_O30_tChaYear,litter_em_P_tChaYear,litter_em_N_tChaYear,set_aside_O10,set_aside_O30,"
+                    "oldest_age_U,oldest_age_O10,oldest_age_O30,oldest_age_P,oldest_age_N\n";
             harvestDetailsBuffer +=
                     "x,y,simuid,countryid,nuts2,year,SD,rotation,area_forest_old_ha,area_forest_new_ha,cai_m3ha,"
                     "harvest_total_m3hayear,harvest_fc_m3hayear,harvest_th_m3hayear,biom_fm_tcha,biom_af_tcha,"
@@ -92,9 +107,9 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "harvest_sco_m3halyear,harvest_scn_m3halyear,harvest_sco_m3year,harvest_scn_m3year,"
                     "harvest_conifer_sco_m3year,harvest_conifer_scn_m3year,harvest_broadleave_sco_m3year,"
                     "harvest_broadleave_scn_m3year,rotation_mai,rotation_mxbm,deadwood_old_tCha,deadwood_new_tCha,"
-                    "litter_old_tCha,litter_new_tCha,deadwood_old_in_tChayear,deadwood_new_in_tChayear,"
-                    "litter_old_in_tChayear,litter_new_in_tChayear,deadwood_old_em_tChayear,deadwood_new_em_tChayear,"
-                    "litter_old_em_tChayear,litter_new_em_tChayear\n";
+                    "litter_old_tCha,litter_new_tCha,deadwood_old_in_tChaYear,deadwood_new_in_tChaYear,"
+                    "litter_old_in_tChaYear,litter_new_in_tChaYear,deadwood_old_em_tChaYear,deadwood_new_em_tChaYear,"
+                    "litter_old_em_tChaYear,litter_new_em_tChaYear\n";
             residueExtractDetailsBuffer +=
                     "simuid,country,year,usedForest,OforestArea_kha,residuesBrHl_Int_m3ha,residuesStumps_Int_m3ha,"
                     "residuesBrHl_nonInt_m3ha,residues_notTakenDead_m3ha,residuesBrHl_Int_m3,residuesStumps_Int_m3,"
@@ -102,22 +117,6 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "em_BrHl_nonInt_MtCO2year,em_Sust4_MtCO2year,costsSuitBrHl_Int_USDm3,costsStumps_Int_USDm3,"
                     "costsBrHl_nonInt_USDm3,costs_notTakenDead_USDm3,costsTotal_USDm3,usedBrHl_Int,usedStumps,"
                     "usedBrHl_nonInt,used_notTakenDead\n";
-            bioclimaDetailsBuffer +=
-                    "x,y,simuid,countryid,nuts2,year,landarea_ha,species,protected,area_forest_old_ha,"
-                    "area_forest_new_ha,area_forest10_ha,area_forest30_ha,area_forest_primary_ha,SD,SD10,SD30,"
-                    "rotation_mai,rotation_mxbm,rotation,rotation10,rotation30,rotation_primary,cai_m3,cai_new_m3,"
-                    "cai10_m3,cai30_m3,cai_primary_m3,biom_fm_tcha,biom_af_tcha,biom_fm10_tcha,biom_fm30_tcha,"
-                    "biom_fm_primary_tcha,harvest_o_m3year,harvest_n_m3year,harvest10_m3year,harvest30_m3year,"
-                    "fellings_o_m3year,fellings_n_m3year,fellings10_m3year,fellings30_m3year,deadwood_old_tCha,"
-                    "deadwood_new_tCha,deadwood10_tCha,deadwood30_tCha,deadwood_primary_tCha,deadwood_old_in_tChayear,"
-                    "deadwood_new_in_tChayear,deadwood10_in_tChayear,deadwood30_in_tChayear,"
-                    "deadwood_primary_in_tChayear,deadwood_old_em_tChayear,deadwood_new_em_tChayear,"
-                    "deadwood10_em_tChayear,deadwood30_em_tChayear,deadwood_primary_em_tChayear,litter_old_tCha,"
-                    "litter_new_tCha,litter10_tCha,litter30_tCha,litter_primary_tCha,litter_old_in_tChayear,"
-                    "litter_new_in_tChayear,litter10_in_tChayear,litter30_in_tChayear,litter_primary_in_tChayear,"
-                    "litter_old_em_tChayear,litter_new_em_tChayear,litter10_em_tChayear,litter30_em_tChayear,"
-                    "litter_primary_em_tChayear,setaside10,setaside30,oldest_age_o,oldest_age_n,oldest_age10,"
-                    "oldest_age30,oldest_age_primary\n";
         }
 
         /*
@@ -187,9 +186,14 @@ namespace g4m::GLOBIOM_scenarios_data {
                 of << deadwoodTestBuffer;
                 INFO("{} bytes written to {}", deadwoodTestBuffer.length(), deadwoodTestFile.string());
             }
-            size_t maxBufferSize = max({detailsBuffer.length(), cellInfoBuffer.length(), harvestDetailsBuffer.length(),
-                                        residueExtractDetailsBuffer.length(), bioclimaDetailsBuffer.length(),
-                                        deadwoodTestBuffer.length()});
+            {
+                ofstream of{bioclimaDetailsFile};
+                of << bioclimaDetailsBuffer;
+                INFO("{} bytes written to {}", bioclimaDetailsBuffer.length(), bioclimaDetailsFile.string());
+            }
+            size_t maxBufferSize = max({detailsBuffer.length(), cellInfoBuffer.length(), deadwoodTestBuffer.length(),
+                                        bioclimaDetailsBuffer.length(), harvestDetailsBuffer.length(),
+                                        residueExtractDetailsBuffer.length()});
             if (initialBufferSize < maxBufferSize)
                 WARN("Increase initialBufferSize! initialBufferSize = {}, maxBufferSize = {}",
                      initialBufferSize, maxBufferSize);

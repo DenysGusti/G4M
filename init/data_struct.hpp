@@ -517,6 +517,10 @@ namespace g4m::init {
                     return 0.22;
             }
         }
+
+        [[nodiscard]] inline bool isBroadleaf() const noexcept {
+            return 5 <= static_cast<uint8_t>(speciesType) && static_cast<uint8_t>(speciesType) <= 7;
+        }
     };
 }
 

@@ -31,7 +31,7 @@ using namespace g4m::parameters;
 
 namespace g4m::increment {
     // simulator of forest growth, development, and forest management
-    // this class doesn't own IIpols!
+    // this class doesn't own IIpols, they are created on stack and freed automatically, here are just pointers!
     class AgeStruct {
     public:
         AgeStruct(

@@ -82,8 +82,9 @@ namespace g4m::application::concrete {
             INFO("Application {} is running", appName);
 
             for (const auto &plot: appPlots)
-                rf.cellInfoBuffer += format("{},{},{},{},{}\n", plot.asID, plot.simuID, plot.country, coef.bYear - 1,
-                                            appDats[plot.asID].csv());
+                rf.cellInfoBuffer += format("{},{},{},{},{}\n", plot.asID, plot.simuID,
+                                            idCountryGLOBIOM.at(plot.country),
+                                            coef.bYear - 1, appDats[plot.asID].csv());
 
             // loop by years
             for (uint16_t year = coef.bYear; year <= coef.eYear; ++year) {
@@ -128,8 +129,8 @@ namespace g4m::application::concrete {
                     calc(plot, year);
                     const Dat &cell = appDats[plot.asID];
 
-                    rf.cellInfoBuffer += format("{},{},{},{},{}\n", plot.asID, plot.simuID, plot.country, year,
-                                                cell.csv());
+                    rf.cellInfoBuffer += format("{},{},{},{},{}\n", plot.asID, plot.simuID,
+                                                idCountryGLOBIOM.at(plot.country), year, cell.csv());
 
                     if (!cell.checkLastForestShares()) {
                         FATAL("Negative forest share in year = {}, asID = {}, country = {}", year, plot.asID,
@@ -137,10 +138,94 @@ namespace g4m::application::concrete {
                         throw runtime_error{"Negative forest share!"};
                     }
                     if constexpr (fmPol && !binFilesOnDisk)
-                        if (inputPriceC == 0 && year > refYear) {
+                        if (inputPriceC == 0 && year > refYear)
                             tmpBm.push_back(cell.U.stemBiomass.back());
-                        }
+
                     appOForestShGrid.update1YearForward();
+
+                    const auto [x, y] = plot.getGeographicCoordinates();
+                    string nuts2_id;
+                    if (auto it_nuts2 = nuts2.nuts2id.find({plot.x, plot.y}); it_nuts2 != nuts2.nuts2id.end())
+                        nuts2_id = it_nuts2->second;
+                    else
+                        ERROR("NUTS2 was not found! x = {}, y = {}", x, y);
+
+                    const double sd = appThinningForest(plot.x, plot.y);
+                    const IncrementTab::TableMode mode = IncrementTab::getTableModeBySD(sd);
+                    const double rotMAI = species.at(plot.speciesType).getTOpt(mode, appMaiForest(plot.x, plot.y),
+                                                                               OptRotTimes::Mode::MAI, abs(sd));
+                    const double rotMaxBm = species.at(plot.speciesType).getTOpt(mode, appMaiForest(plot.x, plot.y),
+                                                                                 OptRotTimes::Mode::MaxBm, abs(sd));
+                    // TODO rotMAI, rotMaxBm in cell, special formula, in calc?
+                    // TODO rotMAI, rotMaxBm?
+                    // TODO cell.U.totalHarvest?
+                    // TODO obsolete forest?
+                    // TODO harvestFcM3Ha?
+                    // TODO check columns and wished data
+                    // TODO add 0 columns to cellInfo
+                    // TODO add Harvest details for Fulvio in CanopyLayer?
+                    // TODO harvestFc_m3_U has FS
+                    // TODO cell.U.harvestFc() / cell.landAreaHa?
+//                    if (year > residueHarvYear)
+//                        rf.harvestDetailsBuffer +=
+//                                format("{},{}\n",
+//                                       x, y, plot.simuID, plot.country, nuts2_id, year, cell.SD, cell.rotation,
+//                                       cell.forestShareOld(-1) * cell.landAreaHa,
+//                                       cell.N.forestShare.back() * cell.landAreaHa, cell.U.CAI, cell.U.totalHarvest,
+//                                       cell.U.harvestFc(), cell.U.harvestTh() /*???*/, cell.U.totalBiomass,
+//                                       cell.N.totalBiomass /*columns*/, speciesName.at(plot.speciesType),
+//                                       cell.U.harvestFc() / cell.landAreaHa, cell.U.harvestTh() / cell.landAreaHa,
+//                                       cell.N.harvestFc() / cell.landAreaHa, cell.N.harvestTh() / cell.landAreaHa,
+//                                       cell.U.harvestFc(), cell.U.harvestTh(), cell.N.harvestFc(), cell.N.harvestTh(),
+//                                       cell.U.harvestConiferFc, cell.U.harvestConiferTh, cell.N.harvestConiferFc,
+//                                       cell.N.harvestConiferTh, cell.U.harvestBroadleafFc, cell.U.harvestBroadleafTh,
+//                                       cell.N.harvestBroadleafFc, cell.N.harvestBroadleafTh,
+//                                       cell.U.harvestSc() /*???*/ /*columns*/,
+//                                       cell.U.harvestSc() / cell.landAreaHa, cell.N.harvestSc() / cell.landAreaHa,
+//                                       cell.U.harvestSc(), cell.N.harvestSc(), cell.U.harvestConiferSc,
+//                                       cell.N.harvestConiferSc, cell.U.harvestBroadleafSc, cell.N.harvestBroadleafSc,
+//                                       rotMAI, rotMaxBm, cell.U.deadwood, cell.N.deadwood, cell.U.litter,
+//                                       cell.N.litter, cell.U.deadwoodInput, cell.N.deadwoodInput, cell.U.litterInput,
+//                                       cell.N.litterInput, cell.U.deadwoodEmissions, cell.N.deadwoodEmissions,
+//                                       cell.U.litterEmissions, cell.N.litterEmissions);
+
+                    rf.bioclimaDetailsBuffer +=
+                            format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
+                                   "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
+                                   "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                                   x, y, plot.simuID, idCountryGLOBIOM.at(plot.country), nuts2_id, year,
+                                   cell.landAreaHa, speciesName.at(plot.speciesType), plot.protect,
+                                   cell.U.forestShare.back() * cell.landAreaHa,
+                                   cell.O10.forestShare.back() * cell.landAreaHa,
+                                   cell.O30.forestShare.back() * cell.landAreaHa,
+                                   cell.P.forestShare.back() * cell.landAreaHa,
+                                   cell.N.forestShare.back() * cell.landAreaHa, cell.SD,
+                                   appCohorts10[plot.asID].getStockingDegree(),
+                                   appCohorts30[plot.asID].getStockingDegree(), rotMAI, rotMaxBm, cell.rotation,
+                                   appCohorts10[plot.asID].getU(), appCohorts30[plot.asID].getU(),
+                                   appCohortsP[plot.asID].getU(),
+                                   cell.U.CAI * cell.U.forestShare.back() * cell.landAreaHa,
+                                   cell.O10.CAI * cell.O10.forestShare.back() * cell.landAreaHa,
+                                   cell.O30.CAI * cell.O30.forestShare.back() * cell.landAreaHa,
+                                   cell.P.CAI * cell.P.forestShare.back() * cell.landAreaHa,
+                                   cell.N.CAI * cell.N.forestShare.back() * cell.landAreaHa,
+                                   cell.U.totalBiomass, cell.O10.totalBiomass, cell.O30.totalBiomass,
+                                   cell.P.totalBiomass, cell.N.totalBiomass, cell.U.totalHarvest(),
+                                   cell.O10.totalHarvest(), cell.O30.totalHarvest(), cell.N.totalHarvest(),
+                                   cell.U.fellings, cell.O10.fellings, cell.O30.fellings, cell.N.fellings,
+                                   cell.U.deadwood, cell.O10.deadwood, cell.O30.deadwood, cell.P.deadwood,
+                                   cell.N.deadwood,
+                                   cell.U.deadwoodInput, cell.O10.deadwoodInput,
+                                   cell.O30.deadwoodInput, cell.P.deadwoodInput, cell.N.deadwoodInput,
+                                   cell.U.deadwoodEmissions, cell.O10.deadwoodEmissions, cell.O30.deadwoodEmissions,
+                                   cell.P.deadwoodEmissions, cell.N.deadwoodEmissions,
+                                   cell.U.litter, cell.O10.litter, cell.O30.litter, cell.P.litter, cell.N.litter,
+                                   cell.U.litterInput, cell.O10.litterInput, cell.O30.litterInput, cell.P.litterInput,
+                                   cell.N.litterInput,
+                                   cell.U.litterEmissions, cell.O10.litterEmissions, cell.O30.litterEmissions,
+                                   cell.P.litterEmissions, cell.N.litterEmissions,
+                                   appForest10Policy, appForest30Policy,
+                                   cell.U.OAC, cell.N.OAC, cell.O10.OAC, cell.O30.OAC, cell.P.OAC);
                 }
             }
             rf.sortCellInfo();
@@ -3008,7 +3093,7 @@ namespace g4m::application::concrete {
                     rotMAI = max(0., rotMAI);
                 }
                 if (cell.rotation <= 1) {
-                    println("harvestWoodU = {}", harvestWoodU);
+                    ERROR("harvestWoodU = {}", harvestWoodU);
                     harvestWoodU = 0;
                 }
                 harvestWoodU = max(0., harvestWoodU);
@@ -3329,8 +3414,9 @@ namespace g4m::application::concrete {
             cell.deforestHaYear = cell.deforestationShareTimeA[age] * cell.landAreaHa;
             cell.deforestHaTotal += cell.deforestHaYear;
             cell.afforestHaYear = cell.afforestationShareTimeA[age] * cell.landAreaHa;
-            // TODO 10.03.2023 adjusting to Ireland Fl-Fl reporting other way
-            cell.afforestHaTotal += cell.afforestHaYear;
+            // 10.03.2023 adjusting to Ireland Fl-Fl reporting
+            if (!(plot.country == 103 && year < 2001))
+                cell.afforestHaTotal += cell.afforestHaYear;
 
             cell.deforestationWoodyProductsLongLivedA[age] =
                     resultDeforestation.biomass * plot.fracLongProd * (1 - coef.harvLoos) * (1 - plot.slashBurn) *
@@ -3576,13 +3662,32 @@ namespace g4m::application::concrete {
                 harvestDfM3Ha = resultDeforestation.getWood() * (1 - plot.slashBurn) * plot.fTimber;
                 cell.deforestationWoodTotalM3 = harvestDfM3Ha * cell.deforestHaYear;
 
-                cell.U.totalHarvest = harvestWoodPlusU * cell.U.forestShare.back() * cell.landAreaHa;
-                cell.N.totalHarvest = harvestWoodPlusN * cell.N.forestShare.end()[-2] * cell.landAreaHa;
-                cell.O10.totalHarvest = harvestWoodPlus10 * cell.O10.forestShare.back() * cell.landAreaHa;
-                cell.O30.totalHarvest = harvestWoodPlus30 * cell.O30.forestShare.back() * cell.landAreaHa;
+                cell.U.harvestFc = harvestedWoodUse[plot.country] * resU.getFinalCutWood() * plot.fTimber *
+                                   cell.U.forestShare.back() * cell.landAreaHa;
+                cell.U.harvestTh = harvestedWoodUse[plot.country] * resU.getThinnedWood() * plot.fTimber *
+                                   cell.U.forestShare.back() * cell.landAreaHa;
+                cell.U.harvestSc = harvestWoodLU * cell.U.forestShare.back() * cell.landAreaHa;
 
-                harvestFmTotalM3 =
-                        cell.U.totalHarvest + cell.N.totalHarvest + cell.O10.totalHarvest + cell.O30.totalHarvest;
+                cell.N.harvestFc = harvestedWoodUse[plot.country] * resN.getFinalCutWood() * plot.fTimber *
+                                   cell.N.forestShare.end()[-2] * cell.landAreaHa;
+                cell.N.harvestTh = harvestedWoodUse[plot.country] * resN.getThinnedWood() * plot.fTimber *
+                                   cell.N.forestShare.end()[-2] * cell.landAreaHa;
+                cell.N.harvestSc = harvestWoodLN * cell.N.forestShare.end()[-2] * cell.landAreaHa;
+
+                cell.O10.harvestFc = harvestedWoodUse[plot.country] * res10.getFinalCutWood() * plot.fTimber *
+                                     cell.O10.forestShare.back() * cell.landAreaHa;
+                cell.O10.harvestTh = harvestedWoodUse[plot.country] * res10.getThinnedWood() * plot.fTimber *
+                                     cell.O10.forestShare.back() * cell.landAreaHa;
+                cell.O10.harvestSc = harvestWoodL10 * cell.O10.forestShare.back() * cell.landAreaHa;
+
+                cell.O30.harvestFc = harvestedWoodUse[plot.country] * res30.getFinalCutWood() * plot.fTimber *
+                                     cell.O30.forestShare.back() * cell.landAreaHa;
+                cell.O30.harvestTh = harvestedWoodUse[plot.country] * res30.getThinnedWood() * plot.fTimber *
+                                     cell.O30.forestShare.back() * cell.landAreaHa;
+                cell.O30.harvestSc = harvestWoodL30 * cell.O30.forestShare.back() * cell.landAreaHa;
+
+                harvestFmTotalM3 = cell.U.totalHarvest() + cell.N.totalHarvest() + cell.O10.totalHarvest() +
+                                   cell.O30.totalHarvest();
                 harvestTotalAllM3 = harvestFmTotalM3 + cell.deforestationWoodTotalM3 + cell.salvageLogging;
 
                 cell.U.fellings = (resU.getTotalHarvestedBiomass() +
@@ -3679,7 +3784,7 @@ namespace g4m::application::concrete {
                     format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
                            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}"
                            "\n",
-                           plot.asID, plot.simuID, plot.country, year, cell.forestShareOld(-1),
+                           plot.asID, plot.simuID, idCountryGLOBIOM.at(plot.country), year, cell.forestShareOld(-1),
                            cell.N.forestShare.back(), plot.CAboveHa,
                            cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()),
                            cell.N_abovegroundBiomass(-1), appMaiForest(plot.x, plot.y) * plot.fTimber, rotMAI,
@@ -3846,8 +3951,8 @@ namespace g4m::application::concrete {
             countriesWoodHarvestM3Year.inc(plot.country, year, harvestTotalAllM3);
             countriesWoodHarvestFmM3Year.inc(plot.country, year, harvestFmTotalM3);
             countriesWoodHarvestDfM3Year.inc(plot.country, year, cell.deforestationWoodTotalM3);
-            countriesWoodHarvest10M3Year.inc(plot.country, year, cell.O10.totalHarvest);
-            countriesWoodHarvest30M3Year.inc(plot.country, year, cell.O30.totalHarvest);
+            countriesWoodHarvest10M3Year.inc(plot.country, year, cell.O10.totalHarvest());
+            countriesWoodHarvest30M3Year.inc(plot.country, year, cell.O30.totalHarvest());
 
             countriesWoodHarvestFc_oldM3Year.inc(
                     plot.country, year,
@@ -4025,35 +4130,15 @@ namespace g4m::application::concrete {
             // Harvest details for Fulvio deprecated
 
             if (!plot.protect) {
-                double harvestFc_m3_U =
-                        resU.getFinalCutWood() * plot.fTimber * cell.U.forestShare.back() * cell.landAreaHa;
-                double harvestTh_m3_U =
-                        resU.getThinnedWood() * plot.fTimber * cell.U.forestShare.back() * cell.landAreaHa;
-                double harvestSc_m3_U = harvestWoodLU * cell.U.forestShare.back() * cell.landAreaHa;
-
-                double harvestFc_m3_N =
-                        resN.getFinalCutWood() * plot.fTimber * cell.N.forestShare.end()[-2] * cell.landAreaHa;
-                double harvestTh_m3_N =
-                        resN.getThinnedWood() * plot.fTimber * cell.N.forestShare.end()[-2] * cell.landAreaHa;
-                double harvestSc_m3_N = harvestWoodLN * cell.N.forestShare.end()[-2] * cell.landAreaHa;
-
                 // harvest of broadleaf
-                if (5 <= static_cast<uint8_t>(plot.speciesType) && static_cast<uint8_t>(plot.speciesType) <= 7) {
-                    cell.U.harvestBroadleafFc = harvestFc_m3_U;
-                    cell.U.harvestBroadleafTh = harvestTh_m3_U;
-                    cell.U.harvestBroadleafSc = harvestSc_m3_U;
+                if (plot.isBroadleaf()) {
+                    countriesWoodHarvBroadleafFc_oldM3Year.inc(plot.country, year, cell.U.harvestFc);
+                    countriesWoodHarvBroadleafTh_oldM3Year.inc(plot.country, year, cell.U.harvestTh);
+                    countriesWoodHarvBroadleafSc_oldM3Year.inc(plot.country, year, cell.U.harvestSc);
 
-                    cell.N.harvestBroadleafFc = harvestFc_m3_N;
-                    cell.N.harvestBroadleafTh = harvestTh_m3_N;
-                    cell.N.harvestBroadleafSc = harvestSc_m3_N;
-
-                    countriesWoodHarvBroadleafFc_oldM3Year.inc(plot.country, year, cell.U.harvestBroadleafFc);
-                    countriesWoodHarvBroadleafTh_oldM3Year.inc(plot.country, year, cell.U.harvestBroadleafTh);
-                    countriesWoodHarvBroadleafSc_oldM3Year.inc(plot.country, year, cell.U.harvestBroadleafSc);
-
-                    countriesWoodHarvBroadleafFc_newM3Year.inc(plot.country, year, cell.N.harvestBroadleafFc);
-                    countriesWoodHarvBroadleafTh_newM3Year.inc(plot.country, year, cell.N.harvestBroadleafTh);
-                    countriesWoodHarvBroadleafSc_newM3Year.inc(plot.country, year, cell.N.harvestBroadleafSc);
+                    countriesWoodHarvBroadleafFc_newM3Year.inc(plot.country, year, cell.N.harvestFc);
+                    countriesWoodHarvBroadleafTh_newM3Year.inc(plot.country, year, cell.N.harvestTh);
+                    countriesWoodHarvBroadleafSc_newM3Year.inc(plot.country, year, cell.N.harvestSc);
 
                     if (appThinningForest(plot.x, plot.y) > 0) {
                         countriesAreaUsedBroadleaf_oldHa.inc(plot.country, year,
@@ -4075,21 +4160,13 @@ namespace g4m::application::concrete {
                                                            cell.N.forestShare.end()[-2] * cell.landAreaHa);
                     }
                 } else { // harvest of conifers
-                    cell.U.harvestConiferFc = harvestFc_m3_U;
-                    cell.U.harvestConiferTh = harvestTh_m3_U;
-                    cell.U.harvestConiferSc = harvestSc_m3_U;
+                    countriesWoodHarvConiferFc_oldM3Year.inc(plot.country, year, cell.U.harvestFc);
+                    countriesWoodHarvConiferTh_oldM3Year.inc(plot.country, year, cell.U.harvestTh);
+                    countriesWoodHarvConiferSc_oldM3Year.inc(plot.country, year, cell.U.harvestSc);
 
-                    cell.N.harvestConiferFc = harvestFc_m3_N;
-                    cell.N.harvestConiferTh = harvestTh_m3_N;
-                    cell.N.harvestConiferSc = harvestSc_m3_N;
-
-                    countriesWoodHarvConiferFc_oldM3Year.inc(plot.country, year, cell.U.harvestConiferFc);
-                    countriesWoodHarvConiferTh_oldM3Year.inc(plot.country, year, cell.U.harvestConiferTh);
-                    countriesWoodHarvConiferSc_oldM3Year.inc(plot.country, year, cell.U.harvestConiferSc);
-
-                    countriesWoodHarvConiferFc_newM3Year.inc(plot.country, year, cell.N.harvestConiferFc);
-                    countriesWoodHarvConiferTh_newM3Year.inc(plot.country, year, cell.N.harvestConiferTh);
-                    countriesWoodHarvConiferSc_newM3Year.inc(plot.country, year, cell.N.harvestConiferSc);
+                    countriesWoodHarvConiferFc_newM3Year.inc(plot.country, year, cell.N.harvestFc);
+                    countriesWoodHarvConiferTh_newM3Year.inc(plot.country, year, cell.N.harvestTh);
+                    countriesWoodHarvConiferSc_newM3Year.inc(plot.country, year, cell.N.harvestSc);
 
                     if (appThinningForest(plot.x, plot.y) > 0) {
                         countriesAreaUsedConifer_oldHa.inc(plot.country, year,
@@ -4115,20 +4192,20 @@ namespace g4m::application::concrete {
             // deadwood_dynamics
             if (plot.protect) {
                 if (cell.U.forestShare.back() > 0) {
-                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "U", false);
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                    idCountryGLOBIOM.at(plot.country), year, "U", false);
                     tie(cell.U.deadwoodInput, cell.U.litterInput) =
                             deadwoodPoolCalcFunc(plot, resULost, true, 0, 0, 0, 0, 0);
                 }
                 if (cell.O10.forestShare.back() > 0) {
-                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "O10", false);
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                    idCountryGLOBIOM.at(plot.country), year, "O10", false);
                     tie(cell.O10.deadwoodInput, cell.O10.litterInput) =
                             deadwoodPoolCalcFunc(plot, res10Lost, true, 0, 0, 0, 0, 0);
                 }
                 if (cell.O30.forestShare.back() > 0) {
-                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "O30", false);
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                    idCountryGLOBIOM.at(plot.country), year, "O30", false);
                     tie(cell.O30.deadwoodInput, cell.O30.litterInput) =
                             deadwoodPoolCalcFunc(plot, res30Lost, true, 0, 0, 0, 0, 0);
                 }
@@ -4136,8 +4213,8 @@ namespace g4m::application::concrete {
             } else {
                 if (cell.U.forestShare.back() > 0) {
                     bool used = appThinningForest(plot.x, plot.y) > 0;
-                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "U", used);
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                    idCountryGLOBIOM.at(plot.country), year, "U", used);
                     tie(cell.U.deadwoodInput, cell.U.litterInput) =
                             used ?
                             deadwoodPoolCalcFunc(plot, resU, false, cell.U.extractedResidues,
@@ -4150,8 +4227,8 @@ namespace g4m::application::concrete {
                 // TODO decide if U or N extracted
                 if (cell.N.forestShare.back() > 0) {
                     bool used = thinningForestNew(plot.x, plot.y) > 0;
-                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "N", used);
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                    idCountryGLOBIOM.at(plot.country), year, "N", used);
                     tie(cell.N.deadwoodInput, cell.N.litterInput) =
                             used ?
                             deadwoodPoolCalcFunc(plot, resN, false, cell.U.extractedResidues,
@@ -4164,8 +4241,8 @@ namespace g4m::application::concrete {
                 // To be set according to BIOCLIMA scenario for the 10% forest
                 if (cell.O10.forestShare.back() > 0) {
                     bool used = appThinningForest10(plot.x, plot.y) > 0;
-                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "O10", used);
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                    idCountryGLOBIOM.at(plot.country), year, "O10", used);
                     tie(cell.O10.deadwoodInput, cell.O10.litterInput) =
                             used ?
                             deadwoodPoolCalcFunc(plot, res10, false, cell.O10.extractedResidues,
@@ -4177,8 +4254,8 @@ namespace g4m::application::concrete {
                 }
                 if (cell.O30.forestShare.back() > 0) {
                     bool used = appThinningForest30(plot.x, plot.y) > 0;
-                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                    year, "O30", used);
+                    rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                    idCountryGLOBIOM.at(plot.country), year, "O30", used);
                     tie(cell.O30.deadwoodInput, cell.O30.litterInput) =
                             used ?
                             deadwoodPoolCalcFunc(plot, res30, false, cell.O30.extractedResidues,
@@ -4190,8 +4267,8 @@ namespace g4m::application::concrete {
                 }
             }
             if (cell.P.forestShare.back() > 0) {
-                rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID, plot.country,
-                                                year, "P", false);
+                rf.deadwoodTestBuffer += format("{},{},{},{},{},{},", plot.asID, plot.simuID,
+                                                idCountryGLOBIOM.at(plot.country), year, "P", false);
                 tie(cell.P.deadwoodInput, cell.P.litterInput) =
                         deadwoodPoolCalcFunc(plot, resPLost, true, 0, 0, 0, 0, 0);
             }

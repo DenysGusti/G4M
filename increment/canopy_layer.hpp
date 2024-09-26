@@ -2,6 +2,7 @@
 #define G4M_EUROPE_DG_CANOPY_LAYER_HPP
 
 #include <ranges>
+#include <print>
 
 #include "age_class.hpp"
 #include "increment_tab.hpp"

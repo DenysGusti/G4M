@@ -59,7 +59,7 @@ namespace g4m::increment {
 
         // sawnWood + restWood + sawnThinningWood + restThinningWood
         [[nodiscard]] inline double getTotalWoodRemoval() const noexcept {
-            return sawnWood + restWood + sawnThinningWood + restThinningWood;
+            return getFinalCutWood() + getThinnedWood();
         }
 
         // biomassHarvest + biomassThinning
@@ -68,6 +68,7 @@ namespace g4m::increment {
         }
 
         // totalHarvestedBiomass - totalWoodRemoval
+        // biomassHarvest + biomassThinning - (sawnWood + restWood + sawnThinningWood + restThinningWood)
         [[nodiscard]] inline double getHarvestLosses() const noexcept {
             return getTotalHarvestedBiomass() - getTotalWoodRemoval();
         }

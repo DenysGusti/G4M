@@ -20,17 +20,23 @@ namespace g4m::GLOBIOM_scenarios_data {
             simuIdType simuIdDest = simuIdScenarios.at(string{scenario});
             simuIdType histSimuId = simuIdScenarios.at(bauScenario);
 
-            for (auto &[id, ipol]: simuIdDest)
+            bool obsolete = false;
+
+            for (auto &[id, ipol]: simuIdDest) {
                 ipol.data.merge(histSimuId.at(id).data);
+                obsolete |= !histSimuId.at(id).data.empty();
+            }
 
             TRACE("Merged {}:", message);
             for (const auto &[id, ipol]: simuIdDest)
                 TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
 
-            TRACE("Obsolete {}:", message);
-            for (const auto &[id, ipol]: histSimuId)
-                if (!ipol.data.empty())
-                    TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
+            if (obsolete) {
+                TRACE("Obsolete {}:", message);
+                for (const auto &[id, ipol]: histSimuId)
+                    if (!ipol.data.empty())
+                        TRACE("{}\n{}", idCountryGLOBIOM.at(id), ipol.str());
+            }
 
             return simuIdDest;
         }
