@@ -66,7 +66,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "balanceO,lost_bm_m3,bm_stem_tC,bm_stem_prev_tC,bm_stem_tCha,bm_stem_prev_tCha,oForShare,"
                     "oForSharePrev,landAreaHa,FM_sink_ab_mtCO2year,FM_sink_bm_mtCO2year,trotMaxBm,oldestAge,"
                     "oldestAgeNew,lostW_fc_thm3,lostW_th_thm3,em_fm_check,globiomReserved,maxAff,landBalance\n";
-            cellInfoBuffer += format("asID,simuID,country,year,{}\n", cellCSVHeader);
+            cellInfoBuffer += format("asID,simuID,country,year,species,vegetation,{}\n", cellCSVHeader);
             deadwoodTestBuffer +=
                     "asID,simuID,country,year,forest_share_type,managed,extractedResidues,extractedCleaned,"
                     "RESIDUESUSESHARE,deadwoodBranches_fc,deadwoodBranches_th,branches_harvtrees_tot,"

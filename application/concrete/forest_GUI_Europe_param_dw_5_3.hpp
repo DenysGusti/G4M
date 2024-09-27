@@ -82,9 +82,10 @@ namespace g4m::application::concrete {
             INFO("Application {} is running", appName);
 
             for (const auto &plot: appPlots)
-                rf.cellInfoBuffer += format("{},{},{},{},{}\n", plot.asID, plot.simuID,
-                                            idCountryGLOBIOM.at(plot.country),
-                                            coef.bYear - 1, appDats[plot.asID].csv());
+                rf.cellInfoBuffer += format("{},{},{},{},{},{},{}\n", plot.asID, plot.simuID,
+                                            idCountryGLOBIOM.at(plot.country), coef.bYear - 1,
+                                            speciesName.at(plot.speciesType), vegetationTypeName.at(plot.potVeg),
+                                            appDats[plot.asID].csv());
 
             // loop by years
             for (uint16_t year = coef.bYear; year <= coef.eYear; ++year) {
@@ -129,8 +130,10 @@ namespace g4m::application::concrete {
                     calc(plot, year);
                     const Dat &cell = appDats[plot.asID];
 
-                    rf.cellInfoBuffer += format("{},{},{},{},{}\n", plot.asID, plot.simuID,
-                                                idCountryGLOBIOM.at(plot.country), year, cell.csv());
+                    rf.cellInfoBuffer += format("{},{},{},{},{},{},{}\n", plot.asID, plot.simuID,
+                                                idCountryGLOBIOM.at(plot.country), year,
+                                                speciesName.at(plot.speciesType), vegetationTypeName.at(plot.potVeg),
+                                                cell.csv());
 
                     if (!cell.checkLastForestShares()) {
                         FATAL("Negative forest share in year = {}, asID = {}, country = {}", year, plot.asID,

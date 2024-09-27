@@ -28,7 +28,7 @@ namespace g4m::StartData {
             plots.readPlots();
             plots.filterPlots();
             plots.initPlotsSimuID();
-            plots.initPlotsSimuID();
+            plots.initPlotsXY_SimuID();
         });
 
         coef_future.get();
