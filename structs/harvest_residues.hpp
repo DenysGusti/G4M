@@ -7,7 +7,6 @@
 #include "../settings/arrays/arrays.hpp"
 
 namespace g4m::structs {
-
     struct HarvestResidues {
         uint32_t simuId = 0;                        // ID of simulation unit
         size_t asID = 0;                            // ID of G4M cell
@@ -31,11 +30,11 @@ namespace g4m::structs {
         int emissionsTimeFrame = 0;                 // period of residue extraction for estimation of emissions
         bool protect = false;                       // protected cell
 
-        bool em_harvRes_fcO = false;
-        bool em_harvRes_thO = false;
+        bool em_harvRes_fcU = false;
+        bool em_harvRes_thU = false;
         bool em_harvRes_fcN = false;
         bool em_harvRes_thN = false;
-        bool em_harvRes_scO = false;
+        bool em_harvRes_scU = false;
         bool em_harvRes_scN = false;
 
         bool em_harvRes_fc10 = false;
@@ -111,6 +110,13 @@ namespace g4m::structs {
 
             em_factor = max(0., em_factor);
             return em_factor;
+        }
+
+        void setTimeUseSust() noexcept {
+            if (useSuit1 <= 0 && useSuit3 <= 0 && useSuit4 <= 0)
+                U.timeUseSust1 = 0;
+            if (useSuit2 <= 0)
+                U.timeUseSust2 = 0;
         }
     };
 
