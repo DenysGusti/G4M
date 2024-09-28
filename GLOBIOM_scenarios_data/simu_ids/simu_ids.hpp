@@ -23,8 +23,12 @@ namespace g4m::GLOBIOM_scenarios_data {
             bool obsolete = false;
 
             for (auto &[id, ipol]: simuIdDest) {
-                ipol.data.merge(histSimuId.at(id).data);
-                obsolete |= !histSimuId.at(id).data.empty();
+                if (histSimuId.contains(id)) {
+                    ipol.data.merge(histSimuId.at(id).data);
+                    obsolete |= !histSimuId.at(id).data.empty();
+                } else
+                    WARN("Country {} ({}) is missing in {} historical simuId ({}) albeit it exists in scenario simuId ({})!",
+                         id, idCountryGLOBIOM.at(id), message, bauScenario, message);
             }
 
             TRACE("Merged {}:", message);

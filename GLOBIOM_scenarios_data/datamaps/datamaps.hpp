@@ -18,8 +18,12 @@ namespace g4m::GLOBIOM_scenarios_data {
             bool obsolete = false;
 
             for (auto &[id, ipol]: datamapDest) {
-                ipol.data.merge(histDatamap.at(id).data);
-                obsolete |= !histDatamap.at(id).data.empty();
+                if (histDatamap.contains(id)) {
+                    ipol.data.merge(histDatamap.at(id).data);
+                    obsolete |= !histDatamap.at(id).data.empty();
+                } else
+                    WARN("Country {} ({}) is missing in {} historical datamap ({}) albeit it exists in scenario datamap ({})!",
+                         id, idCountryGLOBIOM.at(id), message, bauScenario, full_scenario);
             }
 
             TRACE("Merged {}:", message);
