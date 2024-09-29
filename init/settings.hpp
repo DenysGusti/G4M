@@ -15,29 +15,79 @@
 using namespace std;
 
 namespace g4m::init {
-    struct Settings {
+    class Settings {
+    public:
         string coefPath;
         string inputPath;
         string outputPath;
+
         unordered_set<string, StringHash, equal_to<> > parametersTable;
         unordered_set<string, StringHash, equal_to<> > parametersTableReg;
         unordered_set<string, StringHash, equal_to<> > parametersMap;
+
         bool produceTabs{};
         bool produceMaps{};
+
         array<bool, 3> tabs{};
         array<bool, 3> maps{};
 
-        Settings() = default;
+        unordered_map<string, string, StringHash, equal_to<> > fileNames;
 
-        explicit Settings(const string_view file_name) {
-            readSettings(file_name);
+        string bauScenario; // is used as a key in dictionaries
+        vector<array<string, 4> > scenarios;
+
+        void readSettings() {
+            readPaths();
+            readParameters();
+            readFileNames();
+            readScenarios();
         }
 
-        void readSettings(const string_view file_name) {
-            ifstream file{filesystem::path{file_name}};
+    private:
+        filesystem::path ini_folder = "ini";
+
+        void readPaths() {
+            const filesystem::path file_path = ini_folder / "paths.ini";
+            ifstream file{file_path};
             if (!file.is_open()) {
-                FATAL("Cannot read {} in directory {}", file_name, fs::current_path().string());
-                throw runtime_error{"Cannot read settings file"};
+                FATAL("Cannot read {} in directory {}", file_path.string(), fs::current_path().string());
+                throw runtime_error{"Cannot read paths file"};
+            }
+
+            string line;
+
+            for (int line_num = 0; file;) {
+                getline(file, line);
+
+                if (!line.empty() && line.back() == '\r')   // remove carriage return for linux
+                    line.pop_back();
+
+                if (line.empty() || line.front() == '#')
+                    continue;
+
+                switch (line_num) {
+                    case 0:
+                        coefPath = line;
+                        break;
+                    case 1:
+                        inputPath = line;
+                        break;
+                    case 2:
+                        outputPath = line;
+                        break;
+                    default:
+                        WARN("Unexpected line of paths file");
+                }
+                ++line_num;
+            }
+        }
+
+        void readParameters() {
+            const filesystem::path file_path = ini_folder / "parameters.ini";
+            ifstream file{file_path};
+            if (!file.is_open()) {
+                FATAL("Cannot read {} in directory {}", file_path.string(), fs::current_path().string());
+                throw runtime_error{"Cannot read parameters file"};
             }
 
             string line;
@@ -65,62 +115,119 @@ namespace g4m::init {
                 if (!line.empty() && line.back() == '\r')   // remove carriage return for linux
                     line.pop_back();
 
-                if (line.empty() || line[0] == '#')
+                if (line.empty() || line.front() == '#')
                     continue;
 
                 switch (line_num) {
                     case 0:
-                        coefPath = line;
-                        break;
-                    case 1:
-                        inputPath = line;
-                        break;
-                    case 2:
-                        outputPath = line;
-                        break;
-                    case 3:
                         fillSet(parametersMap);
                         break;
-                    case 4:
+                    case 1:
                         fillSet(parametersTable);
                         break;
-                    case 5:
+                    case 2:
                         fillSet(parametersTableReg);
                         break;
-                    case 6:
+                    case 3:
                         produceTabs = (line == "1");
-                        DEBUG("produceTabs = {}", produceTabs);
+                        TRACE("produceTabs = {}", produceTabs);
+                        break;
+                    case 4:
+                        tabs[0] = (line == "1");
+                        TRACE("Tabs[0] = {}", tabs[0]);
+                        break;
+                    case 5:
+                        tabs[1] = (line == "1");
+                        TRACE("Tabs[1] = {}", tabs[1]);
+                        break;
+                    case 6:
+                        tabs[2] = (line == "1");
+                        TRACE("Tabs[2] = {}", tabs[2]);
                         break;
                     case 7:
-                        tabs[0] = (line == "1");
-                        DEBUG("Tabs[0] = {}", tabs[0]);
+                        produceMaps = (line == "1");
+                        TRACE("produceMaps = {}", produceMaps);
                         break;
                     case 8:
-                        tabs[1] = (line == "1");
-                        DEBUG("Tabs[1] = {}", tabs[1]);
+                        maps[0] = (line == "1");
+                        TRACE("Maps[0] = {}", maps[0]);
                         break;
                     case 9:
-                        tabs[2] = (line == "1");
-                        DEBUG("Tabs[2] = {}", tabs[2]);
+                        maps[1] = (line == "1");
+                        TRACE("Maps[1] = {}", maps[1]);
                         break;
                     case 10:
-                        produceMaps = (line == "1");
-                        DEBUG("produceMaps = {}", produceMaps);
-                        break;
-                    case 11:
-                        maps[0] = (line == "1");
-                        DEBUG("Maps[0] = {}", maps[0]);
-                        break;
-                    case 12:
-                        maps[1] = (line == "1");
-                        DEBUG("Maps[1] = {}", maps[1]);
-                        break;
-                    case 13:
                         maps[2] = (line == "1");
-                        DEBUG("Maps[2] = {}", maps[2]);
+                        TRACE("Maps[2] = {}", maps[2]);
                         break;
                     default:
-                        TRACE("Unexpected line of settings file");
+                        WARN("Unexpected line of parameters file");
+                }
+                ++line_num;
+            }
+        }
+
+        void readFileNames() {
+            const filesystem::path file_path = ini_folder / "file_names.ini";
+            ifstream file{file_path};
+            if (!file.is_open()) {
+                FATAL("Cannot read {} in directory {}", file_path.string(), fs::current_path().string());
+                throw runtime_error{"Cannot read file names file"};
+            }
+
+            fileNames.reserve(32);
+
+            string line, file_key;
+
+            for (int line_num = 0; file;) {
+                getline(file, line);
+
+                if (!line.empty() && line.back() == '\r')   // remove carriage return for linux
+                    line.pop_back();
+
+                if (line.empty() || line.front() == '#')
+                    continue;
+
+                switch (line_num % 2) {
+                    case 0:
+                        file_key = line;
+                        break;
+                    case 1:
+                        fileNames.emplace(file_key, line);
+                        break;
+                }
+                ++line_num;
+            }
+        }
+
+        void readScenarios() {
+            const filesystem::path file_path = ini_folder / "scenarios.ini";
+            ifstream file{file_path};
+            if (!file.is_open()) {
+                FATAL("Cannot read {} in directory {}", file_path.string(), fs::current_path().string());
+                throw runtime_error{"Cannot read scenarios file"};
+            }
+
+            string line;
+
+            for (int line_num = 0; file;) {
+                getline(file, line);
+
+                if (!line.empty() && line.back() == '\r')   // remove carriage return for linux
+                    line.pop_back();
+
+                if (line.empty() || line.front() == '#')
+                    continue;
+
+                if (line_num == 0)
+                    bauScenario = line;
+                else {
+                    auto tokens = line | rv::transform(::toupper) | rv::split(' ') | ranges::to<vector<string> >();
+                    if (tokens.size() == 4) {
+                        scenarios.emplace_back();
+                        ranges::copy(tokens, scenarios.back().begin());
+                    } else
+                        ERROR("Scenarios file contains wrong number of arguments!");
                 }
                 ++line_num;
             }

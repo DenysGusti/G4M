@@ -9,24 +9,23 @@
 #include <numbers>
 #include <functional>
 
-#include "../../log.hpp"
-#include "../../diagnostics/debugging.hpp"
-#include "../../diagnostics/timer.hpp"
-#include "../abstract/application.hpp"
+#include "../log.hpp"
+#include "../diagnostics/debugging.hpp"
+#include "../diagnostics/timer.hpp"
 
-#include "../../start_data/start_data.hpp"
-#include "../../settings/dicts/dicts.hpp"
+#include "../start_data/start_data.hpp"
+#include "../settings/dicts/dicts.hpp"
 
-#include "../../structs/lw_price.hpp"
-#include "../../structs/harvest_residues.hpp"
+#include "../structs/lw_price.hpp"
+#include "../structs/harvest_residues.hpp"
 
-#include "../../misc/concrete/ffipolm.hpp"
+#include "../misc/concrete/ffipolm.hpp"
 
-#include "../../init/species.hpp"
+#include "../init/species.hpp"
 
-#include "../../GLOBIOM_scenarios_data/datamaps/datamaps.hpp"
-#include "../../GLOBIOM_scenarios_data/simu_ids/simu_ids.hpp"
-#include "../../GLOBIOM_scenarios_data/result_files.hpp"
+#include "../GLOBIOM_scenarios_data/datamaps/datamaps.hpp"
+#include "../GLOBIOM_scenarios_data/simu_ids/simu_ids.hpp"
+#include "../GLOBIOM_scenarios_data/result_files.hpp"
 
 using namespace std;
 
@@ -36,17 +35,19 @@ using namespace g4m::misc::concrete;
 using namespace g4m::increment;
 using namespace g4m::init;
 using namespace g4m::diagnostics;
-using namespace g4m::application::abstract;
 using namespace g4m::StartData;
 using namespace g4m::Dicts;
 using namespace g4m::GLOBIOM_scenarios_data;
 
-namespace g4m::application::concrete {
-    class Forest_GUI_Europe_param_dw_5_3 : public Application {
+namespace g4m::application {
+    class Forest_GUI_Europe_param_dw_5_3 {
     public:
-        explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args_)
-                : Application{args_}, dms{datamapScenarios, full_scenario, inputPriceC},
-                  sis{simuIdScenarios, full_scenario, c_scenario[1]}, rf{settings.outputPath, local_suffix} {
+        explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args)
+                : appName{format("{}_{}_{}_{}", args[0], args[1], args[2], args[3])},
+                  c_scenario{{args[0], args[1], args[2]}}, inputPriceC{stoi(args[3])},
+                  dms{datamapScenarios, full_scenario, inputPriceC},
+                  sis{simuIdScenarios, full_scenario, c_scenario[1]},
+                  rf{settings.outputPath, local_suffix} {
             // TODO initialize earlier
             Log::Init(appName);
             INFO("Scenario to read in & GL: {}", full_scenario);
@@ -67,7 +68,7 @@ namespace g4m::application::concrete {
                 }
         }
 
-        ~Forest_GUI_Europe_param_dw_5_3() override {
+        ~Forest_GUI_Europe_param_dw_5_3() {
             if constexpr (fmPol && !binFilesOnDisk)
                 if (inputPriceC == 0) {
                     scoped_lock<mutex> lock{zeroC_mutex};
@@ -78,7 +79,7 @@ namespace g4m::application::concrete {
         }
 
         // start calculations
-        void Run() override {
+        void Run() {
             INFO("Application {} is running", appName);
 
             for (const auto &plot: appPlots)
@@ -235,11 +236,12 @@ namespace g4m::application::concrete {
         }
 
     protected:
-        string appName = format("{}_{}_{}_{}", args[1], args[2], args[3], args[4]);
+        string appName;
+        array<string, 3> c_scenario;
+        int inputPriceC;
+
         Timer timer{appName};
 
-        array<string, 3> c_scenario = {args[1], args[2], args[3]};
-        int inputPriceC = stoi(args[4]);
         string full_scenario = c_scenario[0] + '_' + c_scenario[1] + '_' + c_scenario[2];
         string local_suffix = suffix + full_scenario + (inputPriceC == 0 ? "_Pco2_0" : "");
         string suffix0 = c_scenario[0] + '_' + c_scenario[1];

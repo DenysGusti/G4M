@@ -18,7 +18,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         void readAgeStructData() {
             INFO("> Reading the age struct data...");
-            ifstream fp = checkFile(fileNames.at("ageStruct"));
+            ifstream fp = checkFile(settings.fileNames.at("ageStruct"));
 
             string line;
             getline(fp, line);

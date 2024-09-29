@@ -21,8 +21,6 @@ namespace g4m::Dicts {
     const unordered_map<Species, IncrementTab, EnumHasher> species = defineSpecies();
     // countries and species where the stumps can be harvested as compiled by Fulvio 06.06
     const set<pair<uint8_t, Species> > stumpHarvCountrySpecies = setCountrySpecies();  // [country, species]
-
-    const unordered_map<string, string, StringHash, equal_to<> > fileNames = initFileNames();
 }
 
 #endif

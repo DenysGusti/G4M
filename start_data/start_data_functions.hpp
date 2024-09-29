@@ -57,7 +57,8 @@ namespace g4m::StartData {
                 if (opt_dfor) {
                     // take years from GLOBIOM_AfforMaxScenarios (initForestArea corrects in)
                     for (const auto year:
-                            simuIdScenarios.GLOBIOM_AfforMaxScenarios.at(bauScenario).at(plot.simuID).data | rv::keys)
+                            simuIdScenarios.GLOBIOM_AfforMaxScenarios.at(settings.bauScenario).at(plot.simuID).data |
+                            rv::keys)
                         if (year > 2000)
                             // before subtraction was later in initManagedForestLocal (values are negative!!!)
                             plot.GLOBIOM_reserved.data[year] = -*opt_dfor;
@@ -103,7 +104,8 @@ namespace g4m::StartData {
                           coef.minRotInter, coef.decRateL, coef.decRateS, plot.fracLongProd, coef.baseline,
                           plot.fTimber, coef.priceTimberMaxR, coef.priceTimberMinR, coef.fCUptake, plot.GDP,
                           coef.harvLoos, forestShare0,
-                          datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country), rotMAI, harvMAI};
+                          datamapScenarios.woodPriceScenarios.at(settings.bauScenario).at(plot.country), rotMAI,
+                          harvMAI};
 
             double rotation = 0;
             if (!plot.protect) {
@@ -489,7 +491,7 @@ namespace g4m::StartData {
                               coef.fCUptake, plot.GDP, coef.harvLoos,
                               commonOForestShGrid(plot.x, plot.y) -
                               plot.strictProtected,  // forestShare0 - forest available for wood supply initially
-                              datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country), rotMAI,
+                              datamapScenarios.woodPriceScenarios.at(settings.bauScenario).at(plot.country), rotMAI,
                               MAI * plot.fTimber * (1 - coef.harvLoos)};  // harvMAI
 
                 double thinning = -1;
@@ -542,12 +544,12 @@ namespace g4m::StartData {
                 double biomassRotTh2 = 0;  // MG: rotation time fitted to get certain biomass under certain MAI (with thinning = 2)
 
                 double stockingDegree = thinningForestInit(plot.x, plot.y);
-                double Bm = commonCohortsU[plot.asID].getBm();
+                double bm = commonCohortsU[plot.asID].getBm();
                 double rotation = 0;
 
                 if (plot.CAboveHa > 0 && MAI > 0) {
                     // rotation time to get current biomass (with thinning)
-                    biomassRotTh2 = species.at(plot.speciesType).getUSdTab(Bm, MAI, stockingDegree);
+                    biomassRotTh2 = species.at(plot.speciesType).getUSdTab(bm, MAI, stockingDegree);
                     rotMAI = species.at(plot.speciesType).getTOptSdTab(MAI, stockingDegree, OptRotTimes::Mode::MAI);
                     rotMaxBmTh = species.at(plot.speciesType).getTOptSdTab(MAI, stockingDegree,
                                                                            OptRotTimes::Mode::MaxBm);
@@ -556,7 +558,7 @@ namespace g4m::StartData {
 //                    rotMaxBm = species.at(plot.speciesType).getTOpt(MAI, OptRotTimes::Mode::MaxBm);
                 }
 
-                if (datamapScenarios.woodPriceScenarios.at(bauScenario).at(plot.country)(coef.bYear) >
+                if (datamapScenarios.woodPriceScenarios.at(settings.bauScenario).at(plot.country)(coef.bYear) >
                     woodPotHarvest[plot.country - 1]) {
                     if (commonManagedForest(plot.x, plot.y) == 0) {
                         rotation = rotMAI + 1;

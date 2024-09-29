@@ -8,7 +8,7 @@ namespace g4m::StartData {
     void Init() {
         future<void> settings_future = async(launch::async, [] {
             Log::Init("settings");
-            settings.readSettings("settings_Europe_dw_v02.ini");
+            settings.readSettings();
         });
 
         settings_future.get();
@@ -96,9 +96,9 @@ namespace g4m::StartData {
 
         future<void> biomass_bau_future = async(launch::async, [] {
             Log::Init("biomass_bau");
-            if constexpr (fmPol && binFilesOnDisk) {
+            if constexpr (fmPol && binFilesOnDisk)
                 bauScenarios.readBiomassBau();
-            } else
+            else
                 INFO("biomass_bau reading is turned off");
         });
 

@@ -62,13 +62,13 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsXY_SimuID: <[x, y], simuID> for quick plots search
         void readMAIClimate(const map<pair<uint32_t, uint32_t>, uint32_t> &plotsXY_SimuID) {
-            if (!fileNames.contains("maic") || fileNames.at("maic").empty()) {
+            if (!settings.fileNames.contains("maic") || settings.fileNames.at("maic").empty()) {
                 WARN("No MAI climate data!!!!");
                 return;
             }
 
             INFO("> Reading the MAI climate data...");
-            ifstream fp = checkFile(fileNames.at("maic"));
+            ifstream fp = checkFile(settings.fileNames.at("maic"));
             string line;
             getline(fp, line);
 
@@ -104,13 +104,13 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsSimuID for quick plots search
         void readGlobiomLandCalibrate(const unordered_set<uint32_t> &plotsSimuID) {
-            if (!fileNames.contains("gl_0") || fileNames.at("gl_0").empty()) {
+            if (!settings.fileNames.contains("gl_0") || settings.fileNames.at("gl_0").empty()) {
                 WARN("No GLOBIOM LC data for 2000-2020!!!!");
                 return;
             }
 
             INFO("> Reading the GLOBIOM LC data for 2000-2020...");
-            ifstream fp = checkFile(fileNames.at("gl_0"));
+            ifstream fp = checkFile(settings.fileNames.at("gl_0"));
             string line;
             getline(fp, line);
 
@@ -118,8 +118,8 @@ namespace g4m::GLOBIOM_scenarios_data {
             auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
                           ranges::to<vector<string> >();
 
-            GLOBIOM_AfforMaxScenarios[bauScenario].reserve(3'100);
-            GLOBIOM_LandScenarios[bauScenario].reserve(3'100);
+            GLOBIOM_AfforMaxScenarios[settings.bauScenario].reserve(3'100);
+            GLOBIOM_LandScenarios[settings.bauScenario].reserve(3'100);
 
             vector<double> d_row;
 
@@ -147,11 +147,11 @@ namespace g4m::GLOBIOM_scenarios_data {
                             double gl_tmp = 0;
                             for (const auto &[type, cell]: rv::zip(header, d_row)) {
                                 if (type == "NATURAL")
-                                    GLOBIOM_AfforMaxScenarios[bauScenario][simuId].data[year] = cell;
+                                    GLOBIOM_AfforMaxScenarios[settings.bauScenario][simuId].data[year] = cell;
                                 else if (type == "ARABLE" || type == "WETLAND" || type == "BLOCKED")
                                     gl_tmp += cell;
                             }
-                            GLOBIOM_LandScenarios[bauScenario][simuId].data[year] = gl_tmp;
+                            GLOBIOM_LandScenarios[settings.bauScenario][simuId].data[year] = gl_tmp;
                         }
                     } else {
 //                        DEBUG("Plots don't contain simuId = {}", simuId);
@@ -163,13 +163,13 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsSimuID for quick plots search
         void readGlobiomLand(const unordered_set<uint32_t> &plotsSimuID) {
-            if (!fileNames.contains("gl") || fileNames.at("gl").empty()) {
+            if (!settings.fileNames.contains("gl") || settings.fileNames.at("gl").empty()) {
                 WARN("No GLOBIOM LC data!!!!");
                 return;
             }
 
             INFO("> Reading the GLOBIOM LC data...");
-            ifstream fp = checkFile(fileNames.at("gl"));
+            ifstream fp = checkFile(settings.fileNames.at("gl"));
             string line;
             getline(fp, line);
 
@@ -223,13 +223,13 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsXY_SimuID: <[x, y], simuID> for quick plots search
         void readDisturbances(const map<pair<uint32_t, uint32_t>, uint32_t> &plotsXY_SimuID) {
-            if (!fileNames.contains("disturbance") || fileNames.at("disturbance").empty()) {
+            if (!settings.fileNames.contains("disturbance") || settings.fileNames.at("disturbance").empty()) {
                 WARN("No disturbance projection data!!!!");
                 return;
             }
 
             INFO("> Reading the disturbance data...");
-            ifstream fp = checkFile(fileNames.at("disturbance"));
+            ifstream fp = checkFile(settings.fileNames.at("disturbance"));
             string line;
             getline(fp, line);
 
@@ -272,13 +272,14 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         // plotsXY_SimuID: <[x, y], simuID> for quick plots search
         void readDisturbancesExtreme(const map<pair<uint32_t, uint32_t>, uint32_t> &plotsXY_SimuID) {
-            if (!fileNames.contains("disturbanceExtreme") || fileNames.at("disturbanceExtreme").empty()) {
+            if (!settings.fileNames.contains("disturbanceExtreme") ||
+                settings.fileNames.at("disturbanceExtreme").empty()) {
                 WARN("No extreme disturbance projection data!!!!");
                 return;
             }
 
             INFO("> Reading the extreme disturbance data ...");
-            ifstream fp = checkFile(fileNames.at("disturbanceExtreme"));
+            ifstream fp = checkFile(settings.fileNames.at("disturbanceExtreme"));
             string line;
             getline(fp, line);
 

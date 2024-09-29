@@ -18,7 +18,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             }
 
             simuIdType simuIdDest = simuIdScenarios.at(string{scenario});
-            simuIdType histSimuId = simuIdScenarios.at(bauScenario);
+            simuIdType histSimuId = simuIdScenarios.at(settings.bauScenario);
 
             bool obsolete = false;
 
@@ -28,7 +28,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                     obsolete |= !histSimuId.at(id).data.empty();
                 } else
                     WARN("Country {} ({}) is missing in {} historical simuId ({}) albeit it exists in scenario simuId ({})!",
-                         id, idCountryGLOBIOM.at(id), message, bauScenario, message);
+                         id, idCountryGLOBIOM.at(id), message, settings.bauScenario, message);
             }
 
             TRACE("Merged {}:", message);

@@ -17,8 +17,6 @@ namespace g4m::Constants {
 
     constexpr uint32_t modTimeStep = 1;
 
-    // runtime string because is used as a key in dictionaries
-    const string bauScenario = "primes_ref_2020_REFERENCE_REFERENCE";
     // t4 setup; New baseline; Reduced hurdle 0.9
     // 22.06.2023: defShare_correction is introduced (calc v17)
     // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0

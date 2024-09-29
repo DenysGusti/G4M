@@ -13,7 +13,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                                         const string_view message) {
             // Swiss project 21.04.2022, Nicklas Forsell
             datamapType datamapDest = datamapScenarios.at(string{full_scenario});
-            datamapType histDatamap = datamapScenarios.at(bauScenario);
+            datamapType histDatamap = datamapScenarios.at(settings.bauScenario);
 
             bool obsolete = false;
 
@@ -23,7 +23,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                     obsolete |= !histDatamap.at(id).data.empty();
                 } else
                     WARN("Country {} ({}) is missing in {} historical datamap ({}) albeit it exists in scenario datamap ({})!",
-                         id, idCountryGLOBIOM.at(id), message, bauScenario, full_scenario);
+                         id, idCountryGLOBIOM.at(id), message, settings.bauScenario, full_scenario);
             }
 
             TRACE("Merged {}:", message);

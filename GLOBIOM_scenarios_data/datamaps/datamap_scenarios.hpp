@@ -159,7 +159,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         void readCO2price() {
             INFO("> Reading the CO2 prices...");
-            ifstream fp = checkFile(fileNames.at("co2p"));
+            ifstream fp = checkFile(settings.fileNames.at("co2p"));
             string line;
             getline(fp, line);
 
@@ -202,13 +202,13 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         [[nodiscard]] array<double, numberOfCountries> readGlobiomLandCountryCalibrate_calcCountryLandArea() {
-            if (!fileNames.contains("gl_country_0") || fileNames.at("gl_country_0").empty()) {
+            if (!settings.fileNames.contains("gl_country_0") || settings.fileNames.at("gl_country_0").empty()) {
                 WARN("No GLOBIOM LC country data for 2000-2020!!!!");
                 return {};
             }
 
             INFO("> Reading the GLOBIOM land country data for 2000-2020...");
-            ifstream fp = checkFile(fileNames.at("gl_country_0"));
+            ifstream fp = checkFile(settings.fileNames.at("gl_country_0"));
             string line;
             getline(fp, line);
 
@@ -216,8 +216,8 @@ namespace g4m::GLOBIOM_scenarios_data {
             auto header = line | rv::transform(::toupper) | rv::split(',') | rv::drop(first_data_column) |
                           ranges::to<vector<string> >();
 
-            GLOBIOM_AfforMaxCountryScenarios[bauScenario].reserve(250);
-            GLOBIOM_LandCountryScenarios[bauScenario].reserve(250);
+            GLOBIOM_AfforMaxCountryScenarios[settings.bauScenario].reserve(250);
+            GLOBIOM_LandCountryScenarios[settings.bauScenario].reserve(250);
 
             array<double, numberOfCountries> countryLandArea{};
 
@@ -250,14 +250,14 @@ namespace g4m::GLOBIOM_scenarios_data {
                                 if (year == 2000 && type == "FOREST")
                                     gl_tot = cell;
                                 else if (type == "NATURAL") {
-                                    GLOBIOM_AfforMaxCountryScenarios[bauScenario][id].data[year] = cell;
+                                    GLOBIOM_AfforMaxCountryScenarios[settings.bauScenario][id].data[year] = cell;
                                     if (year == 2000)
                                         gl_tot += cell;
                                 } else if (type == "ARABLE" || type == "WETLAND" || type == "BLOCKED")
                                     gl_tmp += cell;
                             }
 
-                            GLOBIOM_LandCountryScenarios[bauScenario][id].data[year] = gl_tmp;
+                            GLOBIOM_LandCountryScenarios[settings.bauScenario][id].data[year] = gl_tmp;
                             if (year == 2000)
                                 countryLandArea[id] = gl_tot + gl_tmp;
                         } else
@@ -270,13 +270,13 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         void readGlobiomLandCountry() {
-            if (!fileNames.contains("gl_country") || fileNames.at("gl_country").empty()) {
+            if (!settings.fileNames.contains("gl_country") || settings.fileNames.at("gl_country").empty()) {
                 WARN("No GLOBIOM LC country data!!!!");
                 return;
             }
 
             INFO("> Reading the GLOBIOM land country data...");
-            ifstream fp = checkFile(fileNames.at("gl_country"));
+            ifstream fp = checkFile(settings.fileNames.at("gl_country"));
             string line;
             getline(fp, line);
 
@@ -359,18 +359,23 @@ namespace g4m::GLOBIOM_scenarios_data {
     private:
         // adds bau scenario to dicts
         void readDatamaps() {
-            landPriceScenarios[bauScenario] = readHistoric(fileNames.at("lp0"), "Land Price", 2000, 2020);
-            woodPriceScenarios[bauScenario] = readHistoric(fileNames.at("wp0"), "Wood Price", 2000, 2020);
-            woodDemandScenarios[bauScenario] = readHistoric(fileNames.at("wd0"), "Wood Demand", 1990, 2021);
-            residuesDemandScenarios[bauScenario] = readHistoric(fileNames.at("rd0"), "Residues Demand", 2000, 2020);
+            landPriceScenarios[settings.bauScenario] = readHistoric(settings.fileNames.at("lp_0"), "Land Price", 2000,
+                                                                    2020);
+            woodPriceScenarios[settings.bauScenario] = readHistoric(settings.fileNames.at("wp_0"), "Wood Price", 2000,
+                                                                    2020);
+            woodDemandScenarios[settings.bauScenario] = readHistoric(settings.fileNames.at("wd_0"), "Wood Demand", 1990,
+                                                                     2021);
+            residuesDemandScenarios[settings.bauScenario] = readHistoric(settings.fileNames.at("rd_0"),
+                                                                         "Residues Demand", 2000, 2020);
         }
 
         // created dicts
         void readGLOBIOM() {
-            landPriceScenarios = readGlobiomScenarios(fileNames.at("lp"), "Land Price", 2030, coef.eYear);
-            woodPriceScenarios = readGlobiomScenarios(fileNames.at("wp"), "Wood Price", 2030, coef.eYear);
-            woodDemandScenarios = readGlobiomScenarios(fileNames.at("wd"), "Wood Demand", 2030, coef.eYear);
-            residuesDemandScenarios = readGlobiomScenarios(fileNames.at("rd"), "Residues Demand", 2030, coef.eYear);
+            landPriceScenarios = readGlobiomScenarios(settings.fileNames.at("lp"), "Land Price", 2030, coef.eYear);
+            woodPriceScenarios = readGlobiomScenarios(settings.fileNames.at("wp"), "Wood Price", 2030, coef.eYear);
+            woodDemandScenarios = readGlobiomScenarios(settings.fileNames.at("wd"), "Wood Demand", 2030, coef.eYear);
+            residuesDemandScenarios = readGlobiomScenarios(settings.fileNames.at("rd"), "Residues Demand", 2030,
+                                                           coef.eYear);
 
             // years
 //            println("{}", landPriceScenarios.begin()->second.begin()->second.data.begin()->first);

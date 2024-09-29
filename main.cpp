@@ -1,15 +1,13 @@
 #include "log.hpp"
 #include "start_data/init.hpp"
-#include "application/abstract/application.hpp"
-#include "application/concrete/forest_GUI_Europe_param_dw_5_3.hpp"
+#include "application/forest_GUI_Europe_param_dw_5_3.hpp"
 #include "thread_pool.hpp"
 #include "init/data_grid.hpp"
 
 using namespace std;
 using namespace g4m;
 using namespace g4m::diagnostics;
-using namespace g4m::application::abstract;
-using namespace g4m::application::concrete;
+using namespace g4m::application;
 
 int main(int argc, char *argv[]) {
     try {
@@ -19,8 +17,7 @@ int main(int argc, char *argv[]) {
         StartData::Init();
 
         // 1 scenario
-        Forest_GUI_Europe_param_dw_5_3 app{
-                Application::ConvertToUppercase(Application::CreateArgsFromArgcArgv(argc, argv))};
+        Forest_GUI_Europe_param_dw_5_3 app{settings.scenarios.front()};
         app.Run();
 //        s_AllocationMetrics.printMemoryUsage();
 

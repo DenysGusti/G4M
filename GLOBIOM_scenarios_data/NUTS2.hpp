@@ -25,7 +25,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         void readNUTS2() {
             INFO("> Reading the NUTS2...");
-            ifstream fp = checkFile(fileNames.at("nuts2"));
+            ifstream fp = checkFile(settings.fileNames.at("nuts2"));
             string line;
             getline(fp, line);
 

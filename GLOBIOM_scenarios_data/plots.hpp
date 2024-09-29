@@ -26,7 +26,7 @@ namespace g4m::GLOBIOM_scenarios_data {
 
         void readPlots() {
             INFO("> Reading the rest of input data...");
-            ifstream fp = checkFile(fileNames.at("dat"));
+            ifstream fp = checkFile(settings.fileNames.at("dat"));
             string line;
             getline(fp, line);
 
