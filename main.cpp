@@ -17,8 +17,10 @@ int main(int argc, char *argv[]) {
         StartData::Init();
 
         // 1 scenario
-        Forest_GUI_Europe_param_dw_5_3 app{settings.scenarios.front()};
-        app.Run();
+        {
+            Forest_GUI_Europe_param_dw_5_3 app{settings.scenarios.front()};
+            app.Run();
+        }
 //        s_AllocationMetrics.printMemoryUsage();
 
         for (auto &[suffix0, signal]: signalZeroCToMainScenarios)

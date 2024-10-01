@@ -1514,8 +1514,12 @@ namespace g4m::application {
             double harvestedArea = 0;
 
             double npvSum = 0;
-            size_t n = bauScenarios.biomassBauScenarios.at(suffix0).size();
-            auto maxYear = min(static_cast<uint16_t>(refYear + n * modTimeStep), coef.eYear);
+
+            uint16_t maxYear = coef.eYear;
+            if (!zeroC) {
+                size_t n = bauScenarios.biomassBauScenarios.at(suffix0).size();
+                maxYear = min(maxYear, static_cast<uint16_t>(refYear + n * modTimeStep));
+            }
             for (int j = 0; year + j + modTimeStep <= maxYear; j += modTimeStep) {
                 CohortRes cohort_res = cohortTmp.aging();
                 double realAreaO = clamp(cohort_res.realArea, 0., 1.);  // cohortTmp.getArea()

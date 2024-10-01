@@ -64,7 +64,7 @@ namespace g4m::Constants {
 
     constexpr bool fmPol = true; // For testing FM response to C price incentive; requires bin files with BAU biomass and NPV
 
-    constexpr bool binFilesOnDisk = true;  // bin files are already on disk, no need for generation in 0 C price app
+    constexpr bool binFilesOnDisk = false;  // bin files are already on disk, no need for generation in 0 C price app
 
     constexpr double priceIndexAvgEU27 = 2.8234442; //Average price index for the EU27, to be used with plot.priceIndex
     constexpr double scaleCostsFactorEs = 0.2; // costs adjustment for Estonia estimated such as to allow historical harvest
