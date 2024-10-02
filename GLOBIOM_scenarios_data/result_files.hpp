@@ -135,26 +135,44 @@ namespace g4m::GLOBIOM_scenarios_data {
         void sortCellInfo() {
             auto rows = cellInfoBuffer | rv::split('\n') | ranges::to<vector<string> >();
             rows.pop_back();    // empty line
-            string &header = rows.front();
+            string_view header = rows.front();
 
-            ptrdiff_t first_data = header.find("_U");
-            ptrdiff_t last_data = header.rfind("_N");
+            string_view first_cell_indicator = "_U";
+            string_view last_cell_indicator = "_N";
+
+            size_t first_data = header.find(first_cell_indicator);
+            size_t last_data = header.rfind(last_cell_indicator);
 
             size_t first_comma = ranges::count(header | rv::take(first_data), ',');
             size_t last_comma =
                     first_comma + ranges::count(header | rv::drop(first_data) | rv::take(last_data - first_data), ',');
 
-            constexpr size_t number_of_cell_forests = 5;
-            const size_t param_size = (last_comma - first_comma + 1) / number_of_cell_forests;
+            auto split_cell_header =
+                    header | rv::split(',') | rv::drop(first_comma) | rv::take(last_comma - first_comma + 1) |
+                    ranges::to<vector<string> >();
 
-            if ((last_comma - first_comma + 1) % number_of_cell_forests != 0) {
-                FATAL("(last_comma - first_comma + 1) % number_of_cell_forests != 0");
+            // e.g. ...,forest_share | _U
+            string_view till_first_cell_value = header.substr(0, first_data);
+            // e.g. ...(,)forest_share | _U
+            size_t first_cell_value_comma = till_first_cell_value.rfind(',');
+            // e.g. ..., | forest_share | _U
+            string_view common_cell_first_data = till_first_cell_value.substr(first_cell_value_comma + 1);
+
+            const size_t number_of_cell_forests =
+                    ranges::count_if(split_cell_header, [&](const string_view str) -> bool {
+                        return str.contains(common_cell_first_data);
+                    });
+
+            if (split_cell_header.size() % number_of_cell_forests != 0) {
+                FATAL("split_cell_header.size() % number_of_cell_forests != 0");
                 throw runtime_error{"bad csv file!"};
             }
 
+            const size_t param_size = split_cell_header.size() / number_of_cell_forests;
+
             for (auto &row: rows) {
                 auto cells = row | rv::split(',') | ranges::to<vector<string> >();
-                auto cell_forest_data = span{cells}.subspan(first_comma, last_comma - first_comma + 1);
+                auto cell_forest_data = span{cells}.subspan(first_comma, split_cell_header.size());
 
                 vector<string> data{cell_forest_data.begin(), cell_forest_data.end()};
                 // group by variable name
