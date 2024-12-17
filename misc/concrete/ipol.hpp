@@ -143,17 +143,17 @@ namespace g4m::misc::concrete {
         }
 
         // interpolate i (better for pointers, default ())
-        T ip(const T i) const noexcept override {
+        [[nodiscard]] T ip(const T i) const noexcept override {
             if (data.empty())
                 return 0;
-
-            if (const auto presentIt = data.find(i); presentIt != data.end())
-                return presentIt->second;
 
             const auto itUp = data.lower_bound(i);
 
             if (itUp == data.end())
                 return data.rbegin()->second;
+
+            if (i == itUp->first)
+                return itUp->second;
 
             if (itUp == data.begin())
                 return data.begin()->second;

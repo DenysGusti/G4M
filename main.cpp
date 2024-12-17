@@ -35,11 +35,13 @@ int main(int argc, char *argv[]) {
 //                            Application::ConvertToUppercase(Application::CreateArgsFromArgcArgv(argc, argv))};
 //                    app.Run();
 //                } catch (const exception &e) {
+//                    FATAL("{}", e.what());
 //                    cerr << e.what() << endl;
 //                }
 //            });
 
     } catch (const exception &e) {
+        FATAL("{}", e.what());
         cerr << e.what() << endl;
     }
     return 0;

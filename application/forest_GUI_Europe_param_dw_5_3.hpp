@@ -545,19 +545,23 @@ namespace g4m::application {
 
         // apply corruption and populate country CO2Price if inputPriceC > 0
         void applyCorruptionModifyCO2Price() noexcept {
+            if (inputPriceC == 0)
+                return;
+
             // CO2 price different for regions: set priceC to negative value then the price is defined in the function carbonPriceRegion
             if (inputPriceC > 0) {
-                double priceC = inputPriceC * deflator * 44. / 12.;  // * 44. / 12. if input price is $/tCO2
+                double priceC = inputPriceC * deflator * molarRatio;  // * molarRatio if input price is $/tCO2
 
                 for (auto &[country, ipol]: dms.CO2Price)
                     ipol.data[refYear] = priceC;
             }
 
-            array<double, numberOfCountries> countryCorruption{};
+            unordered_map<uint8_t, double> countryCorruption;
+            countryCorruption.reserve(numberOfCountries);
             for (const auto &plot: appPlots)
                 countryCorruption[plot.country] = plot.corruption;
 
-            for (const auto &[country, corruption]: countryCorruption | rv::enumerate)
+            for (const auto &[country, corruption]: countryCorruption)
                 dms.CO2Price[country] *= corruption;
         }
 
@@ -3267,18 +3271,20 @@ namespace g4m::application {
                     // MG: mistake: must be DECRATES but not DECRATEL
                     // Income from selling the deforested wood, taking into account the carbon tax
                     const double R = plot.R(year);
-                    const double CO2Price = dms.CO2Price.at(plot.country)(year);
+                    const double CO2Price = inputPriceC != 0 ? dms.CO2Price.at(plot.country)(year) : 0;
 
                     const double pDeforestationIncome
                             = plot.CAboveHa * (timberPrice * plot.fTimber * (1 - coef.harvLoos) -
                                                CO2Price * (1 + R) *
                                                (plot.fracLongProd * coef.decRateL / (coef.decRateL + R) +
                                                 plot.fracLongProd * coef.decRateS / (coef.decRateS + R)));
+                    const double shareLargeBranches = 0.3; // share of branches greater than 10 cm in diameter
                     const double pDeforestationLoss
-                            = -CO2Price * (1 + R) * (plot.CLitterHa * (0.3 * plot.decWood / (plot.decWood + R) +
-                                                                       0.7 * plot.decHerb / (plot.decHerb + R)) +
-                                                     plot.CBelowHa * 0.3 * plot.decHerb / (plot.decHerb + R) +
-                                                     plot.SOCHa * plot.decSOC / (plot.decSOC + R));
+                            = -CO2Price * (1 + R) *
+                              (plot.CLitterHa * (shareLargeBranches * plot.decWood / (plot.decWood + R) +
+                                                 (1 - shareLargeBranches) * plot.decHerb / (plot.decHerb + R)) +
+                               plot.CBelowHa * shareLargeBranches * plot.decHerb / (plot.decHerb + R) +
+                               plot.SOCHa * plot.decSOC / (plot.decSOC + R));
                     // immediate pay if deforested (Slash and Burn)
                     const double sDeforestationIncome =
                             plot.CAboveHa * (timberPrice * plot.fTimber * (1 - coef.harvLoos) - CO2Price);
@@ -3314,14 +3320,17 @@ namespace g4m::application {
                     // MG: We afforest only places, where potential vegetation is forest and savanna
                     if (0 < static_cast<uint8_t>(plot.potVeg) && static_cast<uint8_t>(plot.potVeg) <= 9 &&
                         plot.NPP(year) > 0) {
+                        const double R = plot.R(year);
+                        const double CO2Price = inputPriceC != 0 ? dms.CO2Price.at(plot.country)(year) : 0;
+
                         afforestationRate = 0.01 / (1 + exp(1 + 0.1 / plot.agrSuit + 1 / (0.001 * gdp)));
                         if (afforestationRate < 1e-6 / plot.landArea)
                             afforestationRate = 0; // minimum one tree (1m^2)
                         else
                             afforestationRate *= afforRate_opt[plot.country];
-                        forestryValuePlus = forestryValue + dms.CO2Price.at(plot.country)(year) *
+                        forestryValuePlus = forestryValue + CO2Price *
                                                             (((plot.SOCHa * 0.4 / (8 * decision.rotInter())) +
-                                                              5 / (1.053 * decision.rotInter())) / plot.R(year));
+                                                              5 / (1.053 * decision.rotInter())) / R);
                         // afforestation grants in UK till 2020, approx 180 GBP/ha year during 20 years,
                         // exchange rate GBP/USD for 2000-2016 approx 1.7
                         if (plot.country == 78 && year < 2021) {
