@@ -58,74 +58,74 @@ namespace g4m::increment {
         }
 
         // sawnWood + restWood + sawnThinningWood + restThinningWood
-        [[nodiscard]] inline double getTotalWoodRemoval() const noexcept {
+        [[nodiscard]] double getTotalWoodRemoval() const {
             return getFinalCutWood() + getThinnedWood();
         }
 
         // biomassHarvest + biomassThinning
-        [[nodiscard]] inline double getTotalHarvestedBiomass() const noexcept {
+        [[nodiscard]] double getTotalHarvestedBiomass() const {
             return biomassHarvest + biomassThinning;
         }
 
         // totalHarvestedBiomass - totalWoodRemoval
         // biomassHarvest + biomassThinning - (sawnWood + restWood + sawnThinningWood + restThinningWood)
-        [[nodiscard]] inline double getHarvestLosses() const noexcept {
+        [[nodiscard]] double getHarvestLosses() const {
             return getTotalHarvestedBiomass() - getTotalWoodRemoval();
         }
 
         // sawnWood + restWood
-        [[nodiscard]] inline double getFinalCutWood() const noexcept {
+        [[nodiscard]] double getFinalCutWood() const {
             return sawnWood + restWood;
         }
 
         // sawnThinningWood + restThinningWood
-        [[nodiscard]] inline double getThinnedWood() const noexcept {
+        [[nodiscard]] double getThinnedWood() const {
             return sawnThinningWood + restThinningWood;
         }
 
         // biomassHarvest - (sawnWood + restWood)
-        [[nodiscard]] inline double getFinalCutHarvestLosses() const noexcept {
+        [[nodiscard]] double getFinalCutHarvestLosses() const {
             return biomassHarvest - getFinalCutWood();
         }
 
         // biomassThinning - (sawnThinningWood + restThinningWood)
-        [[nodiscard]] inline double getThinningHarvestLosses() const noexcept {
+        [[nodiscard]] double getThinningHarvestLosses() const {
             return biomassThinning - getThinnedWood();
         }
 
-        [[nodiscard]] inline bool positiveAreas() const noexcept {
+        [[nodiscard]] bool positiveAreas() const {
             return finalCut.area > 0 && realArea > 0;
         }
 
         // positiveAreas() && getFinalCutWood() > 0 && biomassHarvest > 0
         // tC/ha
-        [[nodiscard]] inline bool if_fc() const noexcept {
+        [[nodiscard]] bool if_fc() const {
             return positiveAreas() && getFinalCutWood() > 0 && biomassHarvest > 0;
         }
 
         // realArea > 0 && getThinnedWood() > 0 && biomassThinning > 0
         // tC/ha
-        [[nodiscard]] inline bool if_th() const noexcept {
+        [[nodiscard]] bool if_th() const {
             return realArea > 0 && getThinnedWood() > 0 && biomassThinning > 0;
         }
 
         // harvestArea / realArea
-        [[nodiscard]] inline double getAreaRatio() const noexcept {
+        [[nodiscard]] double getAreaRatio() const {
             return finalCut.area / realArea;
         }
 
         // biomassHarvest * (realArea / harvestArea)
-        [[nodiscard]] inline double getHarvestGrowingStock() const noexcept {
+        [[nodiscard]] double getHarvestGrowingStock() const {
             return biomassHarvest * realArea / finalCut.area;
         }
 
         // getFinalCutWood() * (BEF - 2) + biomassHarvest
-        [[nodiscard]] inline double getHarvestResiduesFinalCut(const double BEF) const noexcept {
+        [[nodiscard]] double getHarvestResiduesFinalCut(const double BEF) const {
             return getFinalCutWood() * (BEF - 2) + biomassHarvest;
         }
 
         // getThinnedWood() * (BEF - 2) + biomassThinning
-        [[nodiscard]] inline double getHarvestResiduesThinning(const double BEF) const noexcept {
+        [[nodiscard]] double getHarvestResiduesThinning(const double BEF) const {
             return getThinnedWood() * (BEF - 2) + biomassThinning;
         }
 

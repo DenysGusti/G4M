@@ -455,7 +455,7 @@ namespace g4m::application {
 
         DataGrid<double> forestryValueDPrevGrid{resLatitude};
 
-        void correctBelgium() noexcept {
+        void correctBelgium() {
             woodSupplement = dms.woodDemand.at(20);
             // 05.04.2023: we assume that 14% of round-wood comes from outside forest
             // the Forest Europe net increment and felling values are less than FAOSTAT round-wood
@@ -466,7 +466,7 @@ namespace g4m::application {
 
         // Alteration of mean annual increment with time in each grid cell with values read in a dedicated file,
         // e.g. caused by projected climate change.
-        void applyMAIClimateShifters() noexcept {
+        void applyMAIClimateShifters() {
             if (!MAIClimateShift) {
                 INFO("MAIClimateShift is turned off");
                 return;
@@ -492,7 +492,7 @@ namespace g4m::application {
         }
 
         // Synchronize land use with the GLOBIOM model
-        void initGlobiomLandLocal() noexcept {
+        void initGlobiomLandLocal() {
             // file_globiom_LC_correction is not implemented
             double sumGrLnd_protect = 0;
 
@@ -544,7 +544,7 @@ namespace g4m::application {
         }
 
         // apply corruption and populate country CO2Price if inputPriceC > 0
-        void applyCorruptionModifyCO2Price() noexcept {
+        void applyCorruptionModifyCO2Price() {
             if (inputPriceC == 0)
                 return;
 
@@ -2994,7 +2994,7 @@ namespace g4m::application {
             return FMs_diff2;
         }
 
-        [[nodiscard]] array<double, 4> getCleanedWoodUseCurrent(const DataStruct &plot) const noexcept {
+        [[nodiscard]] array<double, 4> getCleanedWoodUseCurrent(const DataStruct &plot) const {
             double cleanedWoodUseCurrent = 0;
             double cleanedWoodUseCurrent10 = 0;
             double cleanedWoodUseCurrent30 = 0;

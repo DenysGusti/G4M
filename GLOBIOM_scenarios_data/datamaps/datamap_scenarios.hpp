@@ -131,7 +131,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         static void
-        printDatamapScenarios(const datamapScenariosType &datamapScenarios, const string_view message) noexcept {
+        printDatamapScenarios(const datamapScenariosType &datamapScenarios, const string_view message) {
             TRACE("{}", message);
             for (const auto &[scenario, datamap]: datamapScenarios) {
                 TRACE("{}", scenario);
@@ -327,7 +327,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             INFO("Successfully read {} lines.", line_num);
         }
 
-        void convertUnitsDatamaps() noexcept {
+        void convertUnitsDatamaps() {
             for (auto &[scenario, datamap]: woodDemandScenarios)
                 for (auto &[id, ipol]: datamap)
                     for (auto &[key, value]: ipol.data)
@@ -338,7 +338,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                         value *= 250;
         }
 
-        void correctAndConvertCO2Prices() noexcept {
+        void correctAndConvertCO2Prices() {
             const double coef = deflator * molarRatio;
             for (auto &[scenario, datamap]: CO2PriceScenarios)
                 for (auto &[id, ipol]: datamap)
@@ -346,7 +346,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                         CO2Price = CO2Price < 0.011 ? 0 : CO2Price * coef;
         }
 
-        void printData() const noexcept {
+        void printData() const {
             printDatamapScenarios(landPriceScenarios, "Globiom scenarios Land Price");
             printDatamapScenarios(woodPriceScenarios, "Globiom scenarios Wood Price");
             printDatamapScenarios(woodDemandScenarios, "Globiom scenarios Wood Demand");

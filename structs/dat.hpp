@@ -15,7 +15,7 @@ using namespace g4m::init;
 
 namespace g4m::structs {
     struct Dat {
-        [[nodiscard]] static string csvHeader() noexcept {
+        [[nodiscard]] static string csvHeader() {
             return format("{},{},{},{},{},landAreaHa,U_stemBiomass0,N_BGB,N_AGB_B20,N_AGB_O20,afforestA,deforestA,"
                           "deforestLitterA,deforestSoilA,deforestSoilA1,longLivedA,shortLivedA,fineRootA,"
                           "afforestLitterA,afforestSoilA,deforestWoodTotal,salvageLogging,rotation,rotationBiomass,SD,"
@@ -140,7 +140,7 @@ namespace g4m::structs {
             afforestationSoilTimeA.reserve(expectedSimulationLength);
         }
 
-        void update() noexcept {
+        void update() {
             U.update();
             O10.update();
             O30.update();
@@ -184,7 +184,7 @@ namespace g4m::structs {
             deforestationPrev = 0;
         }
 
-        void resetExtracted() noexcept {
+        void resetExtracted() {
             U.resetExtracted();
             O10.resetExtracted();
             O30.resetExtracted();
@@ -194,23 +194,23 @@ namespace g4m::structs {
 
         // share of all forests in the cell (U + 10 + 30 + P + N)
         // -1 - current, -2 - previous
-        [[nodiscard]] inline double forestShareAll(const ptrdiff_t idx) const noexcept {
+        [[nodiscard]] double forestShareAll(const ptrdiff_t idx) const {
             return forestShareOld(idx) + N.forestShare.end()[idx];
         }
 
         // forest share of old forest in each cell
         // -1 - current, -2 - previous
-        [[nodiscard]] inline double forestShareOld(const ptrdiff_t idx) const noexcept {
+        [[nodiscard]] double forestShareOld(const ptrdiff_t idx) const {
             return U.forestShare.end()[idx] + O10.forestShare.end()[idx] + O30.forestShare.end()[idx] +
                    P.forestShare.end()[idx];
         }
 
-        [[nodiscard]] inline bool checkLastForestShares() const noexcept {
+        [[nodiscard]] bool checkLastForestShares() const {
             return U.forestShare.back() >= 0 && O10.forestShare.back() >= 0 && O30.forestShare.back() >= 0 &&
                    P.forestShare.back() >= 0 && N.forestShare.back() >= 0;
         }
 
-        void correctForestShareDynamics() noexcept {
+        void correctForestShareDynamics() {
             U.forestShare.back() = min(U.forestShare.end()[-2], U.forestShare.back());
             O10.forestShare.back() = min(O10.forestShare.end()[-2], O10.forestShare.back());
             O30.forestShare.back() = min(O30.forestShare.end()[-2], O30.forestShare.back());
@@ -218,7 +218,7 @@ namespace g4m::structs {
             N.forestShare.back() = max(N.forestShare.end()[-2], N.forestShare.back());
         }
 
-        void restoreForestShares() noexcept {
+        void restoreForestShares() {
             U.forestShare.back() = U.forestShare.end()[-2];
             O10.forestShare.back() = O10.forestShare.end()[-2];
             O30.forestShare.back() = O30.forestShare.end()[-2];
@@ -228,28 +228,28 @@ namespace g4m::structs {
 
         // new forest below 20 y.o. above-ground biomass, tC / ha
         // -1 - current, -2 - previous
-        [[nodiscard]] inline double N_abovegroundBiomassBelow20yo(const ptrdiff_t idx) const noexcept {
+        [[nodiscard]] double N_abovegroundBiomassBelow20yo(const ptrdiff_t idx) const {
             return ranges::fold_left(N_abovegroundBiomassBelow20yoAge.end()[idx], 0., plus{});
         }
 
         // new forest over 20 y.o. above-ground biomass, tC / ha
         // -1 - current, -2 - previous
-        [[nodiscard]] inline double N_abovegroundBiomassOver20yo(const ptrdiff_t idx) const noexcept {
+        [[nodiscard]] double N_abovegroundBiomassOver20yo(const ptrdiff_t idx) const {
             return ranges::fold_left(N_abovegroundBiomassOver20yoAge.end()[idx], 0., plus{});
         }
 
         // new forest above-ground biomass, tC / ha
         // -1 - current, -2 - previous
-        [[nodiscard]] inline double N_abovegroundBiomass(const ptrdiff_t idx) const noexcept {
+        [[nodiscard]] double N_abovegroundBiomass(const ptrdiff_t idx) const {
             return N_abovegroundBiomassBelow20yo(idx) + N_abovegroundBiomassOver20yo(idx);
         }
 
-        [[nodiscard]] inline double afforestationSoilInput(const size_t age) const noexcept {
+        [[nodiscard]] double afforestationSoilInput(const size_t age) const {
             return pow(1 - exp(-1.2 * afforestationLitterTimeA[age] / (afforestationShareTimeA[age] * landAreaHa)), 3) *
                    afforestationShareTimeA[age] * landAreaHa * modTimeStep;
         }
 
-        [[nodiscard]] double afforestationLitterInput(const size_t age) const noexcept {
+        [[nodiscard]] double afforestationLitterInput(const size_t age) const {
             const size_t idx = N_abovegroundBiomassBelow20yoAge.back().size() - 1 - age;  // age - i
             const double abovePhCurBef = (N_abovegroundBiomassBelow20yoAge.back()[idx] +
                                           N_abovegroundBiomassOver20yoAge.back()[idx]);
@@ -257,7 +257,7 @@ namespace g4m::structs {
                    * afforestationShareTimeA[age] * landAreaHa * modTimeStep;
         }
 
-        [[nodiscard]] string csv() const noexcept {
+        [[nodiscard]] string csv() const {
             return format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
                           "{},{},{},{},{},{},{},{}", U.csv(), O10.csv(), O30.csv(), P.csv(), N.csv(), landAreaHa,
                           U_stemBiomass0, N_belowgroundBiomass.back(), N_abovegroundBiomassBelow20yo(-1),

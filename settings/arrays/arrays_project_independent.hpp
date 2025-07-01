@@ -12,7 +12,7 @@ using namespace g4m::Constants;
 
 namespace g4m::Arrays {
 
-    consteval array<uint8_t, numberOfCountries> initCountryCodeOrder() noexcept {
+    consteval array<uint8_t, numberOfCountries> initCountryCodeOrder() {
         array<uint8_t, numberOfCountries> countryCodeOrder{};
         countryCodeOrder.fill(244);
         countryCodeOrder[0] = 12;
@@ -262,7 +262,7 @@ namespace g4m::Arrays {
         return countryCodeOrder;
     }
 
-    consteval array<string_view, numberOfCountries> initCountryOrderISO() noexcept {
+    consteval array<string_view, numberOfCountries> initCountryOrderISO() {
         array<string_view, numberOfCountries> countryOrderISO;
         countryOrderISO[0] = "AFG";
         countryOrderISO[1] = "ALA";
@@ -512,7 +512,7 @@ namespace g4m::Arrays {
         return countryOrderISO;
     }
 
-    consteval array<string_view, numberOfCountries> initCountryOrderISO2() noexcept {
+    consteval array<string_view, numberOfCountries> initCountryOrderISO2() {
         array<string_view, numberOfCountries> countryOrderISO2;
         countryOrderISO2[0] = "AF";
         countryOrderISO2[1] = "AX";
@@ -762,7 +762,7 @@ namespace g4m::Arrays {
         return countryOrderISO2;
     }
 
-    consteval array<string_view, numberOfCountries> initCountryOrderName() noexcept {
+    consteval array<string_view, numberOfCountries> initCountryOrderName() {
         array<string_view, numberOfCountries> countryOrderName;
         countryOrderName[0] = "Afghanistan";
         countryOrderName[1] = "�land Islands";
@@ -1013,7 +1013,7 @@ namespace g4m::Arrays {
     }
 
 // New countryRegMix!!!!!! Croatia is added
-    consteval array<string_view, numberOfCountriesRegMix> initCountryRegName() noexcept {
+    consteval array<string_view, numberOfCountriesRegMix> initCountryRegName() {
         array<string_view, numberOfCountriesRegMix> countryRegName;
         countryRegName[0] = "noName";
         countryRegName[1] = "Austria";
@@ -1069,7 +1069,7 @@ namespace g4m::Arrays {
         return countryRegName;
     }
 
-    consteval array<uint16_t, 34> initYearNwp() noexcept {
+    consteval array<uint16_t, 34> initYearNwp() {
         array<uint16_t, 34> yearNwp{};
         yearNwp[0] = 1990;
         yearNwp[1] = 1991;
@@ -1106,7 +1106,7 @@ namespace g4m::Arrays {
     }
 
 //--- Years in which GLOBIOM agriculture land prices are defined for EUCLIMIT-2 project
-    consteval array<uint16_t, 13> initYearLP() noexcept {
+    consteval array<uint16_t, 13> initYearLP() {
         array<uint16_t, 13> yearLP{};
         yearLP[0] = 2000;
         yearLP[1] = 2010;
@@ -1124,7 +1124,7 @@ namespace g4m::Arrays {
 // Only EU27 countries + Croatia, new country codes, ordered according to new countryregmix
 // Norway is added at the end
 // Switzerland is added at the end
-    consteval array<uint8_t, numberOfCountries> initCountryNwp() noexcept {
+    consteval array<uint8_t, numberOfCountries> initCountryNwp() {
         array<uint8_t, numberOfCountries> countryNwp{};
         countryNwp[0] = 17; // Austria
         countryNwp[1] = 20; // Belgium
@@ -1161,7 +1161,7 @@ namespace g4m::Arrays {
 
 // country G4M code for EU28 countries for the FM sink data from the UNFCC
 // Norway is added at the end
-    consteval array<uint8_t, 30> initEu28OrderCode() noexcept {
+    consteval array<uint8_t, 30> initEu28OrderCode() {
         array<uint8_t, 30> eu28OrderCode{};
         eu28OrderCode[0] = 17;
         eu28OrderCode[1] = 20;
@@ -1196,14 +1196,14 @@ namespace g4m::Arrays {
         return eu28OrderCode;
     }
 
-    consteval array<double, numberOfCountries> initCountryLandArea() noexcept {
+    consteval array<double, numberOfCountries> initCountryLandArea() {
         array<double, numberOfCountries> countryLandArea{};
         countryLandArea.fill(1e12);
         return countryLandArea;
     }
 
 // country G4M code for the Annex-1 countries for the FM sink data from the UNFCC
-    consteval array<uint8_t, 42> initAnnex1OrderCode() noexcept {
+    consteval array<uint8_t, 42> initAnnex1OrderCode() {
         array<uint8_t, 42> annex1OrderCode{};
         annex1OrderCode[0] = 16;
         annex1OrderCode[1] = 17;
@@ -1252,7 +1252,7 @@ namespace g4m::Arrays {
 
 // country code and Poles region code
 // New country codes!!!
-    consteval array<uint8_t, numberOfCountries> initCountryRegion() noexcept {
+    consteval array<uint8_t, numberOfCountries> initCountryRegion() {
         array<uint8_t, numberOfCountries> countryRegion{};
         countryRegion[1] = 0;
         countryRegion[2] = 20;
@@ -1501,7 +1501,7 @@ namespace g4m::Arrays {
         return countryRegion;
     }
 
-    consteval array<double, numberOfCountries> initMaiCoefficients() noexcept {
+    consteval array<double, numberOfCountries> initMaiCoefficients() {
         array<double, numberOfCountries> maiCoefficients{};
         maiCoefficients.fill(1);
         maiCoefficients[17] = 1.15 * 0.9927 * 0.9952 * 1.0015;
@@ -1535,7 +1535,7 @@ namespace g4m::Arrays {
     }
 
     // calibration coefficients generated by G4M_calibrate_Global_v7
-    consteval array<double, numberOfCountries> initHurdle_opt() noexcept {
+    consteval array<double, numberOfCountries> initHurdle_opt() {
         array<double, numberOfCountries> hurdle_opt{};
         hurdle_opt.fill(1);
         hurdle_opt[17] = 0.599107;
@@ -1570,7 +1570,7 @@ namespace g4m::Arrays {
     }
 
     // calibration coefficients generated by G4M_calibrate_Global_v7
-    consteval array<double, numberOfCountries> initAfforRate_opt() noexcept {
+    consteval array<double, numberOfCountries> initAfforRate_opt() {
         array<double, numberOfCountries> afforRate_opt{};
         afforRate_opt.fill(1);
         afforRate_opt[17] = 1.21025;
@@ -1605,7 +1605,7 @@ namespace g4m::Arrays {
     }
 
     // calibration coefficients generated by G4M_calibrate_Global_v7
-    consteval array<double, numberOfCountries> initDeforRate_opt() noexcept {
+    consteval array<double, numberOfCountries> initDeforRate_opt() {
         array<double, numberOfCountries> deforRate_opt{};
         deforRate_opt.fill(1);
         deforRate_opt[17] = 8.21064;
@@ -1639,7 +1639,7 @@ namespace g4m::Arrays {
         return deforRate_opt;
     }
 
-    consteval array<double, numberOfCountries> initCoef_af_mod1990() noexcept {
+    consteval array<double, numberOfCountries> initCoef_af_mod1990() {
         array<double, numberOfCountries> coef_af_mod1990{};
         coef_af_mod1990.fill(1);
         coef_af_mod1990[17] = 1.12353;
@@ -1673,7 +1673,7 @@ namespace g4m::Arrays {
         return coef_af_mod1990;
     }
 
-    consteval array<double, numberOfCountries> initCoef_af_mod1995() noexcept {
+    consteval array<double, numberOfCountries> initCoef_af_mod1995() {
         array<double, numberOfCountries> coef_af_mod1995{};
         coef_af_mod1995.fill(1);
         coef_af_mod1995[17] = 1.0473;
@@ -1707,7 +1707,7 @@ namespace g4m::Arrays {
         return coef_af_mod1995;
     }
 
-    consteval array<double, numberOfCountries> initCoef_af_mod2000() noexcept {
+    consteval array<double, numberOfCountries> initCoef_af_mod2000() {
         array<double, numberOfCountries> coef_af_mod2000{};
         coef_af_mod2000.fill(1);
         coef_af_mod2000[17] = 0.74239;
@@ -1741,7 +1741,7 @@ namespace g4m::Arrays {
         return coef_af_mod2000;
     }
 
-    consteval array<double, numberOfCountries> initCoef_af_mod2005() noexcept {
+    consteval array<double, numberOfCountries> initCoef_af_mod2005() {
         array<double, numberOfCountries> coef_af_mod2005{};
         coef_af_mod2005.fill(1);
         coef_af_mod2005[17] = 1.33547;
@@ -1775,7 +1775,7 @@ namespace g4m::Arrays {
         return coef_af_mod2005;
     }
 
-    consteval array<double, numberOfCountries> initCoef_af_mod2010() noexcept {
+    consteval array<double, numberOfCountries> initCoef_af_mod2010() {
         array<double, numberOfCountries> coef_af_mod2010{};
         coef_af_mod2010.fill(1);
         coef_af_mod2010[17] = 2.24441;
@@ -1809,7 +1809,7 @@ namespace g4m::Arrays {
         return coef_af_mod2010;
     }
 
-    consteval array<double, numberOfCountries> initCoef_af_mod2015() noexcept {
+    consteval array<double, numberOfCountries> initCoef_af_mod2015() {
         array<double, numberOfCountries> coef_af_mod2015{};
         coef_af_mod2015.fill(1);
         coef_af_mod2015[17] = 2.97295;
@@ -1843,7 +1843,7 @@ namespace g4m::Arrays {
         return coef_af_mod2015;
     }
 
-    consteval array<double, numberOfCountries> initCoef_af_mod2020() noexcept {
+    consteval array<double, numberOfCountries> initCoef_af_mod2020() {
         array<double, numberOfCountries> coef_af_mod2020{};
         coef_af_mod2020.fill(1);
         coef_af_mod2020[17] = 2.46929;
@@ -1877,7 +1877,7 @@ namespace g4m::Arrays {
         return coef_af_mod2020;
     }
 
-    consteval array<double, numberOfCountries> initCoef_df_mod1990() noexcept {
+    consteval array<double, numberOfCountries> initCoef_df_mod1990() {
         array<double, numberOfCountries> coef_df_mod1990{};
         coef_df_mod1990.fill(1);
         coef_df_mod1990[17] = 0.909453;
@@ -1911,7 +1911,7 @@ namespace g4m::Arrays {
         return coef_df_mod1990;
     }
 
-    consteval array<double, numberOfCountries> initCoef_df_mod1995() noexcept {
+    consteval array<double, numberOfCountries> initCoef_df_mod1995() {
         array<double, numberOfCountries> coef_df_mod1995{};
         coef_df_mod1995.fill(1);
         coef_df_mod1995[17] = 0.843589;
@@ -1945,7 +1945,7 @@ namespace g4m::Arrays {
         return coef_df_mod1995;
     }
 
-    consteval array<double, numberOfCountries> initCoef_df_mod2000() noexcept {
+    consteval array<double, numberOfCountries> initCoef_df_mod2000() {
         array<double, numberOfCountries> coef_df_mod2000{};
         coef_df_mod2000.fill(1);
         coef_df_mod2000[17] = 0.580135;
@@ -1979,7 +1979,7 @@ namespace g4m::Arrays {
         return coef_df_mod2000;
     }
 
-    consteval array<double, numberOfCountries> initCoef_df_mod2005() noexcept {
+    consteval array<double, numberOfCountries> initCoef_df_mod2005() {
         array<double, numberOfCountries> coef_df_mod2005{};
         coef_df_mod2005.fill(1);
         coef_df_mod2005[17] = 0.942253;
@@ -2013,7 +2013,7 @@ namespace g4m::Arrays {
         return coef_df_mod2005;
     }
 
-    consteval array<double, numberOfCountries> initCoef_df_mod2010() noexcept {
+    consteval array<double, numberOfCountries> initCoef_df_mod2010() {
         array<double, numberOfCountries> coef_df_mod2010{};
         coef_df_mod2010.fill(1);
         coef_df_mod2010[17] = 1.30428;
@@ -2047,7 +2047,7 @@ namespace g4m::Arrays {
         return coef_df_mod2010;
     }
 
-    consteval array<double, numberOfCountries> initCoef_df_mod2015() noexcept {
+    consteval array<double, numberOfCountries> initCoef_df_mod2015() {
         array<double, numberOfCountries> coef_df_mod2015{};
         coef_df_mod2015.fill(1);
         coef_df_mod2015[17] = 1.65365;
@@ -2081,7 +2081,7 @@ namespace g4m::Arrays {
         return coef_df_mod2015;
     }
 
-    consteval array<double, numberOfCountries> initCoef_df_mod2020() noexcept {
+    consteval array<double, numberOfCountries> initCoef_df_mod2020() {
         array<double, numberOfCountries> coef_df_mod2020{};
         coef_df_mod2020.fill(1);
         coef_df_mod2020[17] = 2.11981;
@@ -2115,7 +2115,7 @@ namespace g4m::Arrays {
         return coef_df_mod2020;
     }
 
-    consteval array<array<double, 4>, numberOfCountries> initEmissionsResUseSust1() noexcept {
+    consteval array<array<double, 4>, numberOfCountries> initEmissionsResUseSust1() {
         array<array<double, 4>, numberOfCountries> emissionsResUseSust1{};
         emissionsResUseSust1[17][0] = 0.1467;
         emissionsResUseSust1[17][1] = 0.0733;
@@ -2228,7 +2228,7 @@ namespace g4m::Arrays {
         return emissionsResUseSust1;
     }
 
-    consteval array<array<double, 4>, numberOfCountries> initEmissionsResUseSust2() noexcept {
+    consteval array<array<double, 4>, numberOfCountries> initEmissionsResUseSust2() {
         array<array<double, 4>, numberOfCountries> emissionsResUseSust2{};
         emissionsResUseSust2[17][0] = 0.3667;
         emissionsResUseSust2[17][1] = 0.1711;

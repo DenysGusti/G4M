@@ -15,7 +15,7 @@ namespace g4m::init {
 
         Point(const size_t x_, const size_t y_) : x{x_}, y{y_} {}
 
-        [[nodiscard]] string str() const noexcept {
+        [[nodiscard]] string str() const {
             return format("({}, {})", x, y);
         }
     };

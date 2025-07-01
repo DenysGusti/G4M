@@ -86,7 +86,7 @@ namespace g4m::init {
             buildFromCSVLine(header, line_cells);
         }
 
-        [[nodiscard]] pair<double, double> getInputCoordinates() const noexcept {
+        [[nodiscard]] pair<double, double> getInputCoordinates() const {
             return {(x + 0.5) * gridStep - 180, (y + 0.5) * gridStep - 90};
         }
 
@@ -220,7 +220,7 @@ namespace g4m::init {
             }
         }
 
-        [[nodiscard]] string str() const noexcept {
+        [[nodiscard]] string str() const {
             string format_integral = format(
                     "x = {}\ny = {}\nsimuID = {}\ncountry = {}\nIIASA_region = {}\npolesReg = {}\ncountryRegMix = {}\n"
                     "speciesType = {}\nmngmType = {}\npotVeg = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n"
@@ -254,7 +254,7 @@ namespace g4m::init {
             return os;
         }
 
-        void initForestArrange() noexcept {
+        void initForestArrange() {
             if (strictProtected > 0) {
                 oldGrowthForest_ten = max(oldGrowthForest_ten, strictProtected);
                 oldGrowthForest_thirty = max(oldGrowthForest_thirty, strictProtected);
@@ -268,13 +268,13 @@ namespace g4m::init {
             }
         }
 
-        void forestsArrangement() noexcept {
+        void forestsArrangement() {
             forest = max(0., forest - oldGrowthForest_thirty);  // Now it's just a "usual" old forest
             oldGrowthForest_thirty -= oldGrowthForest_ten;  // forest10 includes primary forest
             oldGrowthForest_ten -= strictProtected; // Now forest10 is just additional to the primary forest to be protected
         }
 
-        [[nodiscard]] optional<double> initForestArea(double dfor) noexcept {
+        [[nodiscard]] optional<double> initForestArea(double dfor) {
             if (forest >= dfor) {
                 forest -= dfor;
                 return nullopt;
@@ -299,12 +299,12 @@ namespace g4m::init {
             }
         }
 
-        [[nodiscard]] pair<double, double> getGeographicCoordinates() const noexcept {
+        [[nodiscard]] pair<double, double> getGeographicCoordinates() const {
             return {(x + 0.5) * gridStep - 180, (y + 0.5) * gridStep - 90};
         }
 
         // all old forest in the cell
-        [[nodiscard]] double getForestShare() const noexcept {
+        [[nodiscard]] double getForestShare() const {
             return forest + oldGrowthForest_ten + oldGrowthForest_thirty + strictProtected;
         }
 
@@ -486,7 +486,7 @@ namespace g4m::init {
             return str;
         }
 
-        [[nodiscard]] double afforestationSoilInputCoef() const noexcept {
+        [[nodiscard]] double afforestationSoilInputCoef() const {
             switch (potVeg) {
                 case VegetationType::TemperateNeedleleafEvergreenForest:
                 case VegetationType::BorealEvergreenForest:
@@ -499,7 +499,7 @@ namespace g4m::init {
         }
 
         // below-ground phytomass of planted forest = 18% for tropical, 22% for temperate and 25% for boreal of above-ground phytomass
-        [[nodiscard]] double coefBL() const noexcept {
+        [[nodiscard]] double coefBL() const {
             switch (potVeg) {
                 case VegetationType::TropicalEvergreenForest:
                 case VegetationType::TropicalDeciduousForest:
@@ -518,7 +518,7 @@ namespace g4m::init {
             }
         }
 
-        [[nodiscard]] inline bool isBroadleaf() const noexcept {
+        [[nodiscard]] bool isBroadleaf() const {
             return 5 <= static_cast<uint8_t>(speciesType) && static_cast<uint8_t>(speciesType) <= 7;
         }
     };

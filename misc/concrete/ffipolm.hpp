@@ -72,25 +72,25 @@ namespace g4m::misc::concrete {
             return true;
         }
 
-        [[nodiscard]] vector<size_t> getN() const noexcept {
+        [[nodiscard]] vector<size_t> getN() const {
             return n;
         }
 
         // add x to all
-        FFIpolM &operator+=(const T x) noexcept override {
+        FFIpolM &operator+=(const T x) override {
             for (auto &value: data)
                 value += x;
             return *this;
         }
 
         // multiply all by x
-        FFIpolM &operator*=(const T x) noexcept override {
+        FFIpolM &operator*=(const T x) override {
             for (auto &value: data)
                 value *= x;
             return *this;
         }
 
-        [[nodiscard]] string str() const noexcept override {
+        [[nodiscard]] string str() const override {
             string s = "FFIpolM data:\n";
             s.reserve(s.length() + 16 * data.size());
             for (const auto el: data)
@@ -98,7 +98,7 @@ namespace g4m::misc::concrete {
             return s;
         }
 
-        T ip(const span<const T> i) const noexcept override {
+        T ip(const span<const T> i) const override {
             if (i.size() != dim)
                 return 0;
 

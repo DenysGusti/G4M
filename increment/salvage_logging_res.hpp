@@ -34,36 +34,36 @@ namespace g4m::increment {
         }
 
         // (wind.getDBHArea() + fire.getDBHArea() + biotic.getDBHArea()) / harvestArea
-        [[nodiscard]] inline double getDBHSlashCut() const noexcept {
+        [[nodiscard]] double getDBHSlashCut() const {
             return (wind.getDBHArea() + fire.getDBHArea() + biotic.getDBHArea()) / harvestArea;
         }
 
         // (wind.getHArea() + fire.getHArea() + biotic.getHArea()) / harvestArea
-        [[nodiscard]] inline double getHSlashCut() const noexcept {
+        [[nodiscard]] double getHSlashCut() const {
             return (wind.getHArea() + fire.getHArea() + biotic.getHArea()) / harvestArea;
         }
 
         // harvestArea > 0 && realArea > 0 && harvestedWood > 0 && biomassHarvest > 0
-        [[nodiscard]] inline bool allPositive() const noexcept {
+        [[nodiscard]] bool allPositive() const {
             return harvestArea > 0 && realArea > 0 && harvestedWood > 0 && biomassHarvest > 0;  // tC/ha
         }
 
         // biomassHarvest * realArea / harvestArea
-        [[nodiscard]] inline double getGrowingStockCut() const noexcept {
+        [[nodiscard]] double getGrowingStockCut() const {
             return biomassHarvest * realArea / harvestArea;
         }
 
         // harvestedWood * (BEF - 2) + biomassHarvest
-        [[nodiscard]] inline double getHarvestResiduesSalvageLogging(const double BEF) const noexcept {
+        [[nodiscard]] double getHarvestResiduesSalvageLogging(const double BEF) const {
             return harvestedWood * (BEF - 2) + biomassHarvest;
         }
 
-        [[nodiscard]] inline bool positiveAreas() const noexcept {
+        [[nodiscard]] bool positiveAreas() const {
             return harvestArea > 0 && realArea > 0;
         }
 
         // harvestArea / realArea
-        [[nodiscard]] inline double getAreaRatio() const noexcept {
+        [[nodiscard]] double getAreaRatio() const {
             return harvestArea / realArea;
         }
     };

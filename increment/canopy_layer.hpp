@@ -69,9 +69,9 @@ namespace g4m::increment {
         // for dat0: sd = -1, avgMai = (1 - slShare) * avgMai
         void
         createNormalForest(const double rotationPeriod_, const double area_, const double sd,
-                           const double avgMai) noexcept {
+                           const double avgMai) {
             if (!dat.empty()) {
-                println("createNormalForest: the forest with size {} was already created", dat.size());
+                ERROR("createNormalForest: the forest with size {} was already created", dat.size());
                 return;
             }
 
@@ -100,7 +100,7 @@ namespace g4m::increment {
                 dat.back().area *= share;
         }
 
-        [[nodiscard]] double getTotalArea() const noexcept {
+        [[nodiscard]] double getTotalArea() const {
             double totalArea = 0;
             for (const auto &cohort: dat)
                 totalArea += cohort.area;
@@ -108,7 +108,7 @@ namespace g4m::increment {
         }
 
         // get average biomass per ha
-        [[nodiscard]] double getAverageBiomass() const noexcept {
+        [[nodiscard]] double getAverageBiomass() const {
             double totalArea = getTotalArea();
             if (totalArea <= 0)
                 return 0;
@@ -119,7 +119,7 @@ namespace g4m::increment {
             return bm / totalArea;
         }
 
-        [[nodiscard]] double getAreaByAge(const double age_) const noexcept {
+        [[nodiscard]] double getAreaByAge(const double age_) const {
             const double age = max(0., age_);
 
             if (age != age_)
@@ -130,20 +130,20 @@ namespace g4m::increment {
             return ageH < dat.size() ? dat[ageH].area / timeStep : 0;
         }
 
-        [[nodiscard]] inline double getBiomassByAge(const double age_) const noexcept {
+        [[nodiscard]] double getBiomassByAge(const double age_) const {
             return getInterpolatedCohortValueByAge(age_, AgeClass::Mode::Bm);
         }
 
-        [[nodiscard]] inline double getDiameterByAge(const double age_) const noexcept {
+        [[nodiscard]] double getDiameterByAge(const double age_) const {
             return getInterpolatedCohortValueByAge(age_, AgeClass::Mode::D);
         }
 
-        [[nodiscard]] inline double getHeightByAge(const double age_) const noexcept {
+        [[nodiscard]] double getHeightByAge(const double age_) const {
             return getInterpolatedCohortValueByAge(age_, AgeClass::Mode::H);
         }
 
         void
-        setAreaToAgeClassIdx(const size_t idx, const double area_) noexcept {
+        setAreaToAgeClassIdx(const size_t idx, const double area_) {
             if (idx >= dat.size()) [[unlikely]] {
                 ERROR("setAreaToAgeClassIdx: idx ({}) >= dat.size() ({})!", idx, dat.size());
                 return;
@@ -156,7 +156,7 @@ namespace g4m::increment {
         }
 
         // for dat0: sd = -1, avgMai = (1 - slShare) * avgMai, for dat: sd = slShare * sd
-        void setBiomassToAgeClassIdx(const size_t idx, const double biomass_, const double avgMai) noexcept {
+        void setBiomassToAgeClassIdx(const size_t idx, const double biomass_, const double avgMai) {
             if (idx >= dat.size()) [[unlikely]] {
                 ERROR("setBiomassToAgeClassIdx: idx ({}) >= dat.size() ({})!", idx, dat.size());
                 return;
@@ -171,9 +171,9 @@ namespace g4m::increment {
             dat[idx].bm = biomass;
         }
 
-        void setDiameterToAgeClassIdx(const size_t idx, const double dbh_, const double avgMai) noexcept {
+        void setDiameterToAgeClassIdx(const size_t idx, const double dbh_, const double avgMai) {
             if (idx >= dat.size()) [[unlikely]] {
-                println("setDiameterToAgeClassIdx: idx ({}) >= dat.size() ({})!", idx, dat.size());
+                ERROR("setDiameterToAgeClassIdx: idx ({}) >= dat.size() ({})!", idx, dat.size());
                 return;
             }
             const double age = static_cast<double>(idx + 1) * timeStep;
@@ -187,7 +187,7 @@ namespace g4m::increment {
             dat[idx].d = dbh;
         }
 
-        void setHeightToAgeClassIdx(const size_t idx, const double height_) noexcept {
+        void setHeightToAgeClassIdx(const size_t idx, const double height_) {
             if (idx >= dat.size()) [[unlikely]] {
                 ERROR("setHeightToAgeClassIdx: idx ({}) >= dat.size() ({})!", idx, dat.size());
                 return;
@@ -200,7 +200,7 @@ namespace g4m::increment {
             dat[idx].h = height;
         }
 
-        void increaseSize(const size_t newSize, const double sd, const double avgMai) noexcept {
+        void increaseSize(const size_t newSize, const double sd, const double avgMai) {
             if (dat.empty()) {
                 ERROR("setCohortValueByAgeClassIdx: forest was not created!");
                 return;
@@ -209,23 +209,23 @@ namespace g4m::increment {
                 initNewAgeClasses(newSize - dat.size(), sd, avgMai);
         }
 
-        [[nodiscard]] inline size_t getCurrentNumberOfAgeClasses() const noexcept {
+        [[nodiscard]] size_t getCurrentNumberOfAgeClasses() const {
             return dat.size();
         }
 
-        [[nodiscard]] inline size_t getCurrentMaxNumberOfAgeClasses() const noexcept {
+        [[nodiscard]] size_t getCurrentMaxNumberOfAgeClasses() const {
             return currentMaxSize;
         }
 
-        [[nodiscard]] inline size_t getMaxPossibleNumberOfAgeClasses() const noexcept {
+        [[nodiscard]] size_t getMaxPossibleNumberOfAgeClasses() const {
             return incrementTableSize;
         }
 
-        [[nodiscard]] inline double getMaxAge() const noexcept {
+        [[nodiscard]] double getMaxAge() const {
             return static_cast<double>(currentMaxSize) * timeStep;
         }
 
-        void setMaxAge(const double maxAge_) noexcept {
+        void setMaxAge(const double maxAge_) {
             const double maxAge = clamp(maxAge_, 0., it->getTMax() - 1);
             if (maxAge != maxAge_)
                 ERROR("setMaxAge: input parameter correction:\nmaxAge: {} -> {}", maxAge_, maxAge);
@@ -238,7 +238,7 @@ namespace g4m::increment {
             currentMaxSize = newMaxSize;
         }
 
-        void afforest(const double area_) noexcept {
+        void afforest(const double area_) {
             if (dat.empty()) {
                 ERROR("afforest: forest was not created, afforesting is not possible!");
                 return;
@@ -275,7 +275,7 @@ namespace g4m::increment {
             setBiomassToAgeClassIdx(1, newBiomass, mai);
         }
 
-        void changeSpecies(const double area_) noexcept {
+        void changeSpecies(const double area_) {
             if (dat.empty()) {
                 ERROR("changeSpecies: forest was not created, changing species is not possible!");
                 return;
@@ -361,7 +361,7 @@ namespace g4m::increment {
             return {sd, iGwl, bm, id};
         }
 
-        void cohortShift(const double sd, const double avgMai) noexcept {
+        void cohortShift(const double sd, const double avgMai) {
             if (currentMaxSize <= 1) {
                 ERROR("cohortShift: currentMaxSize ({}) <= 1!", currentMaxSize);
                 return;
@@ -384,7 +384,7 @@ namespace g4m::increment {
         }
 
         // bring the data to the next age class
-        void shiftAgeClassIdx(const size_t idx) noexcept {
+        void shiftAgeClassIdx(const size_t idx) {
             if (dat.empty()) {
                 ERROR("shiftAgeClassIdx: forest was not created!");
                 return;
@@ -403,7 +403,7 @@ namespace g4m::increment {
         }
 
         // get forest area where Bm > 0, including the first age class
-        [[nodiscard]] double getAreaNonZero() const noexcept {
+        [[nodiscard]] double getAreaNonZero() const {
             double area = 0;
             for (const auto &ageClass: dat)
                 if (ageClass.bm > 0 || &ageClass == &dat.front())
@@ -412,7 +412,7 @@ namespace g4m::increment {
         }
 
         // get average biomass per ha for age classes with Bm > 0 (including 0 age class)
-        [[nodiscard]] double getBmNonZero() const noexcept {
+        [[nodiscard]] double getBmNonZero() const {
             double area = 0;
             double bm = 0;
             for (const auto &ageClass: dat)
@@ -424,7 +424,7 @@ namespace g4m::increment {
         }
 
         // MG 09052022: get standing stem biomass with a diameter greater than dbh0 cm
-        [[nodiscard]] double getBmGDbh(const double dbh0) const noexcept {
+        [[nodiscard]] double getBmGDbh(const double dbh0) const {
             double area_ = 0;
             double bm = 0;
 
@@ -436,28 +436,28 @@ namespace g4m::increment {
             return area_ > 0 ? bm / area_ : 0;
         }
 
-        [[nodiscard]] inline const vector<AgeClass> &getDat() const noexcept {
+        [[nodiscard]] const vector<AgeClass> &getDat() const {
             return dat;
         }
 
         // MG: added : Find "active Age" - the oldest age class with area > 0
-        [[nodiscard]] inline double getActiveAge() const noexcept {
+        [[nodiscard]] double getActiveAge() const {
             return static_cast<double>(getActiveAgeClassIdx()) * timeStep;
         }
 
         // find the oldest age class index with area > 0
-        [[nodiscard]] size_t getActiveAgeClassIdx() const noexcept {
+        [[nodiscard]] size_t getActiveAgeClassIdx() const {
             if (dat.empty())
                 return 0;
-            auto it = ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; });
-            ptrdiff_t i = distance(it, dat.rend());
+            auto iter = ranges::find_if(dat | rv::reverse, [](const auto &dat_i) { return dat_i.area > 0; });
+            ptrdiff_t i = distance(iter, dat.rend());
             i = max(ptrdiff_t{0}, i - 1);
             return i;
         }
 
         // MG: Clean area of those age classes where Bm <= 0;
         // possible problem with low MAI when a few beginning age classes have 0 biomass
-        void rectifyArea() noexcept {
+        void rectifyArea() {
             if (dat.size() <= 1)
                 return;
             for (auto &ageClass: dat)
@@ -566,7 +566,7 @@ namespace g4m::increment {
 
         [[nodiscard]] FMResult
         finalCutArea(const double area_, const bool eco, const bool sustainable, const double minRot_,
-                     const double avgMai_) noexcept {
+                     const double avgMai_) {
             const double area = max(0., area_);
             const double minRot = max(0., minRot_);
             const double avgMai = clamp(avgMai_, 0., 50.);
@@ -635,7 +635,7 @@ namespace g4m::increment {
 
         [[nodiscard]] FMResult
         finalCutAmount(const double minSw_, const double minRw_, const double minHarv_,
-                       const bool eco, const bool sustainable, const double minRot_, const double avgMai_) noexcept {
+                       const bool eco, const bool sustainable, const double minRot_, const double avgMai_) {
             const double minSw = max(0., minSw_);
             const double minRw = max(0., minRw_);
             const double minHarv = max(0., minHarv_);
@@ -715,7 +715,7 @@ namespace g4m::increment {
             return ret;
         }
 
-        [[nodiscard]] string str() const noexcept {
+        [[nodiscard]] string str() const {
             string str;
             str.reserve(75 * dat.size());
             for (const auto &[i, cohort]: dat | rv::enumerate)
@@ -723,7 +723,7 @@ namespace g4m::increment {
             return str;
         }
 
-        friend ostream &operator<<(ostream &os, const CanopyLayer &obj) noexcept {
+        friend ostream &operator<<(ostream &os, const CanopyLayer &obj) {
             os << obj.str();
             return os;
         }
@@ -746,7 +746,7 @@ namespace g4m::increment {
 
         // get interpolated biomass, diameter or height per ha by age
         [[nodiscard]] double
-        getInterpolatedCohortValueByAge(const double age_, const AgeClass::Mode type) const noexcept {
+        getInterpolatedCohortValueByAge(const double age_, const AgeClass::Mode type) const {
             if (dat.empty())
                 return 0;
 

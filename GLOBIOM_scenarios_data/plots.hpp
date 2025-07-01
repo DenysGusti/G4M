@@ -64,7 +64,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             INFO("Successfully read {} lines.", line_num);
         }
 
-        void filterPlots() noexcept {
+        void filterPlots() {
             filteredPlots.reserve(rawPlots.size());
 
             for (const auto &plot: rawPlots)
@@ -72,19 +72,19 @@ namespace g4m::GLOBIOM_scenarios_data {
                     filteredPlots.push_back(plot);
         }
 
-        void initPlotsSimuID() noexcept {
+        void initPlotsSimuID() {
             plotsSimuID.reserve(rawPlots.size());
 
             for (const auto &plot: rawPlots)
                 plotsSimuID.insert(plot.simuID);
         }
 
-        void initPlotsXY_SimuID() noexcept {
+        void initPlotsXY_SimuID() {
             for (const auto &plot: rawPlots)
                 plotsXY_SimuID[{plot.x, plot.y}] = plot.simuID;
         }
 
-        void setAsIds() noexcept {
+        void setAsIds() {
             for (auto &&[i, plot]: filteredPlots | rv::enumerate)
                 plot.asID = i;
         }
@@ -125,7 +125,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             return fun_MAI_CountryUProtect;
         }
 
-        void printPlots() noexcept {
+        void printPlots() {
             TRACE("Plots:");
             for (size_t i = 0; const auto &plot: filteredPlots)
                 TRACE("plots[{}]:\n{}", i++, plot.str());

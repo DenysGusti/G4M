@@ -12,12 +12,12 @@ namespace g4m::parameters {
         double stemBiomassDoeMin = 0;
 
         // do thinning (Vornutzung)
-        [[nodiscard]] bool DOV(const double diameter, const double stemBiomass, const double thinShare) const noexcept {
+        [[nodiscard]] bool DOV(const double diameter, const double stemBiomass, const double thinShare) const {
             return diameter >= diameterDovMin && stemBiomass >= stemBiomassDovMin && thinShare >= thinShareDovMin;
         }
 
         // do final fellings (Endnutzung)
-        [[nodiscard]] bool DOE(const double diameter, const double stemBiomass) const noexcept {
+        [[nodiscard]] bool DOE(const double diameter, const double stemBiomass) const {
             return diameter >= diameterDoeMin || stemBiomass >= stemBiomassDoeMin;
         }
     };

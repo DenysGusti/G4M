@@ -30,20 +30,20 @@ namespace g4m::misc::concrete {
         };
 
         // add x to all
-        FIpol &operator+=(const T x) noexcept override {
+        FIpol &operator+=(const T x) override {
             for (auto &value: data)
                 value += x;
             return *this;
         }
 
         // multiply all by x
-        FIpol &operator*=(const T x) noexcept override {
+        FIpol &operator*=(const T x) override {
             for (auto &value: data)
                 value *= x;
             return *this;
         }
 
-        [[nodiscard]] string str() const noexcept override {
+        [[nodiscard]] string str() const override {
             string s = "FIpol data:\n";
             s.reserve(s.length() + 16 * data.size());
             for (const auto el: data)
@@ -51,7 +51,7 @@ namespace g4m::misc::concrete {
             return s;
         }
 
-        T ip(const T i) const noexcept override {
+        T ip(const T i) const override {
             if (data.empty())
                 return 0;
             if (data.size() == 1)

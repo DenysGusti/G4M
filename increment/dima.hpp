@@ -21,20 +21,20 @@ namespace g4m::increment {
     public:
         // Value of Forestry during multiple rotation (Eq.4)
         // Changed to multiple years!!!!
-        [[nodiscard]] double forVal() const noexcept {
+        [[nodiscard]] double forVal() const {
             return calcNpvSum() * forestValueOne() * modTimeStep;
         }
 
         // Value of Forestry multiple rotation No Carbon Price
         // Changed to multiple years!!!!
-        [[nodiscard]] double forValNC() const noexcept {
+        [[nodiscard]] double forValNC() const {
             return calcNpvSum() * forestValueOneNC() * modTimeStep;
             // Georg's definition (like in Kindermann et al. 2007)
             // return forestValueOneNC() / (1 - pow(1 +r(year), -rotInter())));
         }
 
         // Net present Value of Agriculture (Eq.5)
-        [[nodiscard]] double agrVal() const noexcept {
+        [[nodiscard]] double agrVal() const {
             double priceLevel = priceLandMin0 * priceIndex / priceIndex0;
             //Importance of Population density
             // double popImp = (log(priceLandMax0(year)) - log(priceLandMin0(year))) / (2 * log(10));
@@ -45,7 +45,7 @@ namespace g4m::increment {
         }
 
         // Value of amenity
-        [[nodiscard]] double amenVal() const noexcept {
+        [[nodiscard]] double amenVal() const {
             double priceLevel = priceLandMin0 * priceIndex / priceIndex0;
             // Importance of Population density
             // double popImp = (log(priceLandMax0(year)) - log(priceLandMin0(year))) / (2 * log(10));
@@ -57,7 +57,7 @@ namespace g4m::increment {
 
         // Get the minimum carbon price where Forest = Argic (Eq.6)
         // MG: changed for external price correction
-        [[nodiscard]] double minPriceC() const noexcept {
+        [[nodiscard]] double minPriceC() const {
             double r_year = r(year);
             return (agrVal() * (1 - pow(1 + r_year, (-rotInter()))) + plantingCosts() -
                     (priceTimber() - priceHarvest()) * woodHarvestVol() * pow(1 + r_year, (-rotInter()))) /
@@ -65,29 +65,29 @@ namespace g4m::increment {
                                                   rotInter() * (1 - beta()) * pow(1 + r_year, (-rotInter()))));
         }
 
-        void setYear(const int year_) noexcept {
+        void setYear(const int year_) {
             year = year_;
         }
 
-        void setForest(const double x) noexcept {
+        void setForest(const double x) {
             forest = clamp(x, 0., 1.);
         }
 
         // MG: Value of Forestry during multiple rotation with External Timber price
         // Changed to multiple years!!!!
-        [[nodiscard]] double forValExt() const noexcept {
+        [[nodiscard]] double forValExt() const {
             return calcNpvSum() * forestValueOneExt() * modTimeStep;
         }
 
         // MG: Value of Forestry during multiple rotation with combined (G4M + External) Timber price
         // Changed to multiple years!!!!
-        [[nodiscard]] double forValComb() const noexcept {
+        [[nodiscard]] double forValComb() const {
             return calcNpvSum() * forestValueOneComb() * modTimeStep;
         }
 
         // MG: Value of Forestry multiple rotation No Carbon Price using External wood price
         // Changed to multiple years!!!!
-        [[nodiscard]] double forValNCExt() const noexcept {
+        [[nodiscard]] double forValNCExt() const {
             return calcNpvSum() * forestValueOneNCExt() * modTimeStep;
             // Georg's definition (like in Kindermann et al. 2007)
             // return forestValueOneNCExt() / (1 - pow(1 + r(year), -rotInter()));
@@ -96,13 +96,13 @@ namespace g4m::increment {
         // MG: Value of Forestry during multiple rotation with combined (G4M + External) Timber price
         // Changed to multiple years!!!!
         // No carbon price
-        [[nodiscard]] double forValNCComb() const noexcept {
+        [[nodiscard]] double forValNCComb() const {
             return calcNpvSum() * forestValueOneNCComb() * modTimeStep;
         }
 
         // MG: Attention: agrVal changed! Only 2000 value is estimated here
         // MG: Net present Value of Agriculture in the year 2000
-        [[nodiscard]] double agrVal2000() const noexcept {
+        [[nodiscard]] double agrVal2000() const {
             double priceLevel = priceLandMin0 * priceIndex / priceIndex0;
             // Importance of Population density
             double popImp = log(priceLandMax0 / priceLandMin0) * 0.5 * log10e;
@@ -115,7 +115,7 @@ namespace g4m::increment {
         // Costs to plant 1 ha of forest
         // Maybe these costs do not occur on the second rotation interval because of natural regeneration coppice forests
         // return plantingCosts0(year) * priceIndex(year) / priceIndex0(year);
-        [[nodiscard]] double plantingCosts() const noexcept {
+        [[nodiscard]] double plantingCosts() const {
             double plantRate = clamp((vIncr() - 3) / 6, 0., 1.);
             return plantRate * plantingCosts0 * priceIndex / priceIndex0;
         }
@@ -157,7 +157,7 @@ namespace g4m::increment {
         }
 
         // Timber price internal
-        [[nodiscard]] double priceTimber() const noexcept {
+        [[nodiscard]] double priceTimber() const {
             double sfor = (1 - forest) * 9 + 1;
             double c4 = priceTimberMax0 - priceTimberMin0 / 99;
             double c3 = priceTimberMin0 - c4;
@@ -167,7 +167,7 @@ namespace g4m::increment {
         // MG: Timber price external
         // MG: use internal G4M wood price
         // MG: Changed to external SawnLogsPrice
-        [[nodiscard]] double priceTimberExt() const noexcept {
+        [[nodiscard]] double priceTimberExt() const {
             double sfor = (1 - forest) * 9 + 1;
             double c4 = (priceTimberMax0 - priceTimberMin0) / 99;
             double c3 = priceTimberMin0 - c4;
@@ -178,7 +178,7 @@ namespace g4m::increment {
         // MG: Combined timber price (G4M+external)
         // MG: use internal G4M wood price
         // MG: Changed to external SawnLogsPrice
-        [[nodiscard]] double priceTimberComb() const noexcept {
+        [[nodiscard]] double priceTimberComb() const {
             double sfor = (1 - forest) * 9 + 1;
             double c4 = (priceTimberMax0 - priceTimberMin0) / 99;
             double c3 = priceTimberMin0 - c4;
@@ -188,14 +188,14 @@ namespace g4m::increment {
 
         // Rotation interval of a Forest in Years
         // MG: Use Georg's Optimal Rotation Time
-        [[nodiscard]] double rotInter() const noexcept {
+        [[nodiscard]] double rotInter() const {
             return rotInterM;
         }
 
         // Harvest volume of the timber during 1 rotation period
         // MG: Georg's harvestable wood
         // Disturbances can also be mentioned
-        [[nodiscard]] double woodHarvestVol() const noexcept {
+        [[nodiscard]] double woodHarvestVol() const {
             return harvWood * rotInter();
         }
 
@@ -206,12 +206,12 @@ namespace g4m::increment {
         // high rotation of leaves and little branches
         // insects eat the leaves
         // kg/m^2 -> t/ha
-        [[nodiscard]] double CUptake() const noexcept {
+        [[nodiscard]] double CUptake() const {
             return npp(year) * 10 * fCUptake;
         }
 
         // Harvestable wood-volume increment (m3/ha/year)
-        [[nodiscard]] double vIncr() const noexcept {
+        [[nodiscard]] double vIncr() const {
             return CUptake() * fTimber;
         }
 
@@ -245,13 +245,13 @@ namespace g4m::increment {
 
         // Fraction of carbon costs during harvest
         // Depends on fraction of short and long term products
-        [[nodiscard]] double beta() const noexcept {
+        [[nodiscard]] double beta() const {
             return 1 - decLongProd / (decLongProd + r(year)) * fracLongProd -
                    decShortProd / (decShortProd + r(year)) * (1 - fracLongProd);
         }
 
         // Carbon benefit (Eq. 3)
-        [[nodiscard]] double cBenefit() const noexcept {
+        [[nodiscard]] double cBenefit() const {
             return priceC * CUptake() * (1 - baseline) * (((1 - pow(1 + r(year), -rotInter())) / r(year)) -
                                                           rotInter() * (1 - beta()) *
                                                           pow(1 + r(year), -rotInter()));
@@ -260,21 +260,21 @@ namespace g4m::increment {
         // Price to harvest the timber
         // Beside harvesting costs also thinning costs, branch-removal,... can be considered
         // currently made static
-        [[nodiscard]] static double priceHarvest() noexcept {
+        [[nodiscard]] static double priceHarvest() {
             return 0;  // priceTimber() * 0
         }
 
         // Value of Forestry during one rotation (Eq.1)
         // Changed to 1 year!!!!
         // MG:  changed for external price correction
-        [[nodiscard]] double forestValueOne() const noexcept {
+        [[nodiscard]] double forestValueOne() const {
             return (-plantingCosts() + (priceTimber() - priceHarvest()) * woodHarvestVol() + cBenefit()) / rotInter();
         }
 
         // MG: Value of Forestry during one rotation External
         // Changed to 1 year!!!!
         //MG:  changed for external price correction
-        [[nodiscard]] double forestValueOneExt() const noexcept {
+        [[nodiscard]] double forestValueOneExt() const {
             return (-plantingCosts() + (priceTimberExt() - priceHarvest()) * woodHarvestVol() + cBenefit()) /
                    rotInter();
         }
@@ -282,7 +282,7 @@ namespace g4m::increment {
         //MG: Value of Forestry during one rotation, combination of G4M + External
         // Changed to 1 year!!!!
         // MG:  changed for external price correction
-        [[nodiscard]] double forestValueOneComb() const noexcept {
+        [[nodiscard]] double forestValueOneComb() const {
             return (-plantingCosts() + (priceTimberComb() - priceHarvest()) * woodHarvestVol() + cBenefit()) /
                    rotInter();
         }
@@ -291,7 +291,7 @@ namespace g4m::increment {
         // Changed to one year!!!
         // MG:  changed for external price correction
         // MG: I deleted * pow(1 + r(year), -rotInter()) to make it similar to forestValueOne
-        [[nodiscard]] double forestValueOneNC() const noexcept {
+        [[nodiscard]] double forestValueOneNC() const {
             return (-plantingCosts() + (priceTimber() - priceHarvest()) * woodHarvestVol()) / rotInter();
         }
 
@@ -299,19 +299,19 @@ namespace g4m::increment {
         // Changed to one year!!!
         // MG:  changed for external price correction
         // MG: I deleted * pow(1 + r(year), -rotInter()) to make it similar to forestValueOne
-        [[nodiscard]] double forestValueOneNCExt() const noexcept {
+        [[nodiscard]] double forestValueOneNCExt() const {
             return ((-plantingCosts() + (priceTimberExt() - priceHarvest()) * woodHarvestVol()) / rotInter());
         }
 
         // MG: Value of Forestry during one rotation, combination of G4M + External
         // Changed to 1 year!!!! No Carbon Price
         // MG:  changed for external price correction
-        [[nodiscard]] double forestValueOneNCComb() const noexcept {
+        [[nodiscard]] double forestValueOneNCComb() const {
             return (-plantingCosts() + (priceTimberComb() - priceHarvest()) * woodHarvestVol()) / rotInter();
         }
 
         // calculate a sum of the series of a discounted value
-        [[nodiscard]] double calcNpvSum() const noexcept {
+        [[nodiscard]] double calcNpvSum() const {
 //            double currF = 0;
 //            double r_year = r(year);
 //            npvSum = 0;

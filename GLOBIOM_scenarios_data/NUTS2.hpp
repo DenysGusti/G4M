@@ -49,7 +49,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             }
         }
 
-        void correctNUTS2Data(const span<const DataStruct> plots) noexcept {
+        void correctNUTS2Data(const span<const DataStruct> plots) {
             for (const auto &plot: plots)
                 // Test only some regions and some countries
                 // !plot.protect
@@ -95,7 +95,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             }
         }
 
-        void printNuts2Id() noexcept {
+        void printNuts2Id() {
             for (const auto &[coords, NUTS2]: nuts2id) {
                 const auto [x, y] = coords;
                 TRACE("x = {}, y = {}, NUTS2 = {}", x, y, NUTS2);

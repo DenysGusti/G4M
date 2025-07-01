@@ -22,13 +22,13 @@ namespace g4m {
             stop();
         }
 
-        void start() noexcept {
+        void start() {
             const uint32_t num_threads = jthread::hardware_concurrency();   // Max № of threads the system supports
             for (uint32_t i = 0; i < num_threads; ++i)
                 threads.emplace_back(&ThreadPool::ThreadLoop, this, ssource.get_token());
         }
 
-        void enqueue(const function<void()> &job) noexcept {
+        void enqueue(const function<void()> &job) {
             {
                 scoped_lock<mutex> lock{queue_mutex};
                 jobs.push(job);
@@ -36,7 +36,7 @@ namespace g4m {
             mutex_condition.notify_one();
         }
 
-        void stop() noexcept {
+        void stop() {
             ssource.request_stop();
             mutex_condition.notify_all();
             for (auto &active_thread: threads)
@@ -44,7 +44,7 @@ namespace g4m {
             threads.clear();
         }
 
-        bool busy() noexcept {
+        bool busy() {
             scoped_lock<mutex> lock{queue_mutex};
             return !jobs.empty();
         }

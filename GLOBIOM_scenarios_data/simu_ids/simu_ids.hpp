@@ -87,7 +87,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         }
 
         // Make projected forest damage sensitive to the climate change scenario
-        void modifyDisturbances(const string_view c_scenario_1) noexcept {
+        void modifyDisturbances(const string_view c_scenario_1) {
             if (!disturbanceClimateSensitive) {
                 INFO("disturbanceClimateSensitive is turned off");
                 return;

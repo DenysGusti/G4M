@@ -14,7 +14,7 @@ namespace g4m::Arrays {
     // country specific harvest losses NEW Country Codes!!!! Array starts from 1
     // Source: Forest Resources of Europe; CIS; North America; Australia; Japan and New Zealand: Main Report 2000
     // Estimated by Hannes Bottcher??
-    consteval array<double, numberOfCountries> initCountryLosses() noexcept {
+    consteval array<double, numberOfCountries> initCountryLosses() {
         array<double, numberOfCountries> countryLosses{};
         countryLosses.fill(0.15);
         countryLosses[17] = 0.13;   // Austria
@@ -47,7 +47,7 @@ namespace g4m::Arrays {
 
     // weighted average share of collected wood out of available (0.1 close to nature, 0.3 low intensity and 1 multifunction) from Nabuurs et al. 2019
     // based on Figure S4 from Nabuurs et al. 2019 https://doi.org/10.1038/s41893-019-0374-3
-    consteval array<double, numberOfCountries> initCleanedWoodUse() noexcept {
+    consteval array<double, numberOfCountries> initCleanedWoodUse() {
         array<double, numberOfCountries> cleanedWoodUse{};
         cleanedWoodUse.fill(0.7);
         cleanedWoodUse[6] = 0.73;    //	Albania
@@ -85,7 +85,7 @@ namespace g4m::Arrays {
         return cleanedWoodUse;
     }
 
-    consteval array<double, numberOfCountries> initCountryLossesD() noexcept {
+    consteval array<double, numberOfCountries> initCountryLossesD() {
         array<double, numberOfCountries> countryLossesD{};
         countryLossesD.fill(9);
         countryLossesD[17] = 14;    //13;	//12;	//11;	//9;//Austria
@@ -121,7 +121,7 @@ namespace g4m::Arrays {
     // Forest management CO2 sink (only CO2, only biomass) reported by the countries, GgCO2
     // Net stock changes biomass FL-FL (from CRF table 5.A), average for 1990-2000, GgCO2/year ?
     // New country code!!!
-    consteval array<double, numberOfCountries> initFM_sink_stat() noexcept {
+    consteval array<double, numberOfCountries> initFM_sink_stat() {
         array<double, numberOfCountries> FM_sink_stat{};
         FM_sink_stat[16] = 39242;
         FM_sink_stat[17] = 15001;
@@ -168,7 +168,7 @@ namespace g4m::Arrays {
 
 
     // deforestation soil emissions, tC/ha year, derived from countries; UNFCCC CRF tables 2023 submission; 2005-2020 average;
-    consteval array<double, numberOfCountries> initDefor_sl_em_unfccc_tCha() noexcept {
+    consteval array<double, numberOfCountries> initDefor_sl_em_unfccc_tCha() {
         array<double, numberOfCountries> defor_sl_em_unfccc_tCha{};
         defor_sl_em_unfccc_tCha[17] = 0.808519236;
         defor_sl_em_unfccc_tCha[20] = 1.635669517;
@@ -203,7 +203,7 @@ namespace g4m::Arrays {
     }
 
     // deforestation soil emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2023 submission; 2005-2020 average;
-    consteval array<double, numberOfCountries> initDefor_sl_em_unfccc_MtCO2() noexcept {
+    consteval array<double, numberOfCountries> initDefor_sl_em_unfccc_MtCO2() {
         array<double, numberOfCountries> defor_sl_em_unfccc_MtCO2{};
         defor_sl_em_unfccc_MtCO2[17] = 0.199383443;
         defor_sl_em_unfccc_MtCO2[20] = 0.114487618;
@@ -238,7 +238,7 @@ namespace g4m::Arrays {
     }
 
     // deforestation biomass emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2023 submission; 2005-2020 average;
-    consteval array<double, numberOfCountries> initDefor_bm_em_unfccc_MtCO2() noexcept {
+    consteval array<double, numberOfCountries> initDefor_bm_em_unfccc_MtCO2() {
         array<double, numberOfCountries> defor_bm_em_unfccc_MtCO2{};
         defor_bm_em_unfccc_MtCO2[17] = 0.71889397;
         defor_bm_em_unfccc_MtCO2[20] = 0.450227937;
@@ -273,7 +273,7 @@ namespace g4m::Arrays {
     }
 
     // deforestation DOM emissions, MtCO2/year, derived from countries; UNFCCC CRF tables 2023 submission; 2005-2020 average;
-    consteval array<double, numberOfCountries> initDefor_dom_em_unfccc_MtCO2() noexcept {
+    consteval array<double, numberOfCountries> initDefor_dom_em_unfccc_MtCO2() {
         array<double, numberOfCountries> defor_dom_em_unfccc_MtCO2{};
         defor_dom_em_unfccc_MtCO2[17] = 0.326656659;
         defor_dom_em_unfccc_MtCO2[20] = 0.036260351;
@@ -307,13 +307,13 @@ namespace g4m::Arrays {
         return defor_dom_em_unfccc_MtCO2;
     }
 
-    consteval array<double, numberOfCountries> initHarvestedWoodUse() noexcept {
+    consteval array<double, numberOfCountries> initHarvestedWoodUse() {
         array<double, numberOfCountries> harvestedWoodUse{};
         harvestedWoodUse.fill(1);
         return harvestedWoodUse;
     }
 
-    consteval array<array<double, 21>, 29> initWoodProdEUStat() noexcept {
+    consteval array<array<double, 21>, 29> initWoodProdEUStat() {
         array<array<double, 21>, 29> woodProdEUStats = {
                 {{19000.000, 13900.000, 14800.000, 14800.000, 17400.000, 16700.000, 18100.000, 17800.000, 17000.000,
                   17000.000, 16000.000, 16300.000, 17900.000, 20600.000, 19900.000, 19900.000, 23100.000, 25800.000,
@@ -434,7 +434,7 @@ namespace g4m::Arrays {
     //Norway is added at the end
     // Switzerland is added at the end;
     // (2023 submission data)
-    consteval array<array<double, 32>, 30> init_fmEmission_unfccc_CRF() noexcept {
+    consteval array<array<double, 32>, 30> init_fmEmission_unfccc_CRF() {
         array<array<double, 32>, 30> fmEmission_unfccc_CRF = {
                 {{-10.071165, -15.276020, -11.682347, -11.535506, -10.481797, -12.915401, -8.270782, -17.375838,
                   -16.495205, -18.494454, -15.986411, -17.967113, -11.694230, -3.017019, -7.529196, -8.348273,
@@ -572,7 +572,7 @@ namespace g4m::Arrays {
     }
 
     // CZ: m3 salvage fellings that can be used for processing, only (infested) spruce
-    consteval array<double, 32> initSalvageLoggingUsed() noexcept {
+    consteval array<double, 32> initSalvageLoggingUsed() {
         array<double, 32> salvageLoggingUsed{};
 
         //salvageLoggingUsed[0] = 23.18181818;
@@ -614,7 +614,7 @@ namespace g4m::Arrays {
     }
 
     // CZ:  m3 total salvage, including the dead trees that cannot be felled/used
-    consteval array<double, 32> initSalvageLoggingTotal() noexcept {
+    consteval array<double, 32> initSalvageLoggingTotal() {
         array<double, 32> salvageLoggingTotal{};
 
         //salvageLoggingTotal[0] = 25;
@@ -660,7 +660,7 @@ namespace g4m::Arrays {
     }
 
     // CZ:  m3 total harvested wood used by the industry
-    consteval array<double, 32> initAllHarvestedUsed() noexcept {
+    consteval array<double, 32> initAllHarvestedUsed() {
         array<double, 32> allHarvestedUsed{};
 
         allHarvestedUsed[0] = 26.81818182;

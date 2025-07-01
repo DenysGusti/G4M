@@ -140,54 +140,54 @@ namespace g4m::increment {
         }
 
         // get biomass per ha by age
-        [[nodiscard]] inline double getBm(double age) const noexcept {
+        [[nodiscard]] double getBm(double age) const {
             return canopyLayer.getBiomassByAge(age);
         }
 
         // get average biomass per ha
-        [[nodiscard]] inline double getBm() const noexcept {
+        [[nodiscard]] double getBm() const {
             return canopyLayer.getAverageBiomass();
         }
 
         // MG 09052022: get standing stem biomass with a diameter greater than dbh0 cm
-        [[nodiscard]] double getBmGDbh(const double dbh0) const noexcept {
+        [[nodiscard]] double getBmGDbh(const double dbh0) const {
             return canopyLayer.getBmGDbh(dbh0);
         }
 
         // get average biomass per ha for age classes with Bm > 0 (including 0 age class)
-        [[nodiscard]] inline double getBmNonZero() const noexcept {
+        [[nodiscard]] double getBmNonZero() const {
             return canopyLayer.getBmNonZero();
         }
 
         // get forest area by age (consider age class size)
-        [[nodiscard]] inline double getArea(const size_t age) const noexcept {
+        [[nodiscard]] double getArea(const size_t age) const {
             return canopyLayer.getDat()[age].area;
         }
 
         // get forest area by age (consider age class size)
-        [[nodiscard]] inline double getArea(const double age) const noexcept {
+        [[nodiscard]] double getArea(const double age) const {
             return canopyLayer.getAreaByAge(age);
         }
 
         // get forest area
-        [[nodiscard]] inline double getArea() const noexcept {
+        [[nodiscard]] double getArea() const {
             return area;
         }
 
         // get forest area where Bm > 0, including the first age class
-        [[nodiscard]] inline double getAreaNonZero() const noexcept {
+        [[nodiscard]] double getAreaNonZero() const {
             return canopyLayer.getAreaNonZero();
         }
 
         // get Diameter
-        [[nodiscard]] inline double getD(double age) const noexcept {
+        [[nodiscard]] double getD(double age) const {
             return canopyLayer.getDiameterByAge(age);
         }
 
         // get Height / canopyLayer:
         // 1 - first canopy layer,
         // 0 - second (ground) canopy layer that is active if selective logging option is used
-        [[nodiscard]] inline double getH(double age) const noexcept {
+        [[nodiscard]] double getH(double age) const {
             return canopyLayer.getHeightByAge(age);
         }
 
@@ -198,17 +198,17 @@ namespace g4m::increment {
         }
 
         // Set biomass per hectare for a specific ageCLASS for specified canopy layer
-        inline void setBm(size_t ageClass, double biomass) {
+        void setBm(size_t ageClass, double biomass) {
             canopyLayer.setBiomassToAgeClassIdx(ageClass, biomass, avgMai);
         }
 
         // Set dbh for a specific ageClass
-        inline void setD(size_t ageClass, double dbh) {
+        void setD(size_t ageClass, double dbh) {
             canopyLayer.setDiameterToAgeClassIdx(ageClass, dbh, avgMai);
         }
 
         // Just set mai but don't influence avgMai
-        inline void setMai(const double mai_) noexcept {
+        void setMai(const double mai_) {
             mai = mai_;
         }
 
@@ -238,43 +238,43 @@ namespace g4m::increment {
             setAvgMai(mai_);
         }
 
-        [[nodiscard]] inline double getMai() const noexcept {
+        [[nodiscard]] double getMai() const {
             return mai;
         }
 
-        [[nodiscard]] inline double getAvgMai() const noexcept {
+        [[nodiscard]] double getAvgMai() const {
             return avgMai;
         }
 
-        inline void setObjOfProd(const int aObjOfProd) noexcept {
+        void setObjOfProd(const int aObjOfProd) {
             objOfProd = aObjOfProd;
         }
 
-        inline void setU(const double aU) {
+        void setU(const double aU) {
             uRef = aU;
             setRotationTime();
             setMinRot();
         }
 
-        [[nodiscard]] inline double getURef() const noexcept {
+        [[nodiscard]] double getURef() const {
             return uRef;
         }
 
-        inline void setStockingDegreeMin(const double sd) noexcept {
+        void setStockingDegreeMin(const double sd) {
             sdMin = sd;
         }
 
-        inline void setStockingDegreeMax(const double sd) noexcept {
+        void setStockingDegreeMax(const double sd) {
             sdMax = sd;
         }
 
         // min and max
-        void setStockingDegree(const double sd) noexcept {
+        void setStockingDegree(const double sd) {
             sdMin = sd;
             sdMax = sd;
         }
 
-        inline void setMinRotRef(const int aMinRotRef) noexcept {
+        void setMinRotRef(const int aMinRotRef) {
             minRotRef = aMinRotRef;
         }
 
@@ -283,12 +283,12 @@ namespace g4m::increment {
             setMinRot();
         }
 
-        inline void setFlexSd(const double flexSd_) noexcept {
+        void setFlexSd(const double flexSd_) {
             flexSd = flexSd_;
         }
 
         // Insert in the youngest age class
-        void afforest(const double area_) noexcept {
+        void afforest(const double area_) {
             canopyLayer.afforest(area_);
             area += area_;
         }
@@ -297,12 +297,12 @@ namespace g4m::increment {
         // MG: correct problem with 0 biomass in 1st age class
         // Proposed by Georg 21 August 2015
         // Make fake afforestation in age class 0; new species are planted in the new forest instead
-        void reforest(const double area_) noexcept {
+        void reforest(const double area_) {
             canopyLayer.reforest(area_, 1, mai);
             area += area_;
         }
 
-        void changeSpecies(const double area_) noexcept {
+        void changeSpecies(const double area_) {
             canopyLayer.changeSpecies(area_);
             area += area_;
         }
@@ -323,54 +323,54 @@ namespace g4m::increment {
 
         // .first = thinning, .second = harvest
         // MG: reforestation with harvested area but zero biomass; real reforestation occurs in the new forest in the same cell
-        [[nodiscard]] inline CohortRes aging() {
+        [[nodiscard]] CohortRes aging() {
             return agingDetailed(mai, false);
         }
 
-        [[nodiscard]] inline double getMaxAge() const noexcept {
+        [[nodiscard]] double getMaxAge() const {
             return canopyLayer.getMaxAge();
         }
 
-        [[nodiscard]] inline size_t getDatSize() const noexcept {
+        [[nodiscard]] size_t getDatSize() const {
             return canopyLayer.getCurrentNumberOfAgeClasses();
         }
 
-        inline void setMaxAge(const double maxAge) noexcept {
+        void setMaxAge(const double maxAge) {
             canopyLayer.setMaxAge(maxAge);
         }
 
         // MG: added : Find "active Age" - the oldest age class with area > 0
-        [[nodiscard]] inline double getActiveAge() const noexcept {
+        [[nodiscard]] double getActiveAge() const {
             return canopyLayer.getActiveAge();
         }
 
         // find the oldest age class index with area > 0
-        [[nodiscard]] inline size_t getActiveAgeClassIdx() const noexcept {
+        [[nodiscard]] size_t getActiveAgeClassIdx() const {
             return canopyLayer.getActiveAgeClassIdx();
         }
 
         // MG: get rotation time
-        [[nodiscard]] inline double getU() const noexcept {
+        [[nodiscard]] double getU() const {
             return u;
         }
 
         // MG: get stocking degree ([StockingDegreeMin + StockingDegreeMax] / 2)
-        [[nodiscard]] inline double getStockingDegree() const noexcept {
+        [[nodiscard]] double getStockingDegree() const {
             return midpoint(sdMin, sdMax);
         }
 
         // MG: get age structure
-        [[nodiscard]] inline const CanopyLayer &getCanopyLayer() const noexcept {
+        [[nodiscard]] const CanopyLayer &getCanopyLayer() const {
             return canopyLayer;
         }
 
         // MG: set age structure
-        void setCanopyLayer(const CanopyLayer &other) noexcept {
+        void setCanopyLayer(const CanopyLayer &other) {
             canopyLayer = other;
         }
 
         // MG: get area of shelters that should be cut in current year and age of which is less than Max biomass
-        [[nodiscard]] double getShelter2CutArea() const noexcept {
+        [[nodiscard]] double getShelter2CutArea() const {
             if (timerSW.empty()) {
                 ERROR("timerSW is empty");
                 return 0;
@@ -420,7 +420,7 @@ namespace g4m::increment {
         }
 
         // MG: Clean area of those age classes where Bm<=0; possible problem with low MAI when a few beginning age classes have 0 biomass
-        void rectifyArea() noexcept {
+        void rectifyArea() {
             canopyLayer.rectifyArea();
             area = canopyLayer.getTotalArea();
         }
@@ -531,7 +531,7 @@ namespace g4m::increment {
             return AgeStruct{*this}.aging();
         }
 
-        // Create copy and set U inline for the sake of encapsulation
+        // Create copy and set U for the sake of encapsulation
         [[nodiscard]] AgeStruct createSetU(const double u_) const {
             auto cohortTmp{*this};
             cohortTmp.setU(u_);
@@ -558,7 +558,7 @@ namespace g4m::increment {
             return {area, wind, fire, biotic};
         }
 
-        [[nodiscard]] inline const vector<AgeClass> &getDat() const noexcept {
+        [[nodiscard]] const vector<AgeClass> &getDat() const {
             return canopyLayer.getDat();
         }
 
@@ -625,7 +625,7 @@ namespace g4m::increment {
         }
 
         // Calculate average mai with vector qMai
-        void calcAvgMai() noexcept {
+        void calcAvgMai() {
             if (qMai.empty()) {
                 avgMai = mai;
                 return;

@@ -14,7 +14,7 @@ using namespace g4m::increment;
 using namespace g4m::helper;
 
 namespace g4m::Dicts {
-    [[nodiscard]] unordered_map<uint8_t, string> setIdCountryGLOBIOM() noexcept {
+    [[nodiscard]] unordered_map<uint8_t, string> setIdCountryGLOBIOM() {
         unordered_map<uint8_t, string> fun_idCountryGLOBIOM;
         fun_idCountryGLOBIOM.reserve(256);
 
@@ -201,7 +201,7 @@ namespace g4m::Dicts {
         return fun_idCountryGLOBIOM;
     }
 
-    [[nodiscard]] unordered_map<string, uint8_t, StringHash, equal_to<> > setCountryGLOBIOMId() noexcept {
+    [[nodiscard]] unordered_map<string, uint8_t, StringHash, equal_to<> > setCountryGLOBIOMId() {
         unordered_map<string, uint8_t, StringHash, equal_to<> > fun_countryGLOBIOMId;
         fun_countryGLOBIOMId.reserve(256);
 

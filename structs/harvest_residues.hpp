@@ -56,7 +56,7 @@ namespace g4m::structs {
             }
         }
 
-        void initTotalCost() noexcept {
+        void initTotalCost() {
             costsTotal = 0;
             if (U.residuesSuit1_perHa > 0 || U.residuesSuit2_perHa > 0 || U.residuesSuit3_perHa > 0 ||
                 U.residuesSuit4_notTaken_perHa > 0
@@ -86,7 +86,7 @@ namespace g4m::structs {
 
         // change to mdspan in the future
         [[nodiscard]] double
-        lerpERUS(const array<array<double, 4>, numberOfCountries> &emissionsResUseSust, uint16_t year) const noexcept {
+        lerpERUS(const array<array<double, 4>, numberOfCountries> &emissionsResUseSust, uint16_t year) const {
             /*
             if (country < 0 || country >= numberOfCountries) {
                 FATAL("emissionsResUseSust: provide correct country code!!!\ncountry = {}, year = {}", country,
@@ -112,7 +112,7 @@ namespace g4m::structs {
             return em_factor;
         }
 
-        void setTimeUseSust() noexcept {
+        void setTimeUseSust() {
             if (useSuit1 <= 0 && useSuit3 <= 0 && useSuit4 <= 0)
                 U.timeUseSust1 = 0;
             if (useSuit2 <= 0)

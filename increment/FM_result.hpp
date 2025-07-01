@@ -25,27 +25,27 @@ namespace g4m::increment {
         double litterWeight = 0;    // MG: area & bm-weighted litter
 
         // sawnWood + restWood
-        [[nodiscard]] inline double getWood() const noexcept {
+        [[nodiscard]] double getWood() const {
             return sawnWood + restWood;
         }
 
         // (sawnWood + restWood) * area
-        [[nodiscard]] inline double getTotalSalvageWoodRemoval() const noexcept {
+        [[nodiscard]] double getTotalSalvageWoodRemoval() const {
             return (sawnWood + restWood) * area;
         }
 
         // bm * area
-        [[nodiscard]] inline double getHarvestedBiomassForest() const noexcept {
+        [[nodiscard]] double getHarvestedBiomassForest() const {
             return biomass * area;
         }
 
         // H * area
-        [[nodiscard]] inline double getHArea() const noexcept {
+        [[nodiscard]] double getHArea() const {
             return H * area;
         }
 
         // DBH * area
-        [[nodiscard]] inline double getDBHArea() const noexcept {
+        [[nodiscard]] double getDBHArea() const {
             return DBH * area;
         }
     };

@@ -12,7 +12,7 @@ using namespace g4m::init;
 namespace g4m::Dicts {
     // Setting years for output
     [[nodiscard]] unordered_set<uint16_t>
-    yearsToConsider(const uint16_t startYear, const uint16_t endYear, const uint16_t yearStep = 1) noexcept {
+    yearsToConsider(const uint16_t startYear, const uint16_t endYear, const uint16_t yearStep = 1) {
         unordered_set<uint16_t> fun_years;
         fun_years.reserve((endYear - startYear) / yearStep + 1);
 
@@ -23,7 +23,7 @@ namespace g4m::Dicts {
     }
 
     // Setting regions for calculations
-    [[nodiscard]] unordered_set<uint8_t> regionsToConsider() noexcept {
+    [[nodiscard]] unordered_set<uint8_t> regionsToConsider() {
         unordered_set<uint8_t> fun_regions;
         fun_regions.reserve(256);
 
@@ -59,7 +59,7 @@ namespace g4m::Dicts {
     }
 
     // CountryRegMix to be considered
-    [[nodiscard]] unordered_set<uint8_t> countryRegionsToConsider() noexcept {
+    [[nodiscard]] unordered_set<uint8_t> countryRegionsToConsider() {
         unordered_set<uint8_t> fun_countryRegList;
         fun_countryRegList.reserve(256);
 
@@ -119,7 +119,7 @@ namespace g4m::Dicts {
     }
 
     // List of Annex-1 countries for FMCPol
-    [[nodiscard]] unordered_set<uint8_t> countriesFmCPolToConsider() noexcept {
+    [[nodiscard]] unordered_set<uint8_t> countriesFmCPolToConsider() {
         unordered_set<uint8_t> fun_countriesFmCPol;
         fun_countriesFmCPol.reserve(256);
 
@@ -169,7 +169,7 @@ namespace g4m::Dicts {
 
     // countries to be considered
     // 192 out of 244 countries in which there is forest or environmental conditions are suitable for forestry
-    [[nodiscard]] unordered_set<uint8_t> countriesToConsider() noexcept {
+    [[nodiscard]] unordered_set<uint8_t> countriesToConsider() {
         unordered_set<uint8_t> fun_countriesList;
         fun_countriesList.reserve(256);
 
@@ -374,7 +374,7 @@ namespace g4m::Dicts {
     }
 
     // A list of countries and species where stumps can be harvested as compiled by Fulvio
-    [[nodiscard]] set <pair<uint8_t, Species>> setCountrySpecies() noexcept {
+    [[nodiscard]] set <pair<uint8_t, Species>> setCountrySpecies() {
         set<pair<uint8_t, Species> > fun_stumpHarvCountrySpecies;
 
         fun_stumpHarvCountrySpecies.emplace(58, Species::Spruce);

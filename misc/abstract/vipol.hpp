@@ -15,7 +15,7 @@ namespace g4m::misc::abstract {
         virtual ~VIpol() = default;
 
         // string representation
-        [[nodiscard]] virtual string str() const noexcept = 0;
+        [[nodiscard]] virtual string str() const = 0;
 
         // print to a stream
         friend ostream &operator<<(ostream &os, const VIpol &obj) {
@@ -23,9 +23,9 @@ namespace g4m::misc::abstract {
             return os;
         }
 
-        virtual VIpol &operator+=(T) noexcept = 0;
+        virtual VIpol &operator+=(T) = 0;
 
-        virtual VIpol &operator*=(T) noexcept = 0;
+        virtual VIpol &operator*=(T) = 0;
     };
 }
 

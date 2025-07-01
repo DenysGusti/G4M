@@ -29,7 +29,7 @@ namespace g4m::parameters {
         // returns hlv, hle
         // 1-harvesting losses thinning (Vornutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
         // 1-harvesting losses final felling (Endnutzung) (depending on d) in relation to standing timber (Vorratsfestmeter)
-        static pair<FFIpol<double>, FFIpol<double> > setupHarvestLosses(const uint8_t countryId) noexcept {
+        static pair<FFIpol<double>, FFIpol<double> > setupHarvestLosses(const uint8_t countryId) {
             Ipol<double> fun_hlv;       // 1-Ernteverluste Vornutzung
             Ipol<double> fun_hle;       // 1-Ernteverluste Endnutzung
 
@@ -72,7 +72,7 @@ namespace g4m::parameters {
 
         Decisions decisions;
 
-        void initCountriesHLVE(const span<const DataStruct> plots) noexcept {
+        void initCountriesHLVE(const span<const DataStruct> plots) {
             hlveCountries.reserve(256);
 
             for (const auto &plot: plots)
@@ -80,7 +80,7 @@ namespace g4m::parameters {
         }
 
         // Setup forest management parameters similar for all countries (cells)
-        void setupFMP() noexcept {
+        void setupFMP() {
             Ipol<double> fun_sws;       // Schnittholzanteil an Vfm
             IpolM<double> fun_cov;      // costs Vornutzung
             IpolM<double> fun_coe;      // costs Endnutzung

@@ -23,7 +23,7 @@ namespace g4m::init {
     // class with statistics by regions
     class CountryData {
     public:
-        void reset() noexcept {
+        void reset() {
             for (auto &el: values)
                 el.data.clear();
             for (auto &el: count)
@@ -44,32 +44,32 @@ namespace g4m::init {
             return values[country](year);
         }
 
-        void setVal(const size_t country, const uint16_t year, const double value) noexcept {
+        void setVal(const size_t country, const uint16_t year, const double value) {
             values[country].data[year] = value;
             count[country].data[year] = 1;
         }
 
-        void inc(const size_t i, const uint16_t year, const double value) noexcept {
+        void inc(const size_t i, const uint16_t year, const double value) {
             values[i].data[year] += value;
             count[i].data[year]++;
         }
 
-        [[nodiscard]] double getIp(const size_t countryIdx, const uint16_t year) const noexcept {
+        [[nodiscard]] double getIp(const size_t countryIdx, const uint16_t year) const {
             double tmp = values[countryIdx](year);
             return isfinite(tmp) ? tmp : 0;
         }
 
-        [[nodiscard]] double getAvg(const size_t countryIdx, const uint16_t year) const noexcept {
+        [[nodiscard]] double getAvg(const size_t countryIdx, const uint16_t year) const {
             double tmp_1 = values[countryIdx](year);
             double tmp_2 = count[countryIdx](year);
             return isfinite(tmp_1) && tmp_2 > 0 ? tmp_1 / tmp_2 : 0;
         }
 
-        [[nodiscard]] CountryData getTimeAvg(int timePeriodWidth) const noexcept {
+        [[nodiscard]] CountryData getTimeAvg(int timePeriodWidth) const {
             return getSmoothAvg(timePeriodWidth, timePeriodWidth);
         }
 
-        [[nodiscard]] CountryData getSmoothAvg(int timePeriodWidth, int timeStep = 1) const noexcept {
+        [[nodiscard]] CountryData getSmoothAvg(int timePeriodWidth, int timeStep = 1) const {
             if (timePeriodWidth % 2 != 1) {
                 ERROR("Please provide odd number for time period! timePeriodWidth = ", timePeriodWidth);
                 return {};
@@ -126,7 +126,7 @@ namespace g4m::init {
 
         [[nodiscard]] static double
         computeAvg(const span<const double> values_arr, const span<const int> count_arr, const size_t yearIdx,
-                   const int timePeriodWidth, const size_t numYears) noexcept {
+                   const int timePeriodWidth, const size_t numYears) {
             double sum = 0;
             int num = 0;
             size_t timeHalfPeriodWidth = (timePeriodWidth - 1) / 2;

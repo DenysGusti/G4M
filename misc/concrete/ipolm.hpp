@@ -25,20 +25,20 @@ namespace g4m::misc::concrete {
         IpolM() = default;
 
         // add x to all
-        IpolM &operator+=(const T x) noexcept override {
+        IpolM &operator+=(const T x) override {
             for (auto &value: data | rv::values)
                 value += x;
             return *this;
         }
 
         // multiply all by x
-        IpolM &operator*=(const T x) noexcept override {
+        IpolM &operator*=(const T x) override {
             for (auto &value: data | rv::values)
                 value *= x;
             return *this;
         }
 
-        [[nodiscard]] string str() const noexcept override {
+        [[nodiscard]] string str() const override {
             string s = "IpolM data:\n";
             s.reserve(s.length() + 64 * data.size());
             for (const auto &[key, value]: data) {
@@ -50,16 +50,16 @@ namespace g4m::misc::concrete {
         }
 
         // returns a minimal key
-        vector<T> minKey() const noexcept {
+        vector<T> minKey() const {
             return minOrMaxKey(true);
         };
 
         // returns a maximal key
-        vector<T> maxKey() const noexcept {
+        vector<T> maxKey() const {
             return minOrMaxKey(false);
         };
 
-        T ip(const span<const T> vec) const noexcept override {
+        T ip(const span<const T> vec) const override {
             const size_t regions = 1 << vec.size(); // 2 ^ i.size(), but better
             // values of near points & shortest distance in region
             vector<pair<vector<T>, T> > y_dist(regions, {{}, -1});
@@ -122,7 +122,7 @@ namespace g4m::misc::concrete {
 
     protected:
         // returns a minimal or maximal key
-        vector<T> minOrMaxKey(const bool min_flag) const noexcept {
+        vector<T> minOrMaxKey(const bool min_flag) const {
             if (data.empty())
                 return {}; // returns empty vector!
 

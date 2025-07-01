@@ -68,7 +68,7 @@ namespace g4m::init {
         }
 
         // ESRI ASCII Grid
-        [[nodiscard]] string str(const size_t year = 0) const noexcept {
+        [[nodiscard]] string str(const size_t year = 0) const {
             double cell_size = 360. / horRes;
             auto x_left = -static_cast<ptrdiff_t>(horRes - topLeft.x) * cell_size * 0.5;
             auto y_left = -static_cast<ptrdiff_t>(verRes - topLeft.y) * cell_size * 0.5;
@@ -91,7 +91,7 @@ namespace g4m::init {
             return os;
         }
 
-        void update1YearBackward() noexcept {
+        void update1YearBackward() {
             if (grid.size() > 1) {
                 // change back to ranges later
                 shift_left(grid.begin(), grid.end(), 1);
@@ -101,7 +101,7 @@ namespace g4m::init {
             // grid.back().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
         }
 
-        void update1YearForward() noexcept {
+        void update1YearForward() {
             if (grid.size() > 1) {
                 // change back to ranges later
                 shift_right(grid.begin(), grid.end(), 1);
@@ -111,7 +111,7 @@ namespace g4m::init {
             // grid.front().assign(bottomRight.x - topLeft.x, vector<T>(bottomRight.y - topLeft.y, T{}));
         }
 
-        void resizeGrid(const size_t VR) noexcept requires is_floating_point_v<T> {
+        void resizeGrid(const size_t VR) requires is_floating_point_v<T> {
             if (VR == 0)
                 return;
 
@@ -131,7 +131,7 @@ namespace g4m::init {
             shrinkToRectangleCountriesSize();
         }
 
-        void resizeGrid(const size_t VR) noexcept requires is_integral_v<T> {
+        void resizeGrid(const size_t VR) requires is_integral_v<T> {
             if (VR == 0)
                 return;
 
@@ -151,7 +151,7 @@ namespace g4m::init {
             shrinkToRectangleCountriesSize();
         }
 
-        void resizeGrid(const size_t VR) noexcept requires is_same_v<T, string> {
+        void resizeGrid(const size_t VR) requires is_same_v<T, string> {
             if (VR == 0)
                 return;
 
@@ -172,7 +172,7 @@ namespace g4m::init {
         }
 
         // sets number of neighbour cells to be considered
-        void setNeighNum(const size_t hor_neigh, const size_t ver_neigh) noexcept {
+        void setNeighNum(const size_t hor_neigh, const size_t ver_neigh) {
             horNeigh = hor_neigh;
             verNeigh = ver_neigh;
         }
@@ -353,7 +353,7 @@ namespace g4m::init {
             }
         }
 
-        void adjustPoints(const size_t HR, const size_t VR) noexcept {
+        void adjustPoints(const size_t HR, const size_t VR) {
             auto d_horRes = static_cast<double>(horRes);
             auto d_verRes = static_cast<double>(verRes);
             auto d_HR = static_cast<double>(HR);
@@ -368,7 +368,7 @@ namespace g4m::init {
             DEBUG("{} {}", topLeft.str(), bottomRight.str());
         }
 
-        void restoreOriginalSizeNum() noexcept {
+        void restoreOriginalSizeNum() {
             for (auto &layer: grid) {
                 layer.insert(layer.begin(), topLeft.x, vector<T>(layer[0].size(), NODATA_VALUE));
                 layer.insert(layer.end(), horRes - bottomRight.x, vector<T>(layer[0].size(), NODATA_VALUE));
@@ -380,7 +380,7 @@ namespace g4m::init {
                 }
         }
 
-        void restoreOriginalSizeStr() noexcept {
+        void restoreOriginalSizeStr() {
             auto s_NODATA_VALUE_STR = string{NODATA_VALUE_STR};
             for (auto &layer: grid) {
                 layer.insert(layer.begin(), topLeft.x, vector<string>(layer[0].size(), s_NODATA_VALUE_STR));
@@ -394,7 +394,7 @@ namespace g4m::init {
                 }
         }
 
-        void shrinkToRectangleSize() noexcept {
+        void shrinkToRectangleSize() {
             for (auto &layer: grid) {
                 layer.erase(layer.begin(), next(layer.begin(), topLeft.x));
                 layer.erase(prev(layer.end(), horRes - bottomRight.x), layer.end());
@@ -406,7 +406,7 @@ namespace g4m::init {
                 }
         }
 
-        void restoreOriginalCountriesSize() noexcept {
+        void restoreOriginalCountriesSize() {
             gridCountries.insert(gridCountries.begin(), topLeft.x,
                                  vector<uint8_t>(gridCountries[0].size(), NODATA_VALUE_COUNTRIES));
             gridCountries.insert(gridCountries.end(), horRes - bottomRight.x,
@@ -417,7 +417,7 @@ namespace g4m::init {
             }
         }
 
-        void shrinkToRectangleCountriesSize() noexcept {
+        void shrinkToRectangleCountriesSize() {
             gridCountries.erase(gridCountries.begin(), next(gridCountries.begin(), topLeft.x));
             gridCountries.erase(prev(gridCountries.end(), horRes - bottomRight.x), gridCountries.end());
             for (auto &row: gridCountries) {
@@ -426,7 +426,7 @@ namespace g4m::init {
             }
         }
 
-        void resizeGridAvg(const size_t HR, const size_t VR) noexcept {
+        void resizeGridAvg(const size_t HR, const size_t VR) {
             size_t intermediateHR = lcm(horRes, HR);
             size_t intermediateRatio = intermediateHR / horRes;
             size_t intermediateRatioSquared = intermediateRatio * intermediateRatio;
@@ -471,7 +471,7 @@ namespace g4m::init {
             }
         }
 
-        void resizeGridMax(const size_t HR, const size_t VR) noexcept {
+        void resizeGridMax(const size_t HR, const size_t VR) {
             size_t intermediateHR = lcm(horRes, HR);
             size_t intermediateRatio = intermediateHR / horRes;
             size_t finalRatio = intermediateHR / HR;
@@ -514,7 +514,7 @@ namespace g4m::init {
             }
         }
 
-        void resizeCountriesMax(const size_t HR, const size_t VR) noexcept {
+        void resizeCountriesMax(const size_t HR, const size_t VR) {
             size_t intermediateHR = lcm(horRes, HR);
             size_t intermediateRatio = intermediateHR / horRes;
             size_t finalRatio = intermediateHR / HR;

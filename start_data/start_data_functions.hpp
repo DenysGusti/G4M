@@ -12,7 +12,7 @@ using namespace g4m::Dicts;
 using namespace g4m::init;
 
 namespace g4m::StartData {
-    [[nodiscard]] CountryData setCountriesWoodProdStat() noexcept {
+    [[nodiscard]] CountryData setCountriesWoodProdStat() {
         CountryData fun_countriesWoodProdStat;
 
         for (size_t i = 0; i < woodProdEUStats.size(); ++i)
@@ -23,7 +23,7 @@ namespace g4m::StartData {
         return fun_countriesWoodProdStat;
     }
 
-    [[nodiscard]] CountryData setCountriesFmEmission_unfccc() noexcept {
+    [[nodiscard]] CountryData setCountriesFmEmission_unfccc() {
         CountryData fun_countriesFmEmission_unfccc;
 
         for (size_t i = 0; i < fmEmission_unfccc_CRF.size(); ++i)
@@ -33,7 +33,7 @@ namespace g4m::StartData {
         return fun_countriesFmEmission_unfccc;
     }
 
-    void calcAvgFM_sink_stat() noexcept {
+    void calcAvgFM_sink_stat() {
         for (size_t i = 0; i < fmEmission_unfccc_CRF.size(); ++i) {
             double fmSinkSumTmp = 0;
             int count = 0;

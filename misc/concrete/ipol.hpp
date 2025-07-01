@@ -36,20 +36,20 @@ namespace g4m::misc::concrete {
         }
 
         // add x to all
-        Ipol &operator+=(const T x) noexcept override {
+        Ipol &operator+=(const T x) override {
             for (auto &value: data | rv::values)
                 value += x;
             return *this;
         }
 
         // multiply all by x
-        Ipol &operator*=(const T x) noexcept override {
+        Ipol &operator*=(const T x) override {
             for (auto &value: data | rv::values)
                 value *= x;
             return *this;
         }
 
-        [[nodiscard]] string str() const noexcept override {
+        [[nodiscard]] string str() const override {
             string s = "Ipol data:\n";
             s.reserve(s.length() + 32 * data.size());
             for (const auto &[key, value]: data)
@@ -58,92 +58,92 @@ namespace g4m::misc::concrete {
         }
 
         // find min key
-        T minKey() const noexcept {
+        T minKey() const {
             return minOrMaxKey(true);
         }
 
         // find max key
-        T maxKey() const noexcept {
+        T maxKey() const {
             return minOrMaxKey(false);
         }
 
         // find min value
-        T minValue() const noexcept {
+        T minValue() const {
             return minOrMaxValue(true);
         }
 
         // find max value
-        T maxValue() const noexcept {
+        T maxValue() const {
             return minOrMaxValue(false);
         }
 
         // find min value <= x
-        T minValueNotGreater(const T x) const noexcept {
+        T minValueNotGreater(const T x) const {
             return minOrMaxValueLessOrNotGreater(x, true, false);
         }
 
         // find min value < x
-        T minValueLess(const T x) const noexcept {
+        T minValueLess(const T x) const {
             return minOrMaxValueLessOrNotGreater(x, true, true);
         }
 
         // find max value <= x
-        T maxValueNotGreater(const T x) const noexcept {
+        T maxValueNotGreater(const T x) const {
             return minOrMaxValueLessOrNotGreater(x, false, false);
         }
 
         // find max value < x
-        T maxValueLess(const T x) const noexcept {
+        T maxValueLess(const T x) const {
             return minOrMaxValueLessOrNotGreater(x, false, true);
         }
 
         // find min value >= x
-        T minValueNotLess(const T x) const noexcept {
+        T minValueNotLess(const T x) const {
             return minOrMaxValueGreaterOrNotLess(x, true, false);
         }
 
         // find min value > x
-        T minValueGreater(const T x) const noexcept {
+        T minValueGreater(const T x) const {
             return minOrMaxValueGreaterOrNotLess(x, true, true);
         }
 
         // find max value >= x
-        T maxValueNotLess(const T x) const noexcept {
+        T maxValueNotLess(const T x) const {
             return minOrMaxValueGreaterOrNotLess(x, false, false);
         }
 
         // find max value > x
-        T maxValueGreater(const T x) const noexcept {
+        T maxValueGreater(const T x) const {
             return minOrMaxValueGreaterOrNotLess(x, false, true);
         }
 
         // find min value in [x, y]
-        T minValueRangeNotStrict(const T x, const T y) const noexcept {
+        T minValueRangeNotStrict(const T x, const T y) const {
             return minOrMaxValueRange(x, y, true, false);
         }
 
         // find min value in (x, y)
-        T minValueRangeStrict(const T x, const T y) const noexcept {
+        T minValueRangeStrict(const T x, const T y) const {
             return minOrMaxValueRange(x, y, true, true);
         }
 
         // find max value in [x, y]
-        T maxValueRangeNotStrict(const T x, const T y) const noexcept {
+        T maxValueRangeNotStrict(const T x, const T y) const {
             return minOrMaxValueRange(x, y, false, false);
         }
 
         // find max value in (x, y)
-        T maxValueRangeStrict(const T x, const T y) const noexcept {
+        T maxValueRangeStrict(const T x, const T y) const {
             return minOrMaxValueRange(x, y, false, true);
         }
 
         // Returns true if the map is filled in with at least one non-zero value
-        [[nodiscard]] bool nonZero() const noexcept {
+        [[nodiscard]] bool nonZero() const {
             return ranges::any_of(data | rv::values, [](const auto x) -> bool { return x != 0; });
         }
 
         // interpolate i (better for pointers, default ())
-        [[nodiscard]] T ip(const T i) const noexcept override {
+        [[nodiscard]] T ip(const T i) const override {
             if (data.empty())
                 return 0;
 
@@ -168,7 +168,7 @@ namespace g4m::misc::concrete {
 
     protected:
         // find min or max key
-        T minOrMaxKey(const bool min_flag) const noexcept {
+        T minOrMaxKey(const bool min_flag) const {
             if (data.empty())
                 return 0;
 
@@ -176,7 +176,7 @@ namespace g4m::misc::concrete {
         }
 
         // find min or max value
-        T minOrMaxValue(const bool min_flag) const noexcept {
+        T minOrMaxValue(const bool min_flag) const {
             if (data.empty())
                 return 0;
 
@@ -186,7 +186,7 @@ namespace g4m::misc::concrete {
         }
 
         // find min or max value < or <= x
-        T minOrMaxValueLessOrNotGreater(const T x, const bool min_flag, const bool strict) const noexcept {
+        T minOrMaxValueLessOrNotGreater(const T x, const bool min_flag, const bool strict) const {
             auto it = strict ? data.lower_bound(x) : data.upper_bound(x);
 
             if (it != data.begin())
@@ -201,7 +201,7 @@ namespace g4m::misc::concrete {
         }
 
         // find min or max value > or >= x
-        T minOrMaxValueGreaterOrNotLess(const T x, const bool min_flag, const bool strict) const noexcept {
+        T minOrMaxValueGreaterOrNotLess(const T x, const bool min_flag, const bool strict) const {
             auto it = strict ? data.upper_bound(x) : data.lower_bound(x);
 
             if (it == data.end())
@@ -213,7 +213,7 @@ namespace g4m::misc::concrete {
         }
 
         // find min or max value in (x, y) or [x, y]
-        T minOrMaxValueRange(const T x, const T y, const bool min_flag, const bool strict) const noexcept {
+        T minOrMaxValueRange(const T x, const T y, const bool min_flag, const bool strict) const {
             auto itA = strict ? data.upper_bound(x) : data.lower_bound(x);
             auto itB = strict ? data.lower_bound(y) : data.upper_bound(y);
 

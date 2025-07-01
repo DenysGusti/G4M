@@ -117,22 +117,22 @@ namespace g4m::increment {
         }
 
         // get Average biomass, u .. rotation time, mai .. Site index
-        [[nodiscard]] inline double getAvgBm(const double u, const double mai) const {
+        [[nodiscard]] double getAvgBm(const double u, const double mai) const {
             return ip(u, mai, abm);
         }
 
         // With thinning like yield table
-        [[nodiscard]] inline double getAvgBmT(const double u, const double mai) const {
+        [[nodiscard]] double getAvgBmT(const double u, const double mai) const {
             return ip(u, mai, abmT);
         }
 
         // natural stocking degree
-        [[nodiscard]] inline double getAvgBmSdNat(const double u, const double mai, const double sd) const {
+        [[nodiscard]] double getAvgBmSdNat(const double u, const double mai, const double sd) const {
             return ip(u, mai, abm) * clamp(sd, 0., 1.);
         }
 
         // yield table SD
-        [[nodiscard]] inline double getAvgBmSdTab(const double u, const double mai, const double sd) const {
+        [[nodiscard]] double getAvgBmSdTab(const double u, const double mai, const double sd) const {
             if (sd <= 1)
                 return ip(u, mai, abmT) * max(0., sd);
 
@@ -157,15 +157,15 @@ namespace g4m::increment {
         }
 
         // Get stocking Biomass
-        [[nodiscard]] inline double getBm(const double age, const double mai) const {
+        [[nodiscard]] double getBm(const double age, const double mai) const {
             return ip(age, mai, bm);
         }
 
-        [[nodiscard]] inline double getBmT(const double age, const double mai) const {
+        [[nodiscard]] double getBmT(const double age, const double mai) const {
             return ip(age, mai, bmT);
         }
 
-        [[nodiscard]] inline double getBmSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getBmSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, bm) * clamp(sd, 0., 1.);
             // TODO Check is SD should be <= 1 or can be > 1?
         }
@@ -197,19 +197,19 @@ namespace g4m::increment {
         }
 
         //Get Diameter
-        [[nodiscard]] inline double getDbh(const double age, const double mai) const {
+        [[nodiscard]] double getDbh(const double age, const double mai) const {
             return ip(age, mai, dbh);
         }
 
-        [[nodiscard]] inline double getDbhT(const double age, const double mai) const {
+        [[nodiscard]] double getDbhT(const double age, const double mai) const {
             return ip(age, mai, dbhT);
         }
 
-        [[nodiscard]] inline double getDbhSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getDbhSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, dbh) * ic.getDmul(clamp(sd, 0., 1.));
         }
 
-        [[nodiscard]] inline double getDbhSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getDbhSdTab(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, dbhSdTab, false);
         }
 
@@ -231,29 +231,29 @@ namespace g4m::increment {
         }
 
         // Get Total increment
-        [[nodiscard]] inline double getGwl(const double age, const double mai) const {
+        [[nodiscard]] double getGwl(const double age, const double mai) const {
             return ip(age, mai, gwl);
         }
 
-        [[nodiscard]] inline double getGwlT(const double age, const double mai) const {
+        [[nodiscard]] double getGwlT(const double age, const double mai) const {
             return ip(age, mai, gwlT);
         }
 
-        [[nodiscard]] inline double getGwlSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getGwlSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, gwlSdNat, true);
         }
 
-        [[nodiscard]] inline double getGwlSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getGwlSdTab(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, gwlSdTab, false);
         }
 
         // Get tree height
-        [[nodiscard]] inline double getHeight(const double age, const double mai) const {
+        [[nodiscard]] double getHeight(const double age, const double mai) const {
             return ip(age, mai, height);
         }
 
         // Get natural stocking degree if yield table stocking degree is 1
-        [[nodiscard]] inline double getSdNat(const double age, const double mai) const {
+        [[nodiscard]] double getSdNat(const double age, const double mai) const {
             return ip(age, mai, sdNat);
         }
 
@@ -275,19 +275,19 @@ namespace g4m::increment {
         }
 
         // Get Total increment increments
-        [[nodiscard]] inline double getIncGwl(const double age, const double mai) const {
+        [[nodiscard]] double getIncGwl(const double age, const double mai) const {
             return ip(age, mai, incGwl);
         }
 
-        [[nodiscard]] inline double getIncGwlT(const double age, const double mai) const {
+        [[nodiscard]] double getIncGwlT(const double age, const double mai) const {
             return ip(age, mai, incGwlT);
         }
 
-        [[nodiscard]] inline double getIncGwlSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getIncGwlSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, incGwlSdNat, true);
         }
 
-        [[nodiscard]] inline double getIncGwlSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getIncGwlSdTab(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, incGwlSdTab, false);
         }
 
@@ -309,15 +309,15 @@ namespace g4m::increment {
         }
 
         // Get Biomass change
-        [[nodiscard]] inline double getIncBm(const double age, const double mai) const {
+        [[nodiscard]] double getIncBm(const double age, const double mai) const {
             return ip(age, mai, incBm);
         }
 
-        [[nodiscard]] inline double getIncBmT(const double age, const double mai) const {
+        [[nodiscard]] double getIncBmT(const double age, const double mai) const {
             return ip(age, mai, incBmT);
         }
 
-        [[nodiscard]] inline double getIncBmSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getIncBmSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, incBm) * clamp(sd, 0., 1.);
         }
 
@@ -348,24 +348,24 @@ namespace g4m::increment {
         }
 
         // Get DBH-Increment without thinning
-        [[nodiscard]] inline double getIncDbh(const double age, const double mai) const {
+        [[nodiscard]] double getIncDbh(const double age, const double mai) const {
             return ip(age, mai, incDbh);
         }
 
-        [[nodiscard]] inline double getIncDbhT(const double age, const double mai) const {
+        [[nodiscard]] double getIncDbhT(const double age, const double mai) const {
             return ip(age, mai, incDbhT);
         }
 
-        [[nodiscard]] inline double getIncDbhSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getIncDbhSdNat(const double age, const double mai, const double sd) const {
             return ip(age, mai, sd, incDbhSdNat, true);
         }
 
-        [[nodiscard]] inline double getIncDbhSdTab(double age, double mai, double sd) const {
+        [[nodiscard]] double getIncDbhSdTab(double age, double mai, double sd) const {
             return ip(age, mai, sd, incDbhSdTab, false);
         }
 
         // Get height increment
-        [[nodiscard]] inline double getIncHeight(const double age, const double mai) const {
+        [[nodiscard]] double getIncHeight(const double age, const double mai) const {
             return ip(age, mai, incHeight);
         }
 
@@ -388,19 +388,19 @@ namespace g4m::increment {
 
         // Get Biomass which comes from mortality or thinning and can be used
         // If IncBm is also needed it will be faster to calculate by own
-        [[nodiscard]] inline double getRemBm(const double age, const double mai) const {
+        [[nodiscard]] double getRemBm(const double age, const double mai) const {
             return getIncGwl(age, mai) - getIncBm(age, mai);
         }
 
-        [[nodiscard]] inline double getRemBmT(const double age, const double mai) const {
+        [[nodiscard]] double getRemBmT(const double age, const double mai) const {
             return getIncGwlT(age, mai) - getIncBmT(age, mai);
         }
 
-        [[nodiscard]] inline double getRemBmSdNat(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getRemBmSdNat(const double age, const double mai, const double sd) const {
             return getIncGwlSdNat(age, mai, sd) - getIncBmSdNat(age, mai, sd);
         }
 
-        [[nodiscard]] inline double getRemBmSdTab(const double age, const double mai, const double sd) const {
+        [[nodiscard]] double getRemBmSdTab(const double age, const double mai, const double sd) const {
             return getIncGwlSdTab(age, mai, sd) - getIncBmSdTab(age, mai, sd);
         }
 
@@ -422,19 +422,19 @@ namespace g4m::increment {
         }
 
         // Get Mean annual increment with specific rotation time
-        [[nodiscard]] inline double getMai(const double u, const double mai) const {
+        [[nodiscard]] double getMai(const double u, const double mai) const {
             return u > 0 ? getGwl(u, mai) / u : 0;
         }
 
-        [[nodiscard]] inline double getMaiT(const double u, const double mai) const {
+        [[nodiscard]] double getMaiT(const double u, const double mai) const {
             return u > 0 ? getGwlT(u, mai) / u : 0;
         }
 
-        [[nodiscard]] inline double getMaiSdNat(const double u, const double mai, const double sd) const {
+        [[nodiscard]] double getMaiSdNat(const double u, const double mai, const double sd) const {
             return u > 0 ? getGwlSdNat(u, mai, sd) / u : 0;
         }
 
-        [[nodiscard]] inline double getMaiSdTab(const double u, const double mai, const double sd) const {
+        [[nodiscard]] double getMaiSdTab(const double u, const double mai, const double sd) const {
             return u > 0 ? getGwlSdTab(u, mai, sd) / u : 0;
         }
 
@@ -461,20 +461,20 @@ namespace g4m::increment {
         //2 … Highest possible age
         //3 … Maximum harvest at final cut
         //4 … Average Maximum harvest at final cut
-        [[nodiscard]] inline double getTOpt(const double mai, const OptRotTimes::Mode type) const {
+        [[nodiscard]] double getTOpt(const double mai, const OptRotTimes::Mode type) const {
             return ip(mai, optTime, type);
         }
 
-        [[nodiscard]] inline double getTOptT(const double mai, const OptRotTimes::Mode type) const {
+        [[nodiscard]] double getTOptT(const double mai, const OptRotTimes::Mode type) const {
             return ip(mai, optTimeT, type);
         }
 
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         getTOptSdNat(const double mai, const double sd, const OptRotTimes::Mode type) const {
             return ip(mai, sd, optTimeSdNat, type, true);
         }
 
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         getTOptSdTab(const double mai, const double sd, const OptRotTimes::Mode type) const {
             return ip(mai, sd, optTimeSdTab, type, false);
         }
@@ -645,7 +645,7 @@ namespace g4m::increment {
         }
 
         // Get average stocking degree with rotation time, mai, average biomass
-        [[nodiscard]] inline double getAvgSdNat(const double u, const double mai, const double avgBm) const {
+        [[nodiscard]] double getAvgSdNat(const double u, const double mai, const double avgBm) const {
             return clamp(avgBm / getAvgBm(u, mai), 0., 1.);
         }
 
@@ -673,18 +673,18 @@ namespace g4m::increment {
         }
 
         // Get time step width
-        [[nodiscard]] inline double getTimeframe() const noexcept {
+        [[nodiscard]] double getTimeframe() const {
             return timeframe <= 0 ? tStep : timeframe;
         }
 
         // Get the oldest age in the table
-        [[nodiscard]] inline double getTMax() const noexcept {
+        [[nodiscard]] double getTMax() const {
             return tHi;
         }
 
         // MG: get rotation when DBH > DBH0
         // This can also be stored in a table for faster access
-        [[nodiscard]] inline double getU_dbh(const double dbh0, const double mai) const {
+        [[nodiscard]] double getU_dbh(const double dbh0, const double mai) const {
             return u_param(dbh0, mai, dbh);
         }
 

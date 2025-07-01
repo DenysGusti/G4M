@@ -21,7 +21,7 @@ namespace g4m::Log {
         thread_local unique_ptr<ALogger> s_Logger;
     }
 
-    void Init(const string_view file_name = "main") noexcept {
+    void Init(const string_view file_name = "main") {
         if (!fs::exists(log_path))
             fs::create_directories(log_path);
 
@@ -34,7 +34,7 @@ namespace g4m::Log {
         // s_Logger->setFilter(~(LogLevel::Debug | LogLevel::Warn));
     }
 
-    inline ALogger &GetLogger() noexcept {
+    ALogger &GetLogger() {
         return *s_Logger;
     }
 }

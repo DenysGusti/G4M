@@ -31,14 +31,14 @@ namespace g4m::GLOBIOM_scenarios_data {
                 ipol += -ipol.data.at(scaleYear);
         }
 
-        static void printSimuId(const simuIdType &simuIdDatamap, const string_view message) noexcept {
+        static void printSimuId(const simuIdType &simuIdDatamap, const string_view message) {
             TRACE("{}", message);
             for (const auto &[id, ipol]: simuIdDatamap)
                 TRACE("{}\n{}", id, ipol.str());
         }
 
         static void
-        printSimuIdScenarios(const simuIdScenariosType &simuIdScenarios, const string_view message) noexcept {
+        printSimuIdScenarios(const simuIdScenariosType &simuIdScenarios, const string_view message) {
             TRACE("{}", message);
             for (const auto &[scenario, simuIdDatamap]: simuIdScenarios) {
                 TRACE("{}", scenario);
@@ -348,7 +348,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             INFO("Disturbances are scaled to the {} value!", scaleYear);
         }
 
-        void printData() const noexcept {
+        void printData() const {
             printSimuIdScenarios(GLOBIOM_LandScenarios, "GLOBIOM Land Scenarios");
             printSimuIdScenarios(GLOBIOM_AfforMaxScenarios, "GLOBIOM Affor Max Scenarios");
             printSimuIdScenarios(maiClimateShiftersScenarios, "MAI Climate Shifters Scenarios");

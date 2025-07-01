@@ -13,9 +13,9 @@ namespace g4m::misc::abstract {
     public:
         virtual ~IIpolM() = default;
 
-        virtual T ip(span<const T> i) const noexcept = 0;
+        virtual T ip(span<const T> i) const = 0;
 
-        T operator()(const span<const T> i) const noexcept {
+        T operator()(const span<const T> i) const {
             return ip(i);
         };
     };

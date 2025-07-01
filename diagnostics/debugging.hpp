@@ -19,11 +19,11 @@ namespace g4m::diagnostics {
         uint64_t TotalAllocated = 0;
         uint64_t TotalFreed = 0;
 
-        [[nodiscard]] uint64_t currentUsage() const noexcept {
+        [[nodiscard]] uint64_t currentUsage() const {
             return TotalAllocated - TotalFreed;
         }
 
-        void printMemoryUsage() const noexcept {
+        void printMemoryUsage() const {
             println("Memory Usage: {} bytes\nTotal Allocated: {} bytes\nTotal Freed: {} bytes",
                     currentUsage(), TotalAllocated, TotalFreed);
         }

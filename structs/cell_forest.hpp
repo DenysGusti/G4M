@@ -8,7 +8,7 @@ using namespace std;
 
 namespace g4m::structs {
     struct CellForest {
-        static string csvHeader(const string_view forestType) noexcept {
+        static string csvHeader(const string_view forestType) {
             return format("forestShare_{0},stemBiomass_{0},fellings_{0},CAI_{0},OAC_{0},biomassChangeAb_{0},"
                           "biomassChangeTotal_{0},totalBiomass_{0},harvestFc_{0},harvestTh_{0},harvestSc_{0},"
                           "deadwood_{0},litter_{0},deadwoodInput_{0},litterInput_{0},"
@@ -44,7 +44,7 @@ namespace g4m::structs {
         double extractedStump = 0;      // the share of extracted stumps without residuesUseShare
         double extractedCleaned = 0;    // the share of extracted cleaned stem-wood without (1 - cleanedWoodUse) and residuesUseShare
 
-        void update() noexcept {
+        void update() {
             ranges::shift_left(forestShare, 1);
             forestShare.back() = forestShare.end()[-2];
 
@@ -70,18 +70,18 @@ namespace g4m::structs {
             burntLitter = 0;
         }
 
-        void resetExtracted() noexcept {
+        void resetExtracted() {
             extractedResidues = 0;
             extractedStump = 0;
             extractedCleaned = 0;
         }
 
         // total wood (from FM) of forest in the cell, m^3 / year
-        [[nodiscard]] inline double totalHarvest() const noexcept {
+        [[nodiscard]] double totalHarvest() const {
             return harvestFc + harvestTh + harvestSc;
         }
 
-        [[nodiscard]] string csv() const noexcept {
+        [[nodiscard]] string csv() const {
             return format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                           forestShare.back(), stemBiomass.back(), fellings, CAI, OAC, biomassChangeAb,
                           biomassChangeTotal, totalBiomass, harvestFc, harvestTh, harvestSc, deadwood,

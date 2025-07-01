@@ -34,7 +34,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         string residueExtractDetailsBuffer;
         string harvestDetailsBuffer;
 
-        ResultFiles(const string_view outputFolder, const string_view local_suffix) noexcept:
+        ResultFiles(const string_view outputFolder, const string_view local_suffix):
                 outputPath{format("{}/{}", outputFolder, local_suffix)},
                 detailsFile{outputPath / "details.csv"},
                 cellInfoFile{outputPath / "cellInfo.csv"},
@@ -56,7 +56,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             harvestDetailsBuffer.reserve(initialBufferSize);
         }
 
-        void addHeadersToBuffers(const string_view cellCSVHeader) noexcept {
+        void addHeadersToBuffers(const string_view cellCSVHeader) {
             detailsBuffer +=
                     "asID,simuID,country,year,OForestShare,AForestShare,CAb,abFM,abFMNew,MAI_M3Ha,rotMAI,"
                     "harvestThM3HaOld,harvestFctM3HaOld,harvestThM3HaNew,harvestFctM3HaNew,harvTotCur,harvMAI,"

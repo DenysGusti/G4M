@@ -19,7 +19,7 @@ namespace g4m::increment {
         int maxAvgHarv = 0;   // Average Maximum harvest at final cut
         int maxAge = 0;       // Highest possible age
 
-        [[nodiscard]] int operator()(const Mode type) const noexcept {
+        [[nodiscard]] int operator()(const Mode type) const {
             switch (type) {
                 case Mode::MAI:
                     return maxInc;

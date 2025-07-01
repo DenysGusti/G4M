@@ -25,22 +25,22 @@ namespace g4m::increment {
             calc();
         }
 
-        void setMai(const double amai) noexcept {
+        void setMai(const double amai) {
             mai = amai;
             calc();
         }
 
         // increment optimal rotation time
-        [[nodiscard]] inline double getTOpt() const noexcept {
+        [[nodiscard]] double getTOpt() const {
             return tOpt;
         }
 
-        [[nodiscard]] inline double getTcpMax() const noexcept {
+        [[nodiscard]] double getTcpMax() const {
             return tcpMax;
         }
 
         // Total carbon production (at maximum stocking degree)
-        [[nodiscard]] double getTcp(const double t) const noexcept {
+        [[nodiscard]] double getTcp(const double t) const {
             if (t <= 0 || tMax <= 0)
                 return 0;
             if (t >= tMax)
@@ -50,7 +50,7 @@ namespace g4m::increment {
         }
 
         // Reduction of total carbon production (TCP) to get maximum possible Volume
-        [[nodiscard]] double getMaxDens(const double t) const noexcept {
+        [[nodiscard]] double getMaxDens(const double t) const {
             if (t <= 0 || tOpt <= 0)
                 return 1;
 
@@ -73,7 +73,7 @@ namespace g4m::increment {
         }
 
         // Natural Stocking degree for managed forests
-        [[nodiscard]] double getManDens(const double t) const noexcept {
+        [[nodiscard]] double getManDens(const double t) const {
             double up = 1;
             double lo = 0;
             double x = 0.8;
@@ -95,7 +95,7 @@ namespace g4m::increment {
         }
 
         // Tree height
-        [[nodiscard]] double getH(const double t) const noexcept {
+        [[nodiscard]] double getH(const double t) const {
             if (t <= 0)
                 return 0;
 
@@ -104,7 +104,7 @@ namespace g4m::increment {
         }
 
         // Tree diameter at maximum stand density
-        [[nodiscard]] double getD(const double t) const noexcept {
+        [[nodiscard]] double getD(const double t) const {
             if (t <= th13 || mai <= 0)
                 return 0;
 
@@ -115,12 +115,12 @@ namespace g4m::increment {
         }
 
         // diameter multiplier for stocking degree v/vMax
-        [[nodiscard]] double getDmul(const double bg) const noexcept {
+        [[nodiscard]] double getDmul(const double bg) const {
             return 2 - pow(clamp(bg, 0., 1.), coef.dmul);
         }
 
         // increment multiplier for stocking degree v/vMax
-        [[nodiscard]] double getImul(const double bg, const double t) const noexcept {
+        [[nodiscard]] double getImul(const double bg, const double t) const {
             if (bg <= 0)
                 return 0;
             if (bg >= 1 || t <= 0)
@@ -146,23 +146,23 @@ namespace g4m::increment {
         double th13 = 0;
         double tcpMax = 0;
 
-        inline void calcK() noexcept {
+        void calcK() {
             k = min(0., coef.k[0] + coef.k[1] * exp(coef.k[2] * pow(mai, coef.k[3])));
         }
 
-        inline void calcTcpMax() noexcept {
+        void calcTcpMax() {
             tcpMax = k < 0 ? max(0., mai * tMax * exp(0.25 / k)) : 0;
         }
 
-        inline void calcTMax() noexcept {
+        void calcTMax() {
             tMax = max(0., coef.tMax[0] + coef.tMax[1] / (1 + exp(coef.tMax[2] + coef.tMax[3] * mai)));
         }
 
-        inline void calcTOpt() noexcept {
+        void calcTOpt() {
             tOpt = k < 0 ? max(0., tMax * exp(0.5 / k)) : 0;
         }
 
-        void calcTh13() noexcept {
+        void calcTh13() {
             if (mai <= 0)
                 th13 = numeric_limits<double>::infinity();
             else {
@@ -172,7 +172,7 @@ namespace g4m::increment {
             }
         }
 
-        void calc() noexcept {
+        void calc() {
             calcK();
             calcTMax();
             calcTcpMax();

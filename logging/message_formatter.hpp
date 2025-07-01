@@ -70,7 +70,7 @@ namespace g4m::logging::concrete {
         }
 
         [[nodiscard]] string
-        formatMessage(const LogLevel level, const string_view message, const source_location &source) noexcept {
+        formatMessage(const LogLevel level, const string_view message, const source_location &source) {
             string formatted_message = message_format;
 
             for (const auto [pos, literal]: literal_positions)
@@ -83,7 +83,7 @@ namespace g4m::logging::concrete {
         string message_format = "[%T] [%L] [%S]: %M";
         vector<pair<size_t, char> > literal_positions;
 
-        constexpr void updateLiteralPositions() noexcept {
+        constexpr void updateLiteralPositions() {
             literal_positions.clear();
 
             literal_positions.reserve(messageLiterals.size());

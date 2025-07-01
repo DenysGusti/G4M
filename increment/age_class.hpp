@@ -16,7 +16,7 @@ namespace g4m::increment {
             H
         };
 
-        double &operator()(const Mode type) noexcept {
+        double &operator()(const Mode type) {
             switch (type) {
                 case Mode::Area:
                     return area;
@@ -29,7 +29,7 @@ namespace g4m::increment {
             }
         }
 
-        [[nodiscard]] double operator()(const Mode type) const noexcept {
+        [[nodiscard]] double operator()(const Mode type) const {
             switch (type) {
                 case Mode::Area:
                     return area;
@@ -45,11 +45,11 @@ namespace g4m::increment {
         }
 
         // area * bm
-        [[nodiscard]] inline double getBiomass_tC() const noexcept {
+        [[nodiscard]] double getBiomass_tC() const {
             return area * bm;
         }
 
-        [[nodiscard]] AgeClass getWeightedAgeClass(const AgeClass &other) const noexcept {
+        [[nodiscard]] AgeClass getWeightedAgeClass(const AgeClass &other) const {
             double reciprocalTotalArea = 1 / (area + other.area);
             return AgeClass{
                     .area = area + other.area,
@@ -59,7 +59,7 @@ namespace g4m::increment {
             };
         }
 
-        [[nodiscard]] string str() const noexcept {
+        [[nodiscard]] string str() const {
             return format("area = {}, bm = {}, d = {}, h = {}", area, bm, d, h);
         }
 
