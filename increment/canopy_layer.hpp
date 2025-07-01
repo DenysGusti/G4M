@@ -18,31 +18,6 @@ namespace g4m::increment {
     // CanopyLayer doesn't own IncrementTab!
     class CanopyLayer {
     public:
-        // TODO move to tests
-        // test area's ||f - sum f_i||
-        static void Test_createNormalForest() {
-            Species speciesType = Species::Spruce;
-            println("speciesType = {}", speciesName.at(speciesType));
-
-            double max_relative_error = 0;
-            for (double rotationPeriod = 1; rotationPeriod <= 500; rotationPeriod += 0.5)
-                for (double area = 0; area <= 1; area += 0.5)
-                    for (double sd = -2; sd <= 2; sd += 0.5)
-                        for (double avgMai = 0; avgMai <= 10; avgMai += 0.5) {
-                            if (sd == 0)
-                                continue;
-                            CanopyLayer fl{&species.at(speciesType),
-                                           nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-                            fl.createNormalForest(rotationPeriod, area, sd, avgMai);
-                            double real_area = fl.getTotalArea();
-                            double relative_error = abs(real_area / area - 1);
-//                            println("rotationPeriod = {}\tarea = {}\tsd = {}\tavgMai = {}\trelative_error = {}",
-//                                    rotationPeriod, area, sd, avgMai, relative_error);
-                            max_relative_error = max(max_relative_error, relative_error);
-                        }
-            println("max_relative_error = {}", max_relative_error);
-        }
-
         CanopyLayer(
                 // Increment table which will be used, the time step width (simulation period length) of *it will also be used in ageStruct
                 const IncrementTab *const it_,
@@ -814,5 +789,12 @@ namespace g4m::increment {
         }
     };
 }
+
+template<>
+struct std::formatter<g4m::increment::CanopyLayer> : formatter<string> {
+    auto format(const g4m::increment::CanopyLayer &obj, format_context &ctx) const {
+        return formatter<string>::format(obj.str(), ctx);
+    }
+};
 
 #endif

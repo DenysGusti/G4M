@@ -233,4 +233,11 @@ namespace g4m::misc::concrete {
     };
 }
 
+template<floating_point T>
+struct std::formatter<g4m::misc::concrete::Ipol<T>> : formatter<string> {
+    auto format(const g4m::misc::concrete::Ipol<T> &obj, format_context &ctx) const {
+        return formatter<string>::format(obj.str(), ctx);
+    }
+};
+
 #endif

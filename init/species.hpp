@@ -35,6 +35,7 @@ namespace g4m::init {
     };
 
     const unordered_map<Species, string, EnumHasher> speciesName = {
+            {Species::NoTree,          "No Tree"},
             {Species::Fir,             "Fir"},
             {Species::Spruce,          "Spruce"},
             {Species::Pine,            "Pine"},
@@ -45,5 +46,12 @@ namespace g4m::init {
             {Species::Larch,           "Larch"}
     };
 }
+
+template<>
+struct std::formatter<g4m::init::Species> : formatter<string> {
+    auto format(const g4m::init::Species &obj, format_context &ctx) const {
+        return formatter<string>::format(g4m::init::speciesName.at(obj), ctx);
+    }
+};
 
 #endif

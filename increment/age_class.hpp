@@ -70,4 +70,11 @@ namespace g4m::increment {
     };
 }
 
+template<>
+struct std::formatter<g4m::increment::AgeClass> : formatter<string> {
+    auto format(const g4m::increment::AgeClass &obj, format_context &ctx) const {
+        return formatter<string>::format(obj.str(), ctx);
+    }
+};
+
 #endif

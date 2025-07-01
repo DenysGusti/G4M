@@ -85,8 +85,7 @@ namespace g4m::application {
             for (const auto &plot: appPlots)
                 rf.cellInfoBuffer += format("{},{},{},{},{},{},{}\n", plot.asID, plot.simuID,
                                             idCountryGLOBIOM.at(plot.country), coef.bYear - 1,
-                                            speciesName.at(plot.speciesType), vegetationTypeName.at(plot.potVeg),
-                                            appDats[plot.asID].csv());
+                                            plot.speciesType, plot.potVeg, appDats[plot.asID].csv());
 
             // loop by years
             for (uint16_t year = coef.bYear; year <= coef.eYear; ++year) {
@@ -133,8 +132,7 @@ namespace g4m::application {
 
                     rf.cellInfoBuffer += format("{},{},{},{},{},{},{}\n", plot.asID, plot.simuID,
                                                 idCountryGLOBIOM.at(plot.country), year,
-                                                speciesName.at(plot.speciesType), vegetationTypeName.at(plot.potVeg),
-                                                cell.csv());
+                                                plot.speciesType, plot.potVeg, cell.csv());
 
                     if (!cell.checkLastForestShares()) {
                         FATAL("Negative forest share in year = {}, asID = {}, country = {}", year, plot.asID,
@@ -177,7 +175,7 @@ namespace g4m::application {
 //                                       cell.forestShareOld(-1) * cell.landAreaHa,
 //                                       cell.N.forestShare.back() * cell.landAreaHa, cell.U.CAI, cell.U.totalHarvest,
 //                                       cell.U.harvestFc(), cell.U.harvestTh() /*???*/, cell.U.totalBiomass,
-//                                       cell.N.totalBiomass /*columns*/, speciesName.at(plot.speciesType),
+//                                       cell.N.totalBiomass /*columns*/, plot.speciesType,
 //                                       cell.U.harvestFc() / cell.landAreaHa, cell.U.harvestTh() / cell.landAreaHa,
 //                                       cell.N.harvestFc() / cell.landAreaHa, cell.N.harvestTh() / cell.landAreaHa,
 //                                       cell.U.harvestFc(), cell.U.harvestTh(), cell.N.harvestFc(), cell.N.harvestTh(),
@@ -198,7 +196,7 @@ namespace g4m::application {
                                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
                                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                                    x, y, plot.simuID, idCountryGLOBIOM.at(plot.country), nuts2_id, year,
-                                   cell.landAreaHa, speciesName.at(plot.speciesType), plot.protect,
+                                   cell.landAreaHa, plot.speciesType, plot.protect,
                                    cell.U.forestShare.back() * cell.landAreaHa,
                                    cell.O10.forestShare.back() * cell.landAreaHa,
                                    cell.O30.forestShare.back() * cell.landAreaHa,

@@ -29,4 +29,11 @@ namespace g4m::misc::abstract {
     };
 }
 
+template<floating_point T>
+struct std::formatter<g4m::misc::abstract::VIpol<T>> : formatter<string> {
+    auto format(const g4m::misc::abstract::VIpol<T> &obj, format_context &ctx) const {
+        return formatter<string>::format(obj.str(), ctx);
+    }
+};
+
 #endif

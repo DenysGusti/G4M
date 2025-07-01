@@ -10,10 +10,11 @@ using namespace g4m::diagnostics;
 using namespace g4m::application;
 
 int main(int argc, char *argv[]) {
+    vector<string> args{argv, argv + argc};
+
     try {
         Timer timer{"main"};
         Log::Init();
-//        increment::CanopyLayer::Test_createNormalForest();
         StartData::Init();
 
         // 1 scenario
@@ -41,8 +42,8 @@ int main(int argc, char *argv[]) {
 //            });
 
     } catch (const exception &e) {
+        println(cerr, "{}", e.what());
         FATAL("{}", e.what());
-        cerr << e.what() << endl;
     }
     return 0;
 }

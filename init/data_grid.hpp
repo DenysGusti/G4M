@@ -556,4 +556,11 @@ namespace g4m::init {
     };
 }
 
+template<class T>
+struct std::formatter<g4m::init::DataGrid<T>> : formatter<string> {
+    auto format(const g4m::init::DataGrid<T> &dataGrid, format_context &ctx) const {
+        return formatter<string>::format(dataGrid.str(), ctx);
+    }
+};
+
 #endif

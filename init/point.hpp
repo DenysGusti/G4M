@@ -21,4 +21,11 @@ namespace g4m::init {
     };
 }
 
+template<>
+struct std::formatter<g4m::init::Point> : formatter<string> {
+    auto format(const g4m::init::Point &obj, format_context &ctx) const {
+        return formatter<string>::format(obj.str(), ctx);
+    }
+};
+
 #endif

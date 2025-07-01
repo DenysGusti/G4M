@@ -49,6 +49,7 @@ namespace g4m::init {
     };
 
     const unordered_map<VegetationType, string, EnumHasher> vegetationTypeName = {
+            {VegetationType::NoType,                             "No Type"},
             {VegetationType::TropicalEvergreenForest,            "Tropical Evergreen Forest"},
             {VegetationType::TropicalDeciduousForest,            "Tropical Deciduous Forest"},
             {VegetationType::TemperateBroadleafEvergreenForest,  "Temperate Broadleaf Evergreen Forest"},
@@ -66,5 +67,12 @@ namespace g4m::init {
             {VegetationType::PolarDesert,                        "Polar Desert"}
     };
 }
+
+template<>
+struct std::formatter<g4m::init::VegetationType> : formatter<string> {
+    auto format(const g4m::init::VegetationType &obj, format_context &ctx) const {
+        return formatter<string>::format(g4m::init::vegetationTypeName.at(obj), ctx);
+    }
+};
 
 #endif

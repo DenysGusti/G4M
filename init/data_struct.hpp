@@ -226,8 +226,7 @@ namespace g4m::init {
                     "speciesType = {}\nmngmType = {}\npotVeg = {}\nmanagedFlag = {}\nmanaged_UNFCCC = {}\n"
                     "protect = {}\n",
                     x, y, simuID, country, int{IIASA_region}, int{polesReg}, int{countryRegMix},
-                    speciesName.at(speciesType), int{mngmType}, vegetationTypeName.at(potVeg), managedFlag,
-                    managed_UNFCCC, protect);
+                    speciesType, int{mngmType}, potVeg, managedFlag, managed_UNFCCC, protect);
             string format_floating_point = format(
                     "landArea = {}\nforest = {}\nforLoss = {}\nagrSuit = {}\nsAgrSuit = {}\nCAboveHa = {}\n"
                     "CBelowHa = {}\nCDeadHa = {}\nCLitterHa = {}\nSOCHa = {}\nmanagedShare = {}\n"
@@ -519,9 +518,16 @@ namespace g4m::init {
         }
 
         [[nodiscard]] bool isBroadleaf() const {
-            return 5 <= static_cast<uint8_t>(speciesType) && static_cast<uint8_t>(speciesType) <= 7;
+            return 5 <= to_underlying(speciesType) && to_underlying(speciesType) <= 7;
         }
     };
 }
+
+template<>
+struct std::formatter<g4m::init::DataStruct> : formatter<string> {
+    auto format(const g4m::init::DataStruct &obj, format_context &ctx) const {
+        return formatter<string>::format(obj.str(), ctx);
+    }
+};
 
 #endif
