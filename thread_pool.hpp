@@ -28,7 +28,8 @@ namespace g4m {
                 threads.emplace_back(&ThreadPool::ThreadLoop, this, ssource.get_token());
         }
 
-        void enqueue(const function<void()> &job) {
+        template<typename Func>
+        void enqueue(Func&& job) {
             {
                 scoped_lock<mutex> lock{queue_mutex};
                 jobs.push(job);
