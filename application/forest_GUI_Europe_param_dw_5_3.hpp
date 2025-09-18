@@ -227,7 +227,7 @@ namespace g4m::application {
                                    cell.U.litterEmissions, cell.O10.litterEmissions, cell.O30.litterEmissions,
                                    cell.P.litterEmissions, cell.N.litterEmissions,
                                    appForest10Policy, appForest30Policy,
-                                   cell.U.OAC, cell.N.OAC, cell.O10.OAC, cell.O30.OAC, cell.P.OAC);
+                                   cell.U.OAC, cell.O10.OAC, cell.O30.OAC, cell.P.OAC, cell.N.OAC);
                 }
             }
             rf.sortCellInfo();
