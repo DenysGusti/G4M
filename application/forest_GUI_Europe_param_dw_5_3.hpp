@@ -3199,7 +3199,7 @@ namespace g4m::application {
 
                 if (!dms.GLOBIOM_LandCountry[plot.country].data.empty() &&
                     !dms.GLOBIOM_AfforMaxCountry[plot.country].data.empty()) {
-                    globiomReservedCountry = dms.GLOBIOM_AfforMaxCountry[plot.country](year) * 1000;
+                    globiomReservedCountry = dms.GLOBIOM_LandCountry[plot.country](year) * 1000;
                     afforMaxCountry = dms.GLOBIOM_AfforMaxCountry[plot.country](year) * 500;
                 }
                 double gdp = 1644;
