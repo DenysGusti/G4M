@@ -518,21 +518,24 @@ namespace g4m::application {
 
                     if constexpr (protectedNatLnd)
                         if (plot.grLnd_protect > 0) {
-                            plot.afforMax.data[2000] = max(0., plot.afforMax.data.at(2000) + plot.grLnd_protect);
+                            plot.afforMax.data[2000] = max(0., plot.afforMax.data.at(2000) - plot.grLnd_protect);
                             sumGrLnd_protect += plot.grLnd_protect;
                         }
 
-                    for (auto &[year, GL]: plot.GLOBIOM_reserved.data)
-                        if (year > 2000 && GL > 0) {
-                            double &natLnd = plot.afforMax.data[year];  // no interpolation, I suppose data is already there
+                    if (plot.GLOBIOM_reserved.data.at(2000) > 0) {
+                        for (uint16_t year = 2010; year <= coef.eYear; year += 10) {
+                            double GL = plot.GLOBIOM_reserved(year);
+                            double natLnd = plot.afforMax(year);
+
                             double dGL = (dms.GLOBIOM_LandCountry[plot.country].data.at(year) -
                                           dms.GLOBIOM_LandCountry[plot.country](year - modTimeStep)) /
                                          countryLandArea[plot.country];
                             dGL = clamp(dGL, -GL, natLnd);
-                            // reference variables
-                            GL = max(0., GL + dGL);
-                            natLnd = max(0., natLnd - dGL);
+
+                            plot.GLOBIOM_reserved.data[year] = max(0., GL + dGL);
+                            plot.afforMax.data[year] = max(0., natLnd - dGL);
                         }
+                    }
                 }
             }
 
