@@ -2923,7 +2923,7 @@ namespace g4m::application {
                     FMs[plot.country] += FM_init[plot.asID];
 
             for (const auto &plot: appPlots)
-                if (plot.managed_UNFCCC && appThinningForest(plot.x, plot.y) > 0) {
+                if (plot.managed_UNFCCC && appThinningForest(plot.x, plot.y) < 0) {
                     const Dat &cell = appDats[plot.asID];
 
                     if (FMs[plot.country] < (1 - adjustToleranceFM) * FM_sink_stat[plot.country]) {
@@ -2974,6 +2974,10 @@ namespace g4m::application {
                         if (rotation > rotMAI) {
                             rotation = max(rotation - dRotation, rotMAI);
                             appCohortsU[plot.asID].setU(rotation);
+                            appCohortsN[plot.asID].setU(rotation);
+                            appRotationForest(plot.x, plot.y) = rotation;
+                            rotationForestNew(plot.x, plot.y) = rotation;
+
                             AgeStruct cohortTmp = appCohortsU[plot.asID];
 
                             int count = 0;
