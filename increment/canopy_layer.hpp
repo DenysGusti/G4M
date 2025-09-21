@@ -341,7 +341,6 @@ namespace g4m::increment {
                 ERROR("cohortShift: currentMaxSize ({}) <= 1!", currentMaxSize);
                 return;
             }
-            // change back to ranges later
             if (dat.size() + 1 <= currentMaxSize) {
                 initNewAgeClasses(1, sd, avgMai);
                 ranges::shift_right(dat, 1);  // shift right 1
@@ -484,22 +483,23 @@ namespace g4m::increment {
                     } else {  // No thinning
                         dat[i].bm += iGwl;
                         double bmMax = it->getBm(age + timeStep, avgMai);
-                        double tmp_arg = (dat[i].bm - bmMax) * dat[i].area;
                         if (bmMax < dat[i].bm) {
+                            double tmp_arg = (dat[i].bm - bmMax) * dat[i].area;
                             if (dat[i].d + id * 0.5 > 10) {
                                 ret.deadwood += tmp_arg;
                                 area_dw += dat[i].area;
                                 ret.mortDeadwoodDBH += dat[i].d * tmp_arg;
                                 ret.mortDeadwoodH += dat[i].h * tmp_arg;
                                 mortDwBm += tmp_arg;  // MG: estimation of BM weighted average d and h of dead trees (deadwood) that are not thinned
-                            } else {
+                                dat[i].bm = max(0., bmMax);
+                            } else if (dat[i].d > 0.1) {
                                 ret.litter += tmp_arg;
                                 area_lt += dat[i].area;
                                 ret.mortLitterDBH += dat[i].d * tmp_arg;
                                 ret.mortLitterH += dat[i].h * tmp_arg;
                                 mortLitterBm += tmp_arg;  // MG: estimation of BM weighted average d and h of dead trees (litter) that are not thinned
+                                dat[i].bm = max(0., bmMax);
                             }
-                            dat[i].bm = max(0., bmMax);
                         }
                     }
                     dat[i].d = max(0., dat[i].d + id);
