@@ -71,11 +71,11 @@ namespace g4m::parameters {
 
         Decisions decisions;
 
-        void initCountriesHLVE(const span<const DataStruct> plots) {
-            hlveCountries.reserve(256);
+        void initCountriesHLVE() {
+            hlveCountries.reserve(countriesList.size());
 
-            for (const auto &plot: plots)
-                hlveCountries[plot.country] = setupHarvestLosses(plot.country);
+            for (const auto country: countriesList)
+                hlveCountries[country] = setupHarvestLosses(country);
         }
 
         // Setup forest management parameters similar for all countries (cells)

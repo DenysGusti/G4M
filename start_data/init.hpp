@@ -113,7 +113,7 @@ namespace g4m::StartData {
 //        countriesWoodProdStat = setCountriesWoodProdStat();
         countriesFmEmission_unfccc = setCountriesFmEmission_unfccc();
         calcAvgFM_sink_stat();
-        fmp.initCountriesHLVE(plots.filteredPlots);
+        fmp.initCountriesHLVE();
         fmp.setupFMP();
         nuts2.fillFromNUTS();
         nuts2.correctNUTS2Data(plots.filteredPlots);
