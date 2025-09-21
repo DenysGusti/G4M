@@ -323,17 +323,7 @@ namespace g4m::StartData {
                         cohort.setStockingDegreeMax(stockingDegree * sdMaxCoef);
                         commonThinningForest(plot.x, plot.y) = stockingDegree;
 
-//                        DEBUG("before setBm");
-//                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
-//                            DEBUG("dat[{}] = [{}]", i, el.str());
-
-                        for (int i = 0; i < 321; ++i) {
-                            cohort.setBm(i, stockingDegree * cohort.getBm(i));
-
-//                            DEBUG("after setBm({})", i);
-//                            for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
-//                                DEBUG("dat[{}] = [{}]", i, el.str());
-                        }
+                        cohort.correctBmBySD(stockingDegree);
                         cohort.setU(321);
 
 //                        DEBUG("after setU(321), before aging");
@@ -405,9 +395,7 @@ namespace g4m::StartData {
                 cohort10.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
                 commonThinningForest10(plot.x, plot.y) = -stockingDegree;
 
-                const size_t oldestIdx = cohort10.getActiveAgeClassIdx();
-                for (int i = 0; i <= oldestIdx; ++i)
-                    cohort10.setBm(i, stockingDegree * cohort10.getBm(i * modTimeStep));
+                cohort10.correctBmBySD(stockingDegree);
 
             } else
                 cohort10.createNormalForest(1, 0, -1);
@@ -431,9 +419,7 @@ namespace g4m::StartData {
                 cohort_primary.setStockingDegreeMin(-stockingDegree * sdMinCoef);
                 cohort_primary.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
 
-                const size_t oldestIdx = cohort_primary.getActiveAgeClassIdx();
-                for (int i = 0; i <= oldestIdx; ++i)
-                    cohort_primary.setBm(i, stockingDegree * cohort_primary.getBm(i * modTimeStep));
+                cohort_primary.correctBmBySD(stockingDegree);
 
             } else
                 cohort_primary.createNormalForest(1, 0, -1);
@@ -558,7 +544,7 @@ namespace g4m::StartData {
 //                    rotMaxBm = species.at(plot.speciesType).getTOpt(MAI, OptRotTimes::Mode::MaxBm);
                 }
 
-                if (datamapScenarios.woodPriceScenarios.at(settings.bauScenario).at(plot.country)(coef.bYear) >
+                if (datamapScenarios.woodDemandScenarios.at(settings.bauScenario).at(plot.country)(coef.bYear) >
                     woodPotHarvest[plot.country - 1]) {
                     if (commonManagedForest(plot.x, plot.y) == 0) {
                         rotation = rotMAI + 1;

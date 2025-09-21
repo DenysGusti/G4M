@@ -180,30 +180,36 @@ namespace g4m::increment {
         }
 
         // get Diameter
-        [[nodiscard]] double getD(double age) const {
+        [[nodiscard]] double getD(const double age) const {
             return canopyLayer.getDiameterByAge(age);
         }
 
         // get Height / canopyLayer:
         // 1 - first canopy layer,
         // 0 - second (ground) canopy layer that is active if selective logging option is used
-        [[nodiscard]] double getH(double age) const {
+        [[nodiscard]] double getH(const double age) const {
             return canopyLayer.getHeightByAge(age);
         }
 
         // Set area for a specific ageCLASS for specified canopy layer
-        void setArea(size_t ageClass, double area_) {
+        void setArea(const size_t ageClass, const double area_) {
             canopyLayer.setAreaToAgeClassIdx(ageClass, area_);
-            area += area_; // MG: can be a problem here as area must be the same for L0 and L1
+            area = canopyLayer.getTotalArea(); // MG: can be a problem here as area must be the same for L0 and L1
+        }
+
+        // Apply stocking degree correction to all age class, use at cohort init
+        void correctBmBySD(const double sd) {
+            for (auto &&[i, ageClass]: canopyLayer.getDat() | rv::enumerate)
+                canopyLayer.setBiomassToAgeClassIdx(i, sd * ageClass.bm, avgMai);
         }
 
         // Set biomass per hectare for a specific ageCLASS for specified canopy layer
-        void setBm(size_t ageClass, double biomass) {
+        void setBm(const size_t ageClass, const double biomass) {
             canopyLayer.setBiomassToAgeClassIdx(ageClass, biomass, avgMai);
         }
 
         // Set dbh for a specific ageClass
-        void setD(size_t ageClass, double dbh) {
+        void setD(const size_t ageClass, const double dbh) {
             canopyLayer.setDiameterToAgeClassIdx(ageClass, dbh, avgMai);
         }
 
