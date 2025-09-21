@@ -193,8 +193,10 @@ namespace g4m::increment {
 
         // Set area for a specific ageCLASS for specified canopy layer
         void setArea(const size_t ageClass, const double area_) {
+            double old_value = canopyLayer.getDat().at(ageClass).area;
             canopyLayer.setAreaToAgeClassIdx(ageClass, area_);
-            area = canopyLayer.getTotalArea(); // MG: can be a problem here as area must be the same for L0 and L1
+            double new_value = canopyLayer.getDat().at(ageClass).area;
+            area += new_value - old_value; // MG: can be a problem here as area must be the same for L0 and L1
         }
 
         // Apply stocking degree correction to all age class, use at cohort init
