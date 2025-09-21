@@ -159,7 +159,7 @@ namespace g4m::increment {
         // Timber price internal
         [[nodiscard]] double priceTimber() const {
             double sfor = (1 - forest) * 9 + 1;
-            double c4 = priceTimberMax0 - priceTimberMin0 / 99;
+            double c4 = (priceTimberMax0 - priceTimberMin0) / 99;
             double c3 = priceTimberMin0 - c4;
             return (c3 + c4 * sPopDens(year) * sfor) * priceIndex / priceIndex0;
         }
@@ -179,11 +179,7 @@ namespace g4m::increment {
         // MG: use internal G4M wood price
         // MG: Changed to external SawnLogsPrice
         [[nodiscard]] double priceTimberComb() const {
-            double sfor = (1 - forest) * 9 + 1;
-            double c4 = (priceTimberMax0 - priceTimberMin0) / 99;
-            double c3 = priceTimberMin0 - c4;
-            return ((c3 + c4 * sPopDens(year) * sfor) * priceIndex / priceIndex0 * woodPriceCorr(year) /
-                    woodPriceCorr0);
+            return priceTimber() * woodPriceCorr(year) / woodPriceCorr0;
         }
 
         // Rotation interval of a Forest in Years
