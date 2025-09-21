@@ -81,6 +81,7 @@ namespace g4m::application {
         // start calculations
         void Run() {
             INFO("Application {} is running", appName);
+//            appPlots = {appPlots[16]};  // debug asID 16
 
             for (const auto &plot: appPlots)
                 rf.cellInfoBuffer += format("{},{},{},{},{},{},{}\n", plot.asID, plot.simuID,
