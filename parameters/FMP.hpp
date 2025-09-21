@@ -39,7 +39,6 @@ namespace g4m::parameters {
             // 50: 1 - (0.7 * HarvestingLosesCountry)
             // This is for hle, for the thinning (hlv) multiply the values of harvestable biomass with 0.8.
             fun_hlv.data[0] = 0;
-            fun_hlv.data[27] = 0;  // Testing!
             fun_hlv.data[countryLossesD[countryId]] = 1 - countryLosses[countryId];
             fun_hlv.data[25] = 1 - countryLosses[countryId];
             fun_hlv.data[50] = 1 - 0.7 * countryLosses[countryId];
