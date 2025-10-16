@@ -2511,13 +2511,12 @@ namespace g4m::application {
                      Dbh_avg,h_avg,dat_all[asID].defBiomass,iter->FTIMBER[2000])*dat_all[asID].deforestShare/realAreaO;
                     }
 					*/
-                    // Locate the struct with asID==asID within the country. Binary search O(log n)
-                    auto it_hr = lower_bound(appHarvestResiduesCountry.at(plot.country).begin(),
-                                             appHarvestResiduesCountry.at(plot.country).end(), plot.asID,
-                                             [](const HarvestResidues &hr, const size_t asID) -> bool {
-                                                 return hr.asID < asID;
-                                             });
-                    if (it_hr == appHarvestResiduesCountry.at(plot.country).end() || it_hr->asID != plot.asID) {
+                    // Locate the struct with asID==asID within the country.
+                    auto &vec = appHarvestResiduesCountry.at(plot.country);
+                    // Vector is no longer sorted.
+                    auto it_hr = ranges::find(vec, plot.asID, &HarvestResidues::asID);
+
+                    if (it_hr == vec.end() || it_hr->asID != plot.asID) {
                         FATAL("country = {}, asID = {} not found in harvestResiduesCountry", plot.country, plot.asID);
                         throw runtime_error{"Missing asID harvestResidues"};
                     }
@@ -2606,10 +2605,10 @@ namespace g4m::application {
             // calculate minimum costs residues use
             // go to each country
             for (const auto country: countriesList) {
-                if (!commonHarvestResiduesCountry.at(country).empty()) {
+                if (!appHarvestResiduesCountry.at(country).empty()) {
                     // sort the cells by costs of residue extraction
-                    sort(commonHarvestResiduesCountry.at(country).begin(),
-                         commonHarvestResiduesCountry.at(country).end(),
+                    sort(appHarvestResiduesCountry.at(country).begin(),
+                         appHarvestResiduesCountry.at(country).end(),
                          [](const HarvestResidues &lop, const HarvestResidues &rop) -> bool {
                              return lop.costsSuit1 < rop.costsSuit1;
                          });
@@ -2619,7 +2618,7 @@ namespace g4m::application {
                     // Usual forest
                     // first check the amount of residues from branches and harvest losses in the intensive
                     // clear-cut areas and estimate respective soil loss emissions
-                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                    for (auto &hr: appHarvestResiduesCountry.at(country)) {
                         if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
 
@@ -2648,7 +2647,7 @@ namespace g4m::application {
                     // first check the amount of residues from branches and harvest losses in the intensive
                     // clear-cut areas and estimate respective soil loss emissions
                     if (!appForest30Policy)
-                        for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                        for (auto &hr: appHarvestResiduesCountry.at(country)) {
                             if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                                 break;
 
@@ -2672,7 +2671,7 @@ namespace g4m::application {
 
                     // stumps of logged trees from production forests
                     // usual forest
-                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                    for (auto &hr: appHarvestResiduesCountry.at(country)) {
                         if (!stumpHarvCountrySpecies.contains({country, hr.species}) ||
                             residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
@@ -2707,7 +2706,7 @@ namespace g4m::application {
                     // stumps of logged trees from production forests
                     // forest 30
                     if (!appForest30Policy)     // no residueUse30 = !appForest30Policy
-                        for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                        for (auto &hr: appHarvestResiduesCountry.at(country)) {
                             if (!stumpHarvCountrySpecies.contains({country, hr.species}) ||
                                 residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                                 break;
@@ -2740,7 +2739,7 @@ namespace g4m::application {
 
                     // harvest residues and branches of logged trees from multifunctional forests
                     // usual forest
-                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                    for (auto &hr: appHarvestResiduesCountry.at(country)) {
                         if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
 
@@ -2772,7 +2771,7 @@ namespace g4m::application {
                     // harvest residues and branches of logged trees from multifunctional forests
                     // forest 30
                     if (!appForest30Policy)
-                        for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                        for (auto &hr: appHarvestResiduesCountry.at(country)) {
                             if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                                 break;
 
@@ -2800,7 +2799,7 @@ namespace g4m::application {
 
                     // whole (above-ground) trees from multifunctional forests that die but are not harvested
                     // usual forest
-                    for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                    for (auto &hr: appHarvestResiduesCountry.at(country)) {
                         if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                             break;
 
@@ -2832,7 +2831,7 @@ namespace g4m::application {
                     // whole (above-ground) trees from multifunctional forests that die but are not harvested
                     // forest 30
                     if (!appForest30Policy)
-                        for (auto &hr: commonHarvestResiduesCountry.at(country)) {
+                        for (auto &hr: appHarvestResiduesCountry.at(country)) {
                             if (residueHarvest[country] >= dms.residuesDemand.at(country)(year))
                                 break;
 
@@ -2859,10 +2858,10 @@ namespace g4m::application {
                             }
                         }
                 }
-                for (auto &hr: commonHarvestResiduesCountry.at(country))
+                for (auto &hr: appHarvestResiduesCountry.at(country))
                     hr.setTimeUseSust();
 
-                for (const auto &hr: commonHarvestResiduesCountry.at(country))
+                for (const auto &hr: appHarvestResiduesCountry.at(country))
                     rf.residueExtractDetailsBuffer +=
                             format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                                    hr.simuId, idCountryGLOBIOM.at(country), year, hr.U.usedForest,
@@ -2878,7 +2877,7 @@ namespace g4m::application {
                                    hr.useSuit4);
 
                 // TODO fTimber by cells!
-                double fTimber = commonHarvestResiduesCountry.at(country)[0].fTimber;
+                double fTimber = appHarvestResiduesCountry.at(country)[0].fTimber;
                 countriesResiduesDemand_m3.setVal(country, year, dms.residuesDemand.at(country)(year) * fTimber);
                 countriesResiduesExtract_m3.inc(country, year, residueHarvest[country] * fTimber);
                 countriesResExtSoilEm_MtCO2Year.setVal(country, year, harvestResiduesSoilEmissions[country] * 1e-6);
