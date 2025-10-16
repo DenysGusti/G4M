@@ -18,28 +18,29 @@ int main(int argc, char *argv[]) {
         StartData::Init();
 
         // 1 scenario
-        {
-            Forest_GUI_Europe_param_dw_5_3 app{settings.scenarios.front()};
-            app.Run();
-        }
+//        {
+//            Log::Init(settings.scenarios.front() | rv::join_with('_') | ranges::to<string>());
+//            Forest_GUI_Europe_param_dw_5_3 app{settings.scenarios.front()};
+//            app.Run();
+//        }
 //        s_AllocationMetrics.printMemoryUsage();
 
         for (auto &[suffix0, signal]: signalZeroCToMainScenarios)
             signal.acquire();
 
         // multiple scenarios
-//        g4m::ThreadPool pool;
-//        for (int i = 0; i < 100; ++i)
-//            pool.enqueue([&] {
-//                try {
-//                    Forest_GUI_Europe_param_dw_5_3 app{
-//                            Application::ConvertToUppercase(Application::CreateArgsFromArgcArgv(argc, argv))};
-//                    app.Run();
-//                } catch (const exception &e) {
-//                    FATAL("{}", e.what());
-//                    cerr << e.what() << endl;
-//                }
-//            });
+        g4m::ThreadPool pool;
+        for (const auto& scenario: settings.scenarios)
+            pool.enqueue([&] {
+                try {
+                    Log::Init(scenario | rv::join_with('_') | ranges::to<string>());
+                    Forest_GUI_Europe_param_dw_5_3 app{scenario};
+                    app.Run();
+                } catch (const exception &e) {
+                    println(cerr, "{}", e.what());
+                    FATAL("{}", e.what());
+                }
+            });
 
     } catch (const exception &e) {
         println(cerr, "{}", e.what());

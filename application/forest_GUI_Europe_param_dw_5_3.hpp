@@ -43,13 +43,11 @@ namespace g4m::application {
     class Forest_GUI_Europe_param_dw_5_3 {
     public:
         explicit Forest_GUI_Europe_param_dw_5_3(const span<const string> args)
-                : appName{format("{}_{}_{}_{}", args[0], args[1], args[2], args[3])},
-                  c_scenario{{args[0], args[1], args[2]}}, inputPriceC{stoi(args[3])},
+                : appName{args | rv::join_with('_') | ranges::to<string>()},
+                  c_scenario{{args[0], args[1], args[2]}}, inputPriceC{stoll(args[3])},
                   dms{datamapScenarios, full_scenario, inputPriceC},
                   sis{simuIdScenarios, full_scenario, c_scenario[1]},
                   rf{settings.outputPath, local_suffix} {
-            // TODO initialize earlier
-            Log::Init(appName);
             INFO("Scenario to read in & GL: {}", full_scenario);
             correctBelgium();
             applyMAIClimateShifters();
