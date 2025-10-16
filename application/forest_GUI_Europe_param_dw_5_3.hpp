@@ -115,7 +115,7 @@ namespace g4m::application {
                 INFO("Adjusting FM...");
                 adjustManagedForest(year);
 
-                for (int country = 0; country < numberOfCountries; ++country) {
+                for (uint64_t country = 0; country < numberOfCountries; ++country) {
                     countriesNForestCover1990.setVal(country, year, 0);
                     countriesOForestCover.setVal(country, year, 0);
                 }
@@ -235,7 +235,7 @@ namespace g4m::application {
     protected:
         string appName;
         array<string, 3> c_scenario;
-        int inputPriceC;
+        int64_t inputPriceC;
 
         Timer timer{appName};
 
@@ -673,7 +673,7 @@ namespace g4m::application {
                     double diffMaxDiff = 1;
                     TRACE("maxDiff = {}\tfm_hurdle = {}\tdiffMaxDiff = {}", maxDiff, fm_hurdle, diffMaxDiff);
 
-                    for (int i = 1; maxDiff > 0.01 && fm_hurdle > -1'000'000 && i <= 100; ++i) {
+                    for (uint64_t i = 1; maxDiff > 0.01 && fm_hurdle > -1'000'000 && i <= 100; ++i) {
                         if (diffMaxDiff <= 0.001) {
                             if (fm_hurdle < 2 && fm_hurdle > 0)
                                 fm_hurdle += 0.2;
@@ -758,7 +758,7 @@ namespace g4m::application {
                     if (year == coef.bYear + 1) {
                         array<double, 4> FMs_diff2 = {1000, 0, 0, 0};
                         // change back to ranges later
-                        for (int count = 0;
+                        for (uint64_t count = 0;
                              (FMs_diff2[0] != FMs_diff2[1] || FMs_diff2[1] != FMs_diff2[2] ||
                               FMs_diff2[2] != FMs_diff2[3]) && FMs_diff2[0] > 100 && count < 150; ++count) {
                             ranges::shift_right(FMs_diff2, 1);  // shift right 1
@@ -774,7 +774,8 @@ namespace g4m::application {
 
         // 17 August 2022
         // Implementing conservation policy to the 10% or 30% forest
-        void switch2Conserved(const int forestConcerned, const span<AgeStruct> cohortVec, const bool multifunction) {
+        void
+        switch2Conserved(const uint8_t forestConcerned, const span<AgeStruct> cohortVec, const bool multifunction) {
             if (forestConcerned != 10 && forestConcerned != 30) {
                 ERROR("Unknown forestConcerned = {}", forestConcerned);
                 return;
@@ -1298,8 +1299,8 @@ namespace g4m::application {
             }
             TRACE("Wood Harvest Post Control:");
 
-            constexpr int width = 15;
-            constexpr int precision = 6;
+            constexpr uint64_t width = 15;
+            constexpr uint64_t precision = 6;
 
             // https://docs.python.org/3/library/string.html
             for (const auto country: countriesList) {
@@ -1475,7 +1476,7 @@ namespace g4m::application {
                 }
             } else {
                 double dRot = 100, rotTmpL = MAIRot, rotTmpR = BmMaxRot;
-                for (int NStep = 0; dRot > 1 && NStep < 15; ++NStep) {
+                for (uint64_t NStep = 0; dRot > 1 && NStep < 15; ++NStep) {
                     if (NPV_rotTmp1 >= NPV_rotTmp2) {
                         rotTmpR = rotTmp2;
                         rotTmp2 = rotTmp1;
@@ -1524,7 +1525,7 @@ namespace g4m::application {
                 size_t n = bauScenarios.biomassBauScenarios.at(suffix0).size();
                 maxYear = min(maxYear, static_cast<uint16_t>(refYear + n * modTimeStep));
             }
-            for (int j = 0; year + j + modTimeStep <= maxYear; j += modTimeStep) {
+            for (uint64_t j = 0; year + j + modTimeStep <= maxYear; j += modTimeStep) {
                 CohortRes cohort_res = cohortTmp.aging();
                 double realAreaO = clamp(cohort_res.realArea, 0., 1.);  // cohortTmp.getArea()
                 double bm = realAreaO > 0 && !zeroC ? cohortTmp.getBm() / realAreaO : 0;
@@ -2905,7 +2906,7 @@ namespace g4m::application {
                     const double bm0 = cohortTmp.getBm();
                     const double bmBEF0 = bm0 * plot.BEF(bm0);
 
-                    int count = 0;
+                    uint64_t count = 0;
                     for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
                         auto _ = cohortTmp.aging();
 
@@ -2947,7 +2948,7 @@ namespace g4m::application {
 
                             AgeStruct cohortTmp = appCohortsU[plot.asID];
 
-                            int count = 0;
+                            uint64_t count = 0;
                             for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
                                 auto _ = cohortTmp.aging();
 
@@ -2979,7 +2980,7 @@ namespace g4m::application {
 
                             AgeStruct cohortTmp = appCohortsU[plot.asID];
 
-                            int count = 0;
+                            uint64_t count = 0;
                             for (; count < adjustLength && coef.bYear + count <= adjustEndYear; ++count)
                                 auto _ = cohortTmp.aging();
 

@@ -72,7 +72,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         datamapType GLOBIOM_AfforMaxCountry;
         datamapType GLOBIOM_LandCountry;
 
-        Datamaps(const DatamapScenarios &datamapScenarios, const string_view scenario, const int inputPriceC) {
+        Datamaps(const DatamapScenarios &datamapScenarios, const string_view scenario, const int64_t inputPriceC) {
             mergeObligatoryDatamaps(datamapScenarios, scenario);
             mergeOptionalDatamaps(datamapScenarios, scenario);
             initCO2Price(datamapScenarios, scenario, inputPriceC);
@@ -108,7 +108,8 @@ namespace g4m::GLOBIOM_scenarios_data {
                                                        "GLOBIOM Land Country");
         }
 
-        void initCO2Price(const DatamapScenarios &datamapScenarios, const string_view scenario, const int inputPriceC) {
+        void
+        initCO2Price(const DatamapScenarios &datamapScenarios, const string_view scenario, const int64_t inputPriceC) {
             if (inputPriceC == 0) {
                 INFO("CO2PriceScenarios is not used, inputPriceC = 0");
                 return;
