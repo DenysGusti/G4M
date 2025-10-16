@@ -55,8 +55,7 @@ namespace g4m::GLOBIOM_scenarios_data {
             fs::path file_path = locateBauFile(bauName);
             string scenario =
                     file_path.stem().string().substr(bauName.size()) | rv::transform(::toupper) | ranges::to<string>();
-            vector<vector<double> > bau_vec = readBau(file_path.filename().string(), "biomass_bau");
-            biomassBauScenarios[scenario] = bau_vec;
+            biomassBauScenarios[scenario] = readBau(file_path.filename().string(), "biomass_bau");
         }
     };
 }
