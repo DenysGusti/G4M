@@ -214,7 +214,7 @@ namespace g4m::structs {
             U.forestShare.back() = min(U.forestShare.end()[-2], U.forestShare.back());
             O10.forestShare.back() = min(O10.forestShare.end()[-2], O10.forestShare.back());
             O30.forestShare.back() = min(O30.forestShare.end()[-2], O30.forestShare.back());
-            P.forestShare.back() = min(O30.forestShare.end()[-2], P.forestShare.back());    // for consistency
+            P.forestShare.back() = min(P.forestShare.end()[-2], P.forestShare.back());    // for consistency
             N.forestShare.back() = max(N.forestShare.end()[-2], N.forestShare.back());
         }
 
