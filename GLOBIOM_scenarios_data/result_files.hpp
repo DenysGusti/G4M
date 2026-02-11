@@ -77,7 +77,7 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "litter_hRes_unmng_harv_litterin,litter_hRes_unmng_ded_litterin,litterPoolIn\n";
             bioclimaDetailsBuffer +=
                     "x,y,simuID,country,nuts2,year,land_area_ha,species,protected,area_forest_U_ha,"
-                    "area_forest_O10_ha,area_forest_O30_ha,area_P_ha,area_forest_N_ha,SD_U,SD_O10,SD_O30,"
+                    "area_forest_O10_ha,area_forest_O30_ha,area_forest_P_ha,area_forest_N_ha,SD_U,SD_O10,SD_O30,"
                     "rotation_mai,rotation_max_bm,rotation_U,rotation_O10,rotation_O30,rotation_P,cai_U_m3,"
                     "cai_O10_m3,cai_O30_m3,cai_P_m3,cai_N_m3,biomass_U_tCha,biomass_O10_tCha,biomass_O30_tCha,"
                     "biomass_P_tCha,biomass_N_tCha,harvest_U_m3year,harvest_O10_m3year,harvest_O30_m3year,"
