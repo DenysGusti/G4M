@@ -755,21 +755,15 @@ namespace g4m::increment {
             mai = clamp(mai / maiStep, 0., static_cast<double>(nmai - 1));
             size_t maih = ceil(mai);
             size_t mail = floor(mai);
-            size_t sdMax = 1;  // MG: 25 March 2013
+            size_t maxSd = 0;  // MG: 25 March 2013
             if (sdNatFlag) {
-                sd /= sdNatStep;
-                if (sd > static_cast<double>(nsdNat - 1)) {
-                    sd = static_cast<double>(nsdNat - 1);
-                    sdMax = nsdNat - 1;
-                }  // MG: Suggestion of Georg 25 March 2013
+                sd = min(sd / sdNatStep, static_cast<double>(nsdNat - 1));
+                maxSd = nsdNat - 1;  // MG: Suggestion of Georg 25 March 2013
             } else {
-                sd /= sdTabStep;
-                if (sd >= static_cast<double>(nsdTab)) {
-                    sd = static_cast<double>(nsdTab - 1);
-                    sdMax = nsdTab - 1;
-                }
+                sd = min(sd / sdTabStep, static_cast<double>(nsdTab - 1));
+                maxSd = nsdTab - 1;
             }
-            sd = clamp(sd, 0., static_cast<double>(sdMax));  // sd < 0?
+            sd = clamp(sd, 0., static_cast<double>(maxSd));  // sd < 0?
             size_t sdh = ceil(sd);
             size_t sdl = floor(sd);
             if (abs(sd) < 1e-11) {
@@ -825,12 +819,12 @@ namespace g4m::increment {
             size_t maxSd = 0;
             if (sdNatFlag) {
                 sd = min(sd / sdNatStep, static_cast<double>(nsdNat - 1)); // MG: Suggestion of Georg 25 March 2013
-                maxSd = nsdNat;
+                maxSd = nsdNat - 1;
             } else {
                 sd = min(sd / sdTabStep, static_cast<double>(nsdTab - 1));
-                maxSd = nsdTab;
+                maxSd = nsdTab - 1;
             }
-            sd = clamp(sd, 0., static_cast<double>(maxSd - 1));
+            sd = clamp(sd, 0., static_cast<double>(maxSd));
             size_t sdh = ceil(sd);
             size_t sdl = floor(sd);
 
