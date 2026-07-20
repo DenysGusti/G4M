@@ -1237,10 +1237,12 @@ namespace g4m::application {
             // Total current harvested wood in the cell, m3
             double newHarvestTmp =
                     (harvestO * forestShareApplied + harvestN * cell.N.forestShare.back()) * cell.landAreaHa *
-                    plot.fTimber + cell.deforestationWoodTotalM3;
+                    plot.fTimber;
 
             if (appThinningForest(plot.x, plot.y) <= 0)
                 newHarvestTmp *= cleanedWoodUseCurrent;
+
+            newHarvestTmp += cell.deforestationWoodTotalM3;
 
             double newHarvestTmp10 = harvestO10 * cell.O10.forestShare.back() * cell.landAreaHa * plot.fTimber;
 
@@ -1603,7 +1605,7 @@ namespace g4m::application {
                                 const double countryWoodDemand, const double newHarvestTmp,
                                 const double rotationForestTmp, const double thinningForestTmp,
                                 const double rotationForestTmpNew, const double thinningForestTmpNew,
-                                const int8_t managedForestTmp, const double fm_hurdle) -> void {
+                                const int8_t managedForestTmp, const double fm_hurdle, const double thinningForestValue) -> void {
                 if (CPol) {
                     double NPVTmp = 1e20;
 
@@ -1624,7 +1626,7 @@ namespace g4m::application {
                         appManageChForest(plot.x, plot.y) = 1;
 
                         if (!appForest30Policy) {
-                            appThinningForest30(plot.x, plot.y) = -1;
+                            appThinningForest30(plot.x, plot.y) = thinningForestValue;
                             appCohorts30[plot.asID].setU(rotation);
                             appCohorts30[plot.asID].setStockingDegreeMin(-sdMinCoef);
                             appCohorts30[plot.asID].setStockingDegreeMax(-sdMaxCoef);
@@ -1655,7 +1657,7 @@ namespace g4m::application {
                         appManageChForest(plot.x, plot.y) = 1;
 
                         if (!appForest30Policy) {
-                            appThinningForest30(plot.x, plot.y) = -1;
+                            appThinningForest30(plot.x, plot.y) = thinningForestValue;
                             appCohorts30[plot.asID].setU(rotation);
                             appCohorts30[plot.asID].setStockingDegreeMin(-sdMinCoef);
                             appCohorts30[plot.asID].setStockingDegreeMax(-sdMaxCoef);
@@ -1916,7 +1918,7 @@ namespace g4m::application {
 
                                 CPolPart(plot, rotation, countryHarvestTmp, countryWoodDemand, newHarvestTmp,
                                          rotationForestTmp, thinningForestTmp, rotationForestTmpNew,
-                                         thinningForestTmpNew, managedForestTmp, fm_hurdle);
+                                         thinningForestTmpNew, managedForestTmp, fm_hurdle, -1.);
                             }
                         }
                     }
@@ -1935,7 +1937,7 @@ namespace g4m::application {
                         const double rotationForestTmpNew = appCohortsU[plot.asID].getU();
                         const double thinningForestTmpNew = appCohortsN[plot.asID].getStockingDegree();
 
-                        if (woodHarvest[plot.country] > (1 - woodProdTolerance) * countryWoodDemand)
+                        if (woodHarvest[plot.country] > (1 + woodProdTolerance * 2) * countryWoodDemand)
                             if (appManagedForest(plot.x, plot.y) > 0) {
                                 double rotMaxBm = 0;
                                 if (cell.U.stemBiomass.back() > 0 && plot.CAboveHa > 0 &&
@@ -1991,7 +1993,7 @@ namespace g4m::application {
 
                                 CPolPart(plot, rotation, countryHarvestTmp, countryWoodDemand, newHarvestTmp,
                                          rotationForestTmp, thinningForestTmp, rotationForestTmpNew,
-                                         thinningForestTmpNew, managedForestTmp, fm_hurdle);
+                                         thinningForestTmpNew, managedForestTmp, fm_hurdle, thinningForestTmp);
                             }
                     }
         }
