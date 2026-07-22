@@ -324,15 +324,17 @@ namespace g4m::increment {
                 ERROR("incStatic: input parameter correction:\nageClassIdx: {} -> {}\tavgMai: {} -> {}\tnewForestSD: {} -> {}",
                       ageClassIdx_, ageClassIdx, mai_, mai, avgMai_, avgMai, newForestSD_, newForestSD);
 
-            const IncrementTab::TableMode mode = IncrementTab::getTableModeBySD(sdMax);
+            const IncrementTab::TableMode sdMaxMode = IncrementTab::getTableModeBySD(sdMax);
             double age = static_cast<double>(ageClassIdx) * timeStep;
             // MG: why t + 1???
             // target theoretical biomass at the next age class step
-            double bm = it->getBm(mode, age + timeStep, mai, abs(sdMax));
+            double bm = it->getBm(sdMaxMode, age + timeStep, mai, abs(sdMax));
             // estimated SD
-            double sd = ageClassIdx > 0 ? it->getSd(mode, age, avgMai, dat[ageClassIdx].bm) : newForestSD;
-            double iGwl = it->getIncGwl(mode, age, mai, sd);    // total increment
-            double id = it->getIncDbh(mode, age, mai, sd);  // dbh increment
+            double sd = ageClassIdx > 0 ? it->getSd(sdMaxMode, age, avgMai, dat[ageClassIdx].bm) : newForestSD;
+
+            const IncrementTab::TableMode sdMode = IncrementTab::getTableModeBySD(copysign(sd, sdMax));
+            double iGwl = it->getIncGwl(sdMode, age, mai, sd);    // total increment
+            double id = it->getIncDbh(sdMode, age, mai, sd);  // dbh increment
             return {sd, iGwl, bm, id};
         }
 
