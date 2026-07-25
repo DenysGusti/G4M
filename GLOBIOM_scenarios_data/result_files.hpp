@@ -86,8 +86,8 @@ namespace g4m::GLOBIOM_scenarios_data {
                     "deadwood_in_U_tChaYear,deadwood_in_O10_tChaYear,deadwood_in_O30_tChaYear,deadwood_in_P_tChaYear,"
                     "deadwood_in_N_tChaYear,deadwood_em_U_tChaYear,deadwood_em_O10_tChaYear,deadwood_em_O30_tChaYear,"
                     "deadwood_em_P_tChaYear,deadwood_em_N_tChaYear,litter_U_tCha,litter_O10_tCha,litter_O30_tCha,"
-                    "litter_P_tCha,litter_N_tCha,litter_U_in_tChaYear,litter_O10_in_tChaYear,litter_O30_in_tChaYear,"
-                    "litter_P_in_tChaYear,litter_N_in_tChaYear,litter_em_U_tChaYear,litter_em_O10_tChaYear,"
+                    "litter_P_tCha,litter_N_tCha,litter_in_U_tChaYear,litter_in_O10_tChaYear,litter_in_O30_tChaYear,"
+                    "litter_in_P_tChaYear,litter_in_N_tChaYear,litter_em_U_tChaYear,litter_em_O10_tChaYear,"
                     "litter_em_O30_tChaYear,litter_em_P_tChaYear,litter_em_N_tChaYear,set_aside_O10,set_aside_O30,"
                     "oldest_age_U,oldest_age_O10,oldest_age_O30,oldest_age_P,oldest_age_N\n";
             residueExtractDetailsBuffer +=
