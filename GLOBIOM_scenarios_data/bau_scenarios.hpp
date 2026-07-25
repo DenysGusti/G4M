@@ -51,7 +51,7 @@ namespace g4m::GLOBIOM_scenarios_data {
         unordered_map<string, vector<vector<double> >, StringHash, equal_to<> > biomassBauScenarios;
 
         void readBiomassBau() {
-            string bauName = "biomass_bau" + suffix;
+            string bauName = "biomass_bau_" + suffix;
             fs::path file_path = locateBauFile(bauName);
             string scenario =
                     file_path.stem().string().substr(bauName.size()) | rv::transform(::toupper) | ranges::to<string>();

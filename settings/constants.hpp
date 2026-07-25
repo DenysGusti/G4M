@@ -20,7 +20,7 @@ namespace g4m::Constants {
     // t4 setup; New baseline; Reduced hurdle 0.9
     // 22.06.2023: defShare_correction is introduced (calc v17)
     // 16.06.2023: Hurdle for BE, CY, DE, FI and NL is returned to 0
-    const string suffix = "_EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale_";
+    const string suffix = "EUCLIMIT6_CTP_S2_CC_04072023_CRF2023_DisturbNoScaleClimTrendCS_climNoScale";
 
     constexpr bool debugWithoutBigFiles = false;
 

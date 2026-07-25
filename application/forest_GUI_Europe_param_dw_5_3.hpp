@@ -239,9 +239,9 @@ namespace g4m::application {
 
         Timer timer{appName};
 
-        string full_scenario = c_scenario[0] + '_' + c_scenario[1] + '_' + c_scenario[2];
-        string local_suffix = suffix + full_scenario + (inputPriceC == 0 ? "_Pco2_0" : "");
-        string suffix0 = c_scenario[0] + '_' + c_scenario[1];
+        string full_scenario = format("{}_{}_{}", c_scenario[0], c_scenario[1], c_scenario[2]);
+        string local_suffix = format("{}_{}", suffix, full_scenario) + (inputPriceC == 0 ? "_Pco2_0" : "");
+        string suffix0 = format("{}_{}", c_scenario[0], c_scenario[1]);
 
         // Apply the MAI climate shifters starting from MAIClimateShiftYear
         bool MAIClimateShift = c_scenario[1].contains("RCP");
