@@ -4344,19 +4344,6 @@ namespace g4m::application {
             double decStem_dec = max(0., 1 - decStem * modTimeStep);
 
             // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
-            cell.U.deadwood *= decStem_dec;
-            cell.N.deadwood *= decStem_dec;
-            cell.O10.deadwood *= decStem_dec;
-            cell.O30.deadwood *= decStem_dec;
-            cell.P.deadwood *= decStem_dec;
-
-            cell.U.deadwood *= decHerb_decWood_dec_avg;
-            cell.N.deadwood *= decHerb_decWood_dec_avg;
-            cell.O10.deadwood *= decHerb_decWood_dec_avg;
-            cell.O30.deadwood *= decHerb_decWood_dec_avg;
-            cell.P.deadwood *= decHerb_decWood_dec_avg;
-
-            // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
             double deadwoodPoolOut_U = (cell.U.deadwood * decStem) + cell.U.burntDeadwood;
             double deadwoodPoolOut_N = (cell.N.deadwood * decStem) + cell.N.burntDeadwood;
             double deadwoodPoolOut_O10 = (cell.O10.deadwood * decStem) + cell.O10.burntDeadwood;
@@ -4370,6 +4357,19 @@ namespace g4m::application {
             double litterPoolOut_O10 = (cell.O10.litter * decWood_decHerb_avg) + cell.O10.burntLitter;
             double litterPoolOut_O30 = (cell.O30.litter * decWood_decHerb_avg) + cell.O30.burntLitter;
             double litterPoolOut_P = (cell.P.litter * decWood_decHerb_avg) + cell.P.burntLitter;
+
+            // 20.01.2022: Change to decStem as the Osnabrück decomposition rate is for woody litter
+            cell.U.deadwood *= decStem_dec;
+            cell.N.deadwood *= decStem_dec;
+            cell.O10.deadwood *= decStem_dec;
+            cell.O30.deadwood *= decStem_dec;
+            cell.P.deadwood *= decStem_dec;
+
+            cell.U.litter *= decHerb_decWood_dec_avg;
+            cell.N.litter *= decHerb_decWood_dec_avg;
+            cell.O10.litter *= decHerb_decWood_dec_avg;
+            cell.O30.litter *= decHerb_decWood_dec_avg;
+            cell.P.litter *= decHerb_decWood_dec_avg;
 
             cell.U.deadwoodEmissions = deadwoodPoolOut_U * modTimeStep - cell.U.deadwoodInput;
             cell.N.deadwoodEmissions = deadwoodPoolOut_N * modTimeStep - cell.N.deadwoodInput;
