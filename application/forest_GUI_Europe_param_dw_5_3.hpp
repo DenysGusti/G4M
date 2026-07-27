@@ -3751,7 +3751,7 @@ namespace g4m::application {
                                    cleanedWoodUseCurrent * resNLost.getTotalHarvestedBiomass()) * plot.fTimber *
                                   cell.N.forestShare.end()[-2] * cell.landAreaHa;
                 cell.O10.fellings = (res10.getTotalHarvestedBiomass() +
-                                     cleanedWoodUseCurrent10 * res30Lost.getTotalHarvestedBiomass()) *
+                                     cleanedWoodUseCurrent10 * res10Lost.getTotalHarvestedBiomass()) *
                                     plot.fTimber * cell.O10.forestShare.back() * cell.landAreaHa;
                 cell.O30.fellings = (res30.getTotalHarvestedBiomass() +
                                      cleanedWoodUseCurrent30 * res30Lost.getTotalHarvestedBiomass()) *
