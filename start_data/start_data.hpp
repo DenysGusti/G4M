@@ -80,8 +80,8 @@ namespace g4m::StartData {
 
     vector<AgeStruct> commonCohortsU;
     vector<AgeStruct> commonCohortsN;
-    vector<AgeStruct> commonCohorts10;
-    vector<AgeStruct> commonCohorts30;
+    vector<AgeStruct> commonCohortsO10;
+    vector<AgeStruct> commonCohortsO30;
     vector<AgeStruct> commonCohortsP;
 
     vector<Dat> commonDats;

@@ -106,8 +106,8 @@ namespace g4m::application {
                         appMaiForest(plot.x, plot.y) = MAI;
 
                         appCohortsU[plot.asID].setMaiAndAvgMai(MAI);
-                        appCohorts10[plot.asID].setMaiAndAvgMai(MAI);
-                        appCohorts30[plot.asID].setMaiAndAvgMai(MAI);
+                        appCohortsO10[plot.asID].setMaiAndAvgMai(MAI);
+                        appCohortsO30[plot.asID].setMaiAndAvgMai(MAI);
                         appCohortsP[plot.asID].setMaiAndAvgMai(MAI);
                         appCohortsN[plot.asID].setMaiAndAvgMai(MAI);
                     }
@@ -201,9 +201,9 @@ namespace g4m::application {
                                    cell.O30.forestShare.back() * cell.landAreaHa,
                                    cell.P.forestShare.back() * cell.landAreaHa,
                                    cell.N.forestShare.back() * cell.landAreaHa, cell.SD,
-                                   appCohorts10[plot.asID].getStockingDegree(),
-                                   appCohorts30[plot.asID].getStockingDegree(), rotMAI, rotMaxBm, cell.rotation,
-                                   appCohorts10[plot.asID].getU(), appCohorts30[plot.asID].getU(),
+                                   appCohortsO10[plot.asID].getStockingDegree(),
+                                   appCohortsO30[plot.asID].getStockingDegree(), rotMAI, rotMaxBm, cell.rotation,
+                                   appCohortsO10[plot.asID].getU(), appCohortsO30[plot.asID].getU(),
                                    appCohortsP[plot.asID].getU(),
                                    cell.U.CAI * cell.U.forestShare.back() * cell.landAreaHa,
                                    cell.O10.CAI * cell.O10.forestShare.back() * cell.landAreaHa,
@@ -277,8 +277,8 @@ namespace g4m::application {
 
         vector<AgeStruct> appCohortsU = commonCohortsU;
         vector<AgeStruct> appCohortsN = commonCohortsN;
-        vector<AgeStruct> appCohorts10 = commonCohorts10;
-        vector<AgeStruct> appCohorts30 = commonCohorts30;
+        vector<AgeStruct> appCohortsO10 = commonCohortsO10;
+        vector<AgeStruct> appCohortsO30 = commonCohortsO30;
         vector<AgeStruct> appCohortsP = commonCohortsP;
 
         vector<Dat> appDats = commonDats;
@@ -585,9 +585,9 @@ namespace g4m::application {
                     double SD = appThinningForest(plot.x, plot.y);
 
                     appThinningForest30(plot.x, plot.y) = SD;
-                    appCohorts30[plot.asID].setU(rotation);
-                    appCohorts30[plot.asID].setStockingDegree(SD * sdMinCoef);
-                    appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
+                    appCohortsO30[plot.asID].setU(rotation);
+                    appCohortsO30[plot.asID].setStockingDegree(SD * sdMinCoef);
+                    appCohortsO30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
                 }
 
             if (year == coef.bYear + 1)
@@ -598,9 +598,9 @@ namespace g4m::application {
             // Apply the forest 10% and forest 30% policies
             if (year > 2020) {
                 if (appForest10Policy)
-                    switch2Conserved(10, appCohorts10, appMultifunction10);
+                    switch2Conserved(10, appCohortsO10, appMultifunction10);
                 if (appForest30Policy)
-                    switch2Conserved(30, appCohorts30, appMultifunction30);
+                    switch2Conserved(30, appCohortsO30, appMultifunction30);
             }
 
             array<double, numberOfCountries> residueHarvest{};  // Extraction of harvest residues, tC
@@ -890,7 +890,7 @@ namespace g4m::application {
                                                       : SalvageLoggingRes{};
 
                 SalvageLoggingRes slrO30 =
-                        cell.O30.forestShare.back() > 0 ? appCohorts30[plot.asID].salvageLoggingAllAgents(damagedWind,
+                        cell.O30.forestShare.back() > 0 ? appCohortsO30[plot.asID].salvageLoggingAllAgents(damagedWind,
                                                                                                           damagedFire,
                                                                                                           damagedBiotic,
                                                                                                           harvestableWind,
@@ -899,7 +899,7 @@ namespace g4m::application {
                                                         : SalvageLoggingRes{};
 
                 SalvageLoggingRes slrO10 =
-                        cell.O10.forestShare.back() > 0 ? appCohorts10[plot.asID].salvageLoggingAllAgents(damagedWind,
+                        cell.O10.forestShare.back() > 0 ? appCohortsO10[plot.asID].salvageLoggingAllAgents(damagedWind,
                                                                                                           damagedFire,
                                                                                                           damagedBiotic,
                                                                                                           harvestableWind,
@@ -1196,10 +1196,10 @@ namespace g4m::application {
                             appCohortsN[plot.asID].setU(rotMaxNPV);
 
                             if (!appForest10Policy && appThinningForest10(plot.x, plot.y) > 0)
-                                appCohorts10[plot.asID].setU(rotMaxNPV);
+                                appCohortsO10[plot.asID].setU(rotMaxNPV);
 
                             if (!appForest30Policy && appThinningForest30(plot.x, plot.y) > 0)
-                                appCohorts30[plot.asID].setU(rotMaxNPV);
+                                appCohortsO30[plot.asID].setU(rotMaxNPV);
 
                         } else {  // if managed
                             double rotMaxBm = species.at(plot.speciesType).getTOpt(appMaiForest(plot.x, plot.y),
@@ -1212,10 +1212,10 @@ namespace g4m::application {
                             appCohortsN[plot.asID].setU(rotMaxBm);
 
                             if (appThinningForest10(plot.x, plot.y) < 0)
-                                appCohorts10[plot.asID].setU(rotMaxBm);
+                                appCohortsO10[plot.asID].setU(rotMaxBm);
 
                             if (appThinningForest30(plot.x, plot.y) < 0)
-                                appCohorts30[plot.asID].setU(rotMaxBm);
+                                appCohortsO30[plot.asID].setU(rotMaxBm);
                         }
                     }
         }
@@ -1225,8 +1225,8 @@ namespace g4m::application {
             const Dat &cell = appDats[plot.asID];
 
             const double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
-            const double harvestO10 = appCohorts10[plot.asID].cohortRes().getTotalWoodRemoval();
-            const double harvestO30 = appCohorts30[plot.asID].cohortRes().getTotalWoodRemoval();
+            const double harvestO10 = appCohortsO10[plot.asID].cohortRes().getTotalWoodRemoval();
+            const double harvestO30 = appCohortsO30[plot.asID].cohortRes().getTotalWoodRemoval();
             const double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
 
             const auto [cleanedWoodUseCurrent, cleanedWoodUseCurrent10, cleanedWoodUseCurrent30, _] =
@@ -1417,11 +1417,11 @@ namespace g4m::application {
         // TEMPORAL SHORTCUT FOR forest10 and forest30 when there are no the forest10 and forest30 policies
         void forest30GeneralFM() {
             for (const auto &plot: appPlots) {
-                appCohorts30[plot.asID].setU(appRotationForest(plot.x, plot.y));
+                appCohortsO30[plot.asID].setU(appRotationForest(plot.x, plot.y));
                 double SD = appThinningForest(plot.x, plot.y);
                 appThinningForest30(plot.x, plot.y) = SD;
-                appCohorts30[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
-                appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
+                appCohortsO30[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
+                appCohortsO30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
             }
         }
 
@@ -1627,9 +1627,9 @@ namespace g4m::application {
 
                         if (!appForest30Policy) {
                             appThinningForest30(plot.x, plot.y) = thinningForestValue;
-                            appCohorts30[plot.asID].setU(rotation);
-                            appCohorts30[plot.asID].setStockingDegreeMin(-sdMinCoef);
-                            appCohorts30[plot.asID].setStockingDegreeMax(-sdMaxCoef);
+                            appCohortsO30[plot.asID].setU(rotation);
+                            appCohortsO30[plot.asID].setStockingDegreeMin(-sdMinCoef);
+                            appCohortsO30[plot.asID].setStockingDegreeMax(-sdMaxCoef);
                         }
 
                     } else { // return old values
@@ -1658,9 +1658,9 @@ namespace g4m::application {
 
                         if (!appForest30Policy) {
                             appThinningForest30(plot.x, plot.y) = thinningForestValue;
-                            appCohorts30[plot.asID].setU(rotation);
-                            appCohorts30[plot.asID].setStockingDegreeMin(-sdMinCoef);
-                            appCohorts30[plot.asID].setStockingDegreeMax(-sdMaxCoef);
+                            appCohortsO30[plot.asID].setU(rotation);
+                            appCohortsO30[plot.asID].setStockingDegreeMin(-sdMinCoef);
+                            appCohortsO30[plot.asID].setStockingDegreeMax(-sdMaxCoef);
                         }
                     } else { // return old values
                         appRotationForest(plot.x, plot.y) = rotationForestTmp;
@@ -1797,9 +1797,9 @@ namespace g4m::application {
 
                                         if (!appForest30Policy) {
                                             appThinningForest30(plot.x, plot.y) = stockingDegree;
-                                            appCohorts30[plot.asID].setU(rotation);
-                                            appCohorts30[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
-                                            appCohorts30[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
+                                            appCohortsO30[plot.asID].setU(rotation);
+                                            appCohortsO30[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
+                                            appCohortsO30[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
                                         }
 
                                     } else { // return old values
@@ -1845,9 +1845,9 @@ namespace g4m::application {
 
                                         if (!appForest30Policy) {
                                             appThinningForest30(plot.x, plot.y) = stockingDegree;
-                                            appCohorts30[plot.asID].setU(rotation);
-                                            appCohorts30[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
-                                            appCohorts30[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
+                                            appCohortsO30[plot.asID].setU(rotation);
+                                            appCohortsO30[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
+                                            appCohortsO30[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
                                         }
                                     } else { // return old values
                                         appRotationForest(plot.x, plot.y) = rotationForestTmp;
@@ -2436,7 +2436,7 @@ namespace g4m::application {
                     CohortRes resN =
                             cell.N.forestShare.back() > 0 ? appCohortsN[plot.asID].cohortRes() : CohortRes{};
                     CohortRes res30 =
-                            cell.O30.forestShare.back() > 0 ? appCohorts30[plot.asID].cohortRes() : CohortRes{};
+                            cell.O30.forestShare.back() > 0 ? appCohortsO30[plot.asID].cohortRes() : CohortRes{};
 
                     double harvRes_fcU = 0, harvRes_thU = 0;
                     double harvRes_fcN = 0, harvRes_thN = 0;
@@ -3038,8 +3038,8 @@ namespace g4m::application {
                 double SD = appThinningForest(plot.x, plot.y);
                 appCohortsU[plot.asID].setU(cell.rotation);
                 appCohortsN[plot.asID].setU(cell.rotation);
-                appCohorts30[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
-                appCohorts30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
+                appCohortsO30[plot.asID].setStockingDegreeMin(SD * sdMinCoef);
+                appCohortsO30[plot.asID].setStockingDegreeMax(SD * sdMaxCoef);
 
                 appThinningForest30(plot.x, plot.y) = SD;
                 thinningForestNew(plot.x, plot.y) = SD;
@@ -3070,7 +3070,7 @@ namespace g4m::application {
             CohortRes res10;
             CohortRes res10Lost;
             {
-                CohortRes tmp = appCohorts10[plot.asID].aging();
+                CohortRes tmp = appCohortsO10[plot.asID].aging();
                 if (double SD = appThinningForest10(plot.x, plot.y); cell.O10.forestShare.back() > 0 && SD != 0) {
                     if (SD > 0)
                         res10 = tmp;
@@ -3081,7 +3081,7 @@ namespace g4m::application {
             CohortRes res30;
             CohortRes res30Lost;
             {
-                CohortRes tmp = appCohorts30[plot.asID].aging();
+                CohortRes tmp = appCohortsO30[plot.asID].aging();
                 if (double SD = appThinningForest30(plot.x, plot.y); cell.O30.forestShare.back() > 0 && SD != 0) {
                     if (SD > 0)
                         res30 = tmp;
@@ -3097,9 +3097,9 @@ namespace g4m::application {
 
             cell.U.stemBiomass.back() = resU.realArea > 0 || resULost.realArea > 0 ? appCohortsU[plot.asID].getBm() : 0;
             cell.O10.stemBiomass.back() =
-                    res10.realArea > 0 || res10Lost.realArea > 0 ? appCohorts10[plot.asID].getBm() : 0;
+                    res10.realArea > 0 || res10Lost.realArea > 0 ? appCohortsO10[plot.asID].getBm() : 0;
             cell.O30.stemBiomass.back() =
-                    res30.realArea > 0 || res30Lost.realArea > 0 ? appCohorts30[plot.asID].getBm() : 0;
+                    res30.realArea > 0 || res30Lost.realArea > 0 ? appCohortsO30[plot.asID].getBm() : 0;
             cell.P.stemBiomass.back() = resPLost.realArea > 0 ? appCohortsP[plot.asID].getBm() : 0;
             // new forest stem biomass is calculated differently
 
@@ -4423,8 +4423,8 @@ namespace g4m::application {
 
             cell.U.OAC = appCohortsU[plot.asID].getActiveAge();
             cell.N.OAC = appCohortsN[plot.asID].getActiveAge();
-            cell.O10.OAC = appCohorts10[plot.asID].getActiveAge();
-            cell.O30.OAC = appCohorts30[plot.asID].getActiveAge();
+            cell.O10.OAC = appCohortsO10[plot.asID].getActiveAge();
+            cell.O30.OAC = appCohortsO30[plot.asID].getActiveAge();
             cell.P.OAC = appCohortsP[plot.asID].getActiveAge();
 
             if (year > 2000) {

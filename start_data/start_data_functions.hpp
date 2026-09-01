@@ -159,8 +159,8 @@ namespace g4m::StartData {
     void initLoop() {
         INFO("Start initialising cohorts");
         commonCohortsU.reserve(plots.filteredPlots.size());
-        commonCohorts30.reserve(plots.filteredPlots.size());
-        commonCohorts10.reserve(plots.filteredPlots.size());
+        commonCohortsO30.reserve(plots.filteredPlots.size());
+        commonCohortsO10.reserve(plots.filteredPlots.size());
         commonCohortsP.reserve(plots.filteredPlots.size());
         commonCohortsN.reserve(plots.filteredPlots.size());
         commonDats.reserve(plots.filteredPlots.size());
@@ -223,16 +223,16 @@ namespace g4m::StartData {
             commonCohortsU.emplace_back(&species.at(plot.speciesType), &fmp.sws, &hlv, &hle, &fmp.cov, &fmp.coe,
                                         &fmp.decisions, mai_tmp, 0, 1, 0, 0, 0, 0, thinning_tmp * sdMaxCoef,
                                         thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0, 1);
-            commonCohorts30.push_back(commonCohortsU.back());
-            commonCohorts10.emplace_back(&species.at(plot.speciesType), &fmp.sws, &hlv, &hle, &fmp.cov, &fmp.coe,
+            commonCohortsO30.push_back(commonCohortsU.back());
+            commonCohortsO10.emplace_back(&species.at(plot.speciesType), &fmp.sws, &hlv, &hle, &fmp.cov, &fmp.coe,
                                          &fmp.decisions, mai_tmp, 0, 1, 0, 0, 0, 0, -sdMaxCoef, -sdMinCoef, 30,
                                          minRotVal, 1, 0, 1);
-            commonCohortsP.push_back(commonCohorts10.back());
+            commonCohortsP.push_back(commonCohortsO10.back());
 
-            AgeStruct &cohort = commonCohortsU.back();
-            AgeStruct &cohort30 = commonCohorts30.back();
-            AgeStruct &cohort10 = commonCohorts10.back();
-            AgeStruct &cohort_primary = commonCohortsP.back();
+            AgeStruct &cohortU = commonCohortsU.back();
+            AgeStruct &cohortO30 = commonCohortsO30.back();
+            AgeStruct &cohortO10 = commonCohortsO10.back();
+            AgeStruct &cohortP = commonCohortsP.back();
 
             size_t oldestAgeGroup = 0;
             double oldestAge = 0;
@@ -258,7 +258,7 @@ namespace g4m::StartData {
 //                    for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
 //                        DEBUG("dat[{}] = [{}]", i, el.str());
 
-                    cohort.createNormalForest(321, 0, 1);
+                    cohortU.createNormalForest(321, 0, 1);
 
 //                    DEBUG("after createNormalForest");
 //                    for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
@@ -267,14 +267,14 @@ namespace g4m::StartData {
                     for (size_t i = 1; i < 161; ++i) {
                         size_t ageGroup = distance(ageBreaks.begin(),
                                                    ranges::lower_bound(ageBreaks, i));  // first x <= i
-                        cohort.setArea(i, asd.ageStructData.at(plot.country)[ageGroup] /
+                        cohortU.setArea(i, asd.ageStructData.at(plot.country)[ageGroup] /
                                           static_cast<double>(ageSize[ageGroup]));
                     }
 
-                    double cohort_bm = cohort.getBm();
+                    double cohort_bm = cohortU.getBm();
                     double biomass = cohort_bm * plot.BEF(cohort_bm);
                     //Tune age structure for current cell
-                    if (cohort.getArea() > 0 && biomass > 0) {
+                    if (cohortU.getArea() > 0 && biomass > 0) {
 
                         if (biomass < 0.95 * plot.CAboveHa) {
 
@@ -282,10 +282,10 @@ namespace g4m::StartData {
                                  biomass < 0.95 * plot.CAboveHa && oag < 30; ++young, ++oag)
                                 if (ageSize[young] > 0 && oag > young)
                                     for (int i = 0; i < 10; ++i) {
-                                        double halfAreaTmp = cohort.getArea(i + young * 10 + 1) * 0.5;
-                                        cohort.setArea(i + young * 10 + 1, halfAreaTmp);
-                                        cohort.setArea(i + (oag + 1) * 10 + 1, halfAreaTmp);
-                                        cohort_bm = cohort.getBm();
+                                        double halfAreaTmp = cohortU.getArea(i + young * 10 + 1) * 0.5;
+                                        cohortU.setArea(i + young * 10 + 1, halfAreaTmp);
+                                        cohortU.setArea(i + (oag + 1) * 10 + 1, halfAreaTmp);
+                                        cohort_bm = cohortU.getBm();
                                         biomass = cohort_bm * plot.BEF(cohort_bm);
                                     }
 
@@ -296,21 +296,21 @@ namespace g4m::StartData {
                                 if (oag > young) {
                                     if (ageSize[oag] > 0 && ageSize[young] > 0) {
                                         for (int i = 0; i < ageSize[oag]; ++i) {
-                                            double areaTmp_oag = cohort.getArea(i + oag * 10 + 1);
-                                            double areaTmp_young = cohort.getArea(i + young * 10 + 1);
-                                            cohort.setArea(i + oag * 10 + 1, 0);
-                                            cohort.setArea(i + young * 10 + 1, areaTmp_oag + areaTmp_young);
-                                            cohort_bm = cohort.getBm();
+                                            double areaTmp_oag = cohortU.getArea(i + oag * 10 + 1);
+                                            double areaTmp_young = cohortU.getArea(i + young * 10 + 1);
+                                            cohortU.setArea(i + oag * 10 + 1, 0);
+                                            cohortU.setArea(i + young * 10 + 1, areaTmp_oag + areaTmp_young);
+                                            cohort_bm = cohortU.getBm();
                                             biomass = cohort_bm * plot.BEF(cohort_bm);
                                         }
                                     }
                                 } else if (ageSize[oag] > 0 && ageSize[oag - 1] > 0) {
                                     for (int i = 0; i < ageSize[oag]; ++i) {
-                                        double areaTmp_oag = cohort.getArea(i + oag * 10 + 1);
-                                        double areaTmp_young = cohort.getArea(i + (oag - 1) * 10 + 1);
-                                        cohort.setArea(i + oag * 10 + 1, 0);
-                                        cohort.setArea(i + (oag - 1) * 10 + 1, areaTmp_oag + areaTmp_young);
-                                        cohort_bm = cohort.getBm();
+                                        double areaTmp_oag = cohortU.getArea(i + oag * 10 + 1);
+                                        double areaTmp_young = cohortU.getArea(i + (oag - 1) * 10 + 1);
+                                        cohortU.setArea(i + oag * 10 + 1, 0);
+                                        cohortU.setArea(i + (oag - 1) * 10 + 1, areaTmp_oag + areaTmp_young);
+                                        cohort_bm = cohortU.getBm();
                                         biomass = cohort_bm * plot.BEF(cohort_bm);
                                     }
                                 }
@@ -318,19 +318,19 @@ namespace g4m::StartData {
 
                         }
 
-                        double stockingDegree = max(0., plot.CAboveHa * cohort.getArea() / biomass);
-                        cohort.setStockingDegreeMin(stockingDegree * sdMinCoef);
-                        cohort.setStockingDegreeMax(stockingDegree * sdMaxCoef);
+                        double stockingDegree = max(0., plot.CAboveHa * cohortU.getArea() / biomass);
+                        cohortU.setStockingDegreeMin(stockingDegree * sdMinCoef);
+                        cohortU.setStockingDegreeMax(stockingDegree * sdMaxCoef);
                         commonThinningForest(plot.x, plot.y) = stockingDegree;
 
-                        cohort.correctBmBySD(stockingDegree);
-                        cohort.setU(321);
+                        cohortU.correctBmBySD(stockingDegree);
+                        cohortU.setU(321);
 
 //                        DEBUG("after setU(321), before aging");
 //                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
 //                            DEBUG("dat[{}] = [{}]", i, el.str());
 
-                        auto _ = cohort.aging();
+                        auto _ = cohortU.aging();
 
 //                        DEBUG("after aging");
 //                        for (const auto &[i, el]: cohort.getDat() | rv::enumerate)
@@ -338,40 +338,40 @@ namespace g4m::StartData {
                     }
 
                     rotation = max(MAIRot,
-                                   species.at(plot.speciesType).getUSdTab(cohort.getBm() / cohort.getArea(), mai_tmp,
+                                   species.at(plot.speciesType).getUSdTab(cohortU.getBm() / cohortU.getArea(), mai_tmp,
                                                                           thinning_tmp) + 1);
-                    cohort.setU(rotation);
+                    cohortU.setU(rotation);
                     if (plot.oldGrowthForest_thirty > 0)
-                        cohort30 = cohort;
+                        cohortO30 = cohortU;
                     else
-                        cohort30.createNormalForest(1, 0, 1);
+                        cohortO30.createNormalForest(1, 0, 1);
 
                 } else if (forFlag || forFlag30) {
                     rotation = max(MAIRot, rotation);
 
-                    cohort.createNormalForest(rotation, forFlag, thinning_tmp);
-                    cohort.setStockingDegreeMin(thinning_tmp * sdMinCoef);
-                    cohort.setStockingDegreeMax(thinning_tmp * sdMaxCoef);
-                    cohort.setU(rotation);
+                    cohortU.createNormalForest(rotation, forFlag, thinning_tmp);
+                    cohortU.setStockingDegreeMin(thinning_tmp * sdMinCoef);
+                    cohortU.setStockingDegreeMax(thinning_tmp * sdMaxCoef);
+                    cohortU.setU(rotation);
 
                     if (plot.oldGrowthForest_thirty > 0) {
-                        cohort30.createNormalForest(rotation, forFlag30, thinning_tmp);
-                        cohort30.setStockingDegreeMin(thinning_tmp * sdMinCoef);
-                        cohort30.setStockingDegreeMax(thinning_tmp * sdMaxCoef);
-                        cohort30.setU(rotation);
+                        cohortO30.createNormalForest(rotation, forFlag30, thinning_tmp);
+                        cohortO30.setStockingDegreeMin(thinning_tmp * sdMinCoef);
+                        cohortO30.setStockingDegreeMax(thinning_tmp * sdMaxCoef);
+                        cohortO30.setU(rotation);
                     } else
-                        cohort30.createNormalForest(1, 0, thinning_tmp);
+                        cohortO30.createNormalForest(1, 0, thinning_tmp);
                 } else {  // MG: create an existing forest with 0 area for consistency of the singleCell structure
-                    cohort.createNormalForest(1, 0, thinning_tmp);
-                    cohort30.createNormalForest(1, 0, thinning_tmp);
+                    cohortU.createNormalForest(1, 0, thinning_tmp);
+                    cohortO30.createNormalForest(1, 0, thinning_tmp);
                 }
 
                 commonRotationForest(plot.x, plot.y) = rotation;
-                abBiomass0 = cohort.getBm();  // modelled biomass at time 0, tC/ha
+                abBiomass0 = cohortU.getBm();  // modelled biomass at time 0, tC/ha
 
             } else {
-                cohort.createNormalForest(1, forFlag, 1);
-                cohort30.createNormalForest(1, forFlag30, 1);
+                cohortU.createNormalForest(1, forFlag, 1);
+                cohortO30.createNormalForest(1, forFlag30, 1);
             }
 
             if (plot.oldGrowthForest_ten > 0) {
@@ -381,24 +381,24 @@ namespace g4m::StartData {
                 biomassRot10 = max(biomassRot10, 0.5 * oldestAge);
                 biomassRot10 = max(biomassRot10, 1.5 * MAIRot10);
 
-                cohort10.createNormalForest(biomassRot10, 1., -1.);
-                cohort10.setU(biomassRot10);
+                cohortO10.createNormalForest(biomassRot10, 1., -1.);
+                cohortO10.setU(biomassRot10);
 
                 double stockingDegree = 1;
                 // 16.09.2021: In natural forest stocking 1 is already maximum
-                if (plot.CAboveHa > 0 && cohort10.getArea() > 0)
+                if (plot.CAboveHa > 0 && cohortO10.getArea() > 0)
                     stockingDegree = clamp(
-                            1.3 * plot.CAboveHa * cohort10.getArea() / (cohort10.getBm() * plot.BEF(cohort10.getBm())),
+                            1.3 * plot.CAboveHa * cohortO10.getArea() / (cohortO10.getBm() * plot.BEF(cohortO10.getBm())),
                             0.6, 1.);
 
-                cohort10.setStockingDegreeMin(-stockingDegree * sdMinCoef);
-                cohort10.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
+                cohortO10.setStockingDegreeMin(-stockingDegree * sdMinCoef);
+                cohortO10.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
                 commonThinningForest10(plot.x, plot.y) = -stockingDegree;
 
-                cohort10.correctBmBySD(stockingDegree);
+                cohortO10.correctBmBySD(stockingDegree);
 
             } else
-                cohort10.createNormalForest(1, 0, -1);
+                cohortO10.createNormalForest(1, 0, -1);
 
             if (plot.strictProtected > 0) {
                 double biomassRotP = species.at(plot.speciesType).getU(1.3 * plot.CAboveHa, mai_tmp);
@@ -407,33 +407,33 @@ namespace g4m::StartData {
                 biomassRotP = max(biomassRotP, oldestAge);
                 biomassRotP = max(biomassRotP, MAIRotP);
 
-                cohort_primary.createNormalForest(biomassRotP, 1, -1);
-                cohort_primary.setU(biomassRotP);
+                cohortP.createNormalForest(biomassRotP, 1, -1);
+                cohortP.setU(biomassRotP);
 
                 double stockingDegree = 1;
                 //16.09.2021: In natural forest stocking 1 is already maximum
-                if (plot.CAboveHa > 0 && cohort_primary.getArea() > 0)
-                    stockingDegree = clamp(1.3 * plot.CAboveHa * cohort_primary.getArea() /
-                                           (cohort_primary.getBm() * plot.BEF(cohort_primary.getBm())), 0.6, 1.);
+                if (plot.CAboveHa > 0 && cohortP.getArea() > 0)
+                    stockingDegree = clamp(1.3 * plot.CAboveHa * cohortP.getArea() /
+                                           (cohortP.getBm() * plot.BEF(cohortP.getBm())), 0.6, 1.);
 
-                cohort_primary.setStockingDegreeMin(-stockingDegree * sdMinCoef);
-                cohort_primary.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
+                cohortP.setStockingDegreeMin(-stockingDegree * sdMinCoef);
+                cohortP.setStockingDegreeMax(-stockingDegree * sdMaxCoef);
 
-                cohort_primary.correctBmBySD(stockingDegree);
+                cohortP.correctBmBySD(stockingDegree);
 
             } else
-                cohort_primary.createNormalForest(1, 0, -1);
+                cohortP.createNormalForest(1, 0, -1);
 
             // rotation changes
             commonCohortsN.emplace_back(&species.at(plot.speciesType), &fmp.sws, &hlv, &hle, &fmp.cov, &fmp.coe,
                                         &fmp.decisions, mai_tmp, 0, rotation, 0, 0, 0, 0,
                                         thinning_tmp * sdMaxCoef, thinning_tmp * sdMinCoef, 30, minRotVal, 1, 0,
                                         1);
-            AgeStruct &newCohort = commonCohortsN.back();
-            newCohort.createNormalForest(rotation, 0, thinning_tmp);
+            AgeStruct &cohortN = commonCohortsN.back();
+            cohortN.createNormalForest(rotation, 0, thinning_tmp);
 
-            commonDats.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohort10.getBm(),
-                                    cohort30.getBm(), cohort_primary.getBm(), thinning_tmp);
+            commonDats.emplace_back(plot, commonRotationForest(plot.x, plot.y), abBiomass0, cohortO10.getBm(),
+                                    cohortO30.getBm(), cohortP.getBm(), thinning_tmp);
 
             commonHarvestResiduesCountry[plot.country].emplace_back(plot);
         }
@@ -490,7 +490,7 @@ namespace g4m::StartData {
 
                     commonCohortsU[plot.asID].setStockingDegree(thinning);
                     commonCohortsN[plot.asID].setStockingDegree(thinning);
-                    commonCohorts30[plot.asID].setStockingDegree(thinning);
+                    commonCohortsO30[plot.asID].setStockingDegree(thinning);
 
                     // defIncome = 0 => decision.agrVal() + defIncome = decision.agrVal()
                     rotation = max(biomassRot, rotMAI) + 1;
@@ -516,7 +516,7 @@ namespace g4m::StartData {
                     commonRotationForest(plot.x, plot.y) = rotation;
                     commonCohortsU[plot.asID].setU(rotation);
                     commonCohortsN[plot.asID].setU(rotation);
-                    commonCohorts30[plot.asID].setU(rotation);
+                    commonCohortsO30[plot.asID].setU(rotation);
                 }
             }
 
@@ -574,9 +574,9 @@ namespace g4m::StartData {
                     commonCohortsN[plot.asID].setU(rotation);
                     commonCohortsN[plot.asID].setStockingDegree(stockingDegree);
 
-                    commonCohorts30[plot.asID].setU(rotation);
+                    commonCohortsO30[plot.asID].setU(rotation);
                     commonThinningForest30(plot.x, plot.y) = stockingDegree;
-                    commonCohorts30[plot.asID].setStockingDegree(stockingDegree);
+                    commonCohortsO30[plot.asID].setStockingDegree(stockingDegree);
                 }
             }
     }
