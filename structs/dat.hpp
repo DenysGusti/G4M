@@ -38,31 +38,31 @@ namespace g4m::structs {
 
         array<double, 2> N_belowgroundBiomass{};     // new forest below-ground biomass, tC / ha
 
-        array<vector<double>, 2> N_abovegroundBiomassBelow20yoAge = {{{}, {0}}};   // tC / ha
-        array<vector<double>, 2> N_abovegroundBiomassOver20yoAge = {{{}, {0}}};    // tC / ha
+        array<vector<double>, 2> N_abovegroundBiomassBelow20yoAge = {{{}, {}}};   // tC / ha
+        array<vector<double>, 2> N_abovegroundBiomassOver20yoAge = {{{}, {}}};    // tC / ha
 
         // historical variables
         // afforestation share occurred at time A, formerly forestAgeShare
-        vector<double> afforestationShareTimeA = {0};
+        vector<double> afforestationShareTimeA;
         // deforestation share occurred at time A, formerly deforestA
-        vector<double> deforestationShareTimeA = {0};
+        vector<double> deforestationShareTimeA;
 
         // litter pool under deforestation occurred at time A, formerly litterA
-        vector<double> deforestationLitterTimeA = {0};
+        vector<double> deforestationLitterTimeA;
         // soil pool under deforestation occurred at time A, formerly SOCA
-        vector<double> deforestationSoilTimeA = {0};
+        vector<double> deforestationSoilTimeA;
         // soil pool under deforestation occurred at time A for alternative calculations, formerly SOCA1
-        vector<double> deforestationSoilTimeA1 = {0};
+        vector<double> deforestationSoilTimeA1;
         // long-lived woody products made of forest deforested at time A, formerly prodLongA
-        vector<double> deforestationWoodyProductsLongLivedA = {0};
+        vector<double> deforestationWoodyProductsLongLivedA;
         // short-lived woody products made of forest deforested at time A, formerly prodShortA
-        vector<double> deforestationWoodyProductsShortLivedA = {0};
+        vector<double> deforestationWoodyProductsShortLivedA;
         // fine root pool under deforestation occurred at time A
-        vector<double> fineRootA = {0};
+        vector<double> fineRootA;
         // litter pool under afforestation occurred at time A, formerly litterAffor
-        vector<double> afforestationLitterTimeA = {0};
+        vector<double> afforestationLitterTimeA;
         // soil pool under afforestation occurred at time A, formerly SOCAffor
-        vector<double> afforestationSoilTimeA = {0};
+        vector<double> afforestationSoilTimeA;
 
         double deforestationWoodTotalM3 = 0;    // wood obtained from deforestation in the cell, m^3
         double salvageLogging = 0;
@@ -275,11 +275,35 @@ namespace g4m::structs {
             return format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
                           "{},{},{},{},{},{},{},{}", U.csv(), O10.csv(), O30.csv(), P.csv(), N.csv(), landAreaHa,
                           U_stemBiomass0, N_belowgroundBiomass.back(), N_abovegroundBiomassBelow20yo(-1),
-                          N_abovegroundBiomassOver20yo(-1), afforestationShareTimeA.back(),
-                          deforestationShareTimeA.back(), deforestationLitterTimeA.back(),
-                          deforestationSoilTimeA.back(), deforestationSoilTimeA1.back(),
-                          deforestationWoodyProductsLongLivedA.back(), deforestationWoodyProductsShortLivedA.back(),
-                          fineRootA.back(), afforestationLitterTimeA.back(), afforestationSoilTimeA.back(),
+                          N_abovegroundBiomassOver20yo(-1),
+                          afforestationShareTimeA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : afforestationShareTimeA.back(),
+                          deforestationShareTimeA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : deforestationShareTimeA.back(),
+                          deforestationLitterTimeA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : deforestationLitterTimeA.back(),
+                          deforestationSoilTimeA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : deforestationSoilTimeA.back(),
+                          deforestationSoilTimeA1.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : deforestationSoilTimeA1.back(),
+                          deforestationWoodyProductsLongLivedA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : deforestationWoodyProductsLongLivedA.back(),
+                          deforestationWoodyProductsShortLivedA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : deforestationWoodyProductsShortLivedA.back(),
+                          fineRootA.empty() ? numeric_limits<double>::quiet_NaN() : fineRootA.back(),
+                          afforestationLitterTimeA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : afforestationLitterTimeA.back(),
+                          afforestationSoilTimeA.empty()
+                              ? numeric_limits<double>::quiet_NaN()
+                              : afforestationSoilTimeA.back(),
                           deforestationWoodTotalM3, salvageLogging, rotation, rotationBiomass, SD,
                           harvestEfficiencyMultifunction, constructedRoadsMultifunction, currentYearRoadInvestment,
                           deforestHaTotal, afforestHaTotal, afforestHaYear, deforestHaYear,
