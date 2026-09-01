@@ -1738,11 +1738,11 @@ namespace g4m::application {
 
                                 appCohortsN[plot.asID].setU(rotation);
 
-                                if (appCohortsN[plot.asID].getActiveAge() >= rotation) {
-                                    thinningForestNew(plot.x, plot.y) = stockingDegree;
-                                    appCohortsN[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
-                                    appCohortsN[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
-                                }
+                                // if (appCohortsN[plot.asID].getActiveAge() >= rotation) {
+                                thinningForestNew(plot.x, plot.y) = stockingDegree;
+                                appCohortsN[plot.asID].setStockingDegreeMin(stockingDegree * sdMinCoef);
+                                appCohortsN[plot.asID].setStockingDegreeMax(stockingDegree * sdMaxCoef);
+                                // }
 
                                 double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                 double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
@@ -1894,10 +1894,10 @@ namespace g4m::application {
                                 appCohortsN[plot.asID].setU(rotation);
 
                                 // New forest age > rotation -> change FM for the new forest
-                                if (appCohortsN[plot.asID].getActiveAge() > rotation && thinningForestTmpNew > 0) {
-                                    thinningForestNew(plot.x, plot.y) = -1;
-                                    appCohortsN[plot.asID].setStockingDegree(-1);
-                                }
+                                // if (appCohortsN[plot.asID].getActiveAge() > rotation && thinningForestTmpNew > 0) {
+                                thinningForestNew(plot.x, plot.y) = -1;
+                                appCohortsN[plot.asID].setStockingDegree(-1);
+                                // }
 
                                 double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                 double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
@@ -1969,10 +1969,10 @@ namespace g4m::application {
                                 appCohortsN[plot.asID].setU(rotation);
 
                                 // New forest age > rotation -> change FM for the new forest
-                                if (appCohortsN[plot.asID].getActiveAge() > rotation && thinningForestTmpNew > 0) {
-                                    thinningForestNew(plot.x, plot.y) = -1;
-                                    appCohortsN[plot.asID].setStockingDegree(-1);
-                                }
+                                // if (appCohortsN[plot.asID].getActiveAge() > rotation && thinningForestTmpNew > 0) {
+                                thinningForestNew(plot.x, plot.y) = -1;
+                                appCohortsN[plot.asID].setStockingDegree(-1);
+                                // }
 
                                 double harvestO = appCohortsU[plot.asID].cohortRes().getTotalWoodRemoval();
                                 double harvestN = appCohortsN[plot.asID].cohortRes().getTotalWoodRemoval();
