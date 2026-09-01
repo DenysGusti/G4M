@@ -81,6 +81,15 @@ namespace g4m::structs {
             return harvestFc + harvestTh + harvestSc;
         }
 
+        [[nodiscard]] double forestShareChange() const {
+            return forestShare.back() - forestShare.end()[-2];
+        }
+
+        // stem phytomass increment in the cell, tC / (ha * modTimeStep)
+        [[nodiscard]] double stemBiomassChange() const {
+            return stemBiomass.back() - stemBiomass.end()[-2];
+        }
+
         [[nodiscard]] string csv() const {
             return format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                           forestShare.back(), stemBiomass.back(), fellings, CAI, OAC, biomassChangeAb,

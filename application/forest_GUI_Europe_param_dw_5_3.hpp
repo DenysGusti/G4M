@@ -3434,10 +3434,9 @@ namespace g4m::application {
             }
             cell.correctForestShareDynamics();
 
-            const ptrdiff_t age = (year - coef.bYear + 1) / modTimeStep;
-            // Limit afforestation speed to 2% of cell area (0.5deg) per year Hannes Bottcher personal communication, 2013
-            cell.afforestationShareTimeA[age] = clamp(cell.N.forestShare.back() - cell.N.forestShare.end()[-2],
-                                                      0., 0.02 * modTimeStep);
+            const ptrdiff_t age = (year - coef.bYear) / modTimeStep;
+            // limit afforestation speed to 2% of cell area (0.5deg) per year Hannes Bottcher personal communication, 2013
+            cell.afforestationShareTimeA[age] = clamp(cell.N.forestShareChange(), 0., 0.02 * modTimeStep);
             cell.N.forestShare.back() = cell.N.forestShare.end()[-2] + cell.afforestationShareTimeA[age];
 
             countriesNForestCover1990.inc(plot.country, year, cell.N.forestShare.back() * cell.landAreaHa);
@@ -3702,8 +3701,7 @@ namespace g4m::application {
 
             // total (negative) emissions from afforestation for current year and current cell
             double emissionsAfforCur =
-                    (curPlantPhytBmGr + curPlantPhytBlGr) * cell.N.forestShare.back() * cell.landAreaHa +
-                    emissionsLitterAfforCur + emissionsSOCAfforCur;
+                cell.N_totalBiomassChange() * cell.landAreaHa + emissionsLitterAfforCur + emissionsSOCAfforCur;
             // END Afforestation "negative" emissions block
             // wood obtained at deforestation, m^3 / ha
             double harvestDfM3Ha = 0;
@@ -3759,10 +3757,10 @@ namespace g4m::application {
             }
             appHarvestGrid(plot.x, plot.y) = harvestTotalAllM3;
 
-            cell.U.CAI = (cell.U.stemBiomass.back() - cell.U.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
-            cell.O10.CAI = (cell.O10.stemBiomass.back() - cell.O10.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
-            cell.O30.CAI = (cell.O30.stemBiomass.back() - cell.O30.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
-            cell.P.CAI = (cell.P.stemBiomass.back() - cell.P.stemBiomass.end()[-2]) / modTimeStep * plot.fTimber;
+            cell.U.CAI = cell.U.stemBiomassChange() / modTimeStep * plot.fTimber;
+            cell.O10.CAI = cell.O10.stemBiomassChange() / modTimeStep * plot.fTimber;
+            cell.O30.CAI = cell.O30.stemBiomassChange() / modTimeStep * plot.fTimber;
+            cell.P.CAI = cell.P.stemBiomassChange() / modTimeStep * plot.fTimber;
 
             if (!plot.protect) {
                 cell.U.CAI += (resU.getTotalHarvestedBiomass() +
@@ -3776,7 +3774,7 @@ namespace g4m::application {
             cell.N.CAI = (curPlantPhytStem + resN.getTotalHarvestedBiomass() +
                           cleanedWoodUseCurrent * resNLost.getTotalHarvestedBiomass()) * plot.fTimber;
             // 22.12.2015 Net Annual Increment
-            double NAI_old_m3ha = ((cell.U.stemBiomass.back() - cell.U.stemBiomass.end()[-2]) / modTimeStep +
+            double NAI_old_m3ha = (cell.U.stemBiomassChange() / modTimeStep +
                                    resU.getTotalHarvestedBiomass() +
                                    cleanedWoodUseCurrent * resULost.getTotalHarvestedBiomass()) * plot.fTimber;
             // Gross Current Annual Increment, m3/ha
@@ -3857,8 +3855,7 @@ namespace g4m::application {
                             cleanedWoodUseCurrent * resULost.getTotalHarvestedBiomass()) * plot.fTimber / NAI_old_m3ha,
                            (NAI_old_m3ha - (resU.getTotalHarvestedBiomass() + resULost.getTotalHarvestedBiomass()) *
                                            plot.fTimber) * cell.U.forestShare.back() * cell.landAreaHa,
-                           (cell.U.stemBiomass.back() - cell.U.stemBiomass.end()[-2]) * plot.fTimber *
-                           cell.U.forestShare.back() * cell.landAreaHa,
+                           cell.U.stemBiomassChange() * plot.fTimber * cell.U.forestShare.back() * cell.landAreaHa,
                            (cell.emissionsDeforestationBiomass * cell.deforestHaYear +
                             cell.U.biomassChangeTotal * cell.U.forestShare.back() * cell.landAreaHa -
                             (cell.U.stemBiomass.back() * plot.BEF(cell.U.stemBiomass.back()) *
@@ -3901,8 +3898,8 @@ namespace g4m::application {
             countriesNForestAbC.inc(plot.country, year,
                                     cell.N_abovegroundBiomass(-1) * cell.N.forestShare.back() * cell.landAreaHa);
             // TODO / modTimeStep?
-            cell.N.biomassChangeAb = curPlantPhytBmGr * unitConvCoef;
-            cell.N.biomassChangeTotal = (curPlantPhytBmGr + curPlantPhytBlGr) * unitConvCoef;
+            cell.N.biomassChangeAb = cell.N_abovegroundBiomassChange() * unitConvCoef;
+            cell.N.biomassChangeTotal = cell.N_totalBiomassChange() * unitConvCoef;
             // ????? per year or modTimeStep???
             countriesAfforestationCYear.inc(plot.country, year, emissionsAfforCur * unitConvCoef);
 

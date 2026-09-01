@@ -244,6 +244,20 @@ namespace g4m::structs {
             return N_abovegroundBiomassBelow20yo(idx) + N_abovegroundBiomassOver20yo(idx);
         }
 
+        // above-ground phytomass increment in the cell, tC / (ha * modTimeStep)
+        [[nodiscard]] double N_abovegroundBiomassChange() const {
+            return N_abovegroundBiomass(-1) - N_abovegroundBiomass(-2);
+        }
+
+        // below-ground phytomass increment in the cell, tC / (ha * modTimeStep)
+        [[nodiscard]] double N_belowgroundBiomassChange() const {
+            return N_belowgroundBiomass.back() - N_belowgroundBiomass.end()[-2];
+        }
+
+        [[nodiscard]] double N_totalBiomassChange() const {
+            return N_abovegroundBiomassChange() + N_belowgroundBiomassChange();
+        }
+
         [[nodiscard]] double afforestationSoilInput(const size_t age) const {
             return pow(1 - exp(-1.2 * afforestationLitterTimeA[age] / (afforestationShareTimeA[age] * landAreaHa)), 3) *
                    afforestationShareTimeA[age] * landAreaHa * modTimeStep;
