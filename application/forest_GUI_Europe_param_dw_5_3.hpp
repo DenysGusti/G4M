@@ -3604,100 +3604,86 @@ namespace g4m::application {
             double emissionsLitterAfforCur20 = 0;
             double emissionsLitterAfforCur20b = 0;
 
-            if (cell.N.forestShare.back() > 0) {
-                double reciprocalN_FS = 1 / cell.N.forestShare.back();
+            for (const auto [i, afforestA]: cell.afforestationShareTimeA | rv::enumerate) {
+                const double cohortArea = appCohortsN[plot.asID].getArea(
+                static_cast<size_t>(age - i));   // made by idx
 
-                for (const auto [i, afforestA]: cell.afforestationShareTimeA | rv::enumerate) {
-                    const double cohortArea = appCohortsN[plot.asID].getArea(
-                            static_cast<size_t>(age - i));   // made by idx
+                if (afforestA > 0 || cohortArea > 0) {
+                    // correct cohorts area to the final cut harvest
+                    // we ignore the replanting thus underestimating the sink in the forest stands moved to the category FL-FL
+                    // afforested (stem) biomass of age (Age-ia) * modTimeStep per ha
+                    double abovePhCur = appCohortsN[plot.asID].getBm(static_cast<double>(age - i) * modTimeStep);
 
-                    if (afforestA > 0 || cohortArea > 0) {
-                        // correct cohorts area to the final cut harvest
-                        // we ignore the replanting thus underestimating the sink in the forest stands moved to the category FL-FL
-                        // afforested (stem) biomass of age (Age-ia) * modTimeStep per ha
-                        double abovePhCur = appCohortsN[plot.asID].getBm(static_cast<double>(age - i) * modTimeStep);
-
-                        if ((age - i) * modTimeStep <= 20) {    // age cohorts younger than 21 year
-                            // a share of the age cohort has been replanted after final cut
-                            if (afforestA < cohortArea) {
-                                // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
-                                cell.N_abovegroundBiomassBelow20yoAge.back()[age - i] =
-                                        abovePhCur * plot.BEF(abovePhCur) * afforestA * reciprocalN_FS;
-                                // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
-                                cell.N_abovegroundBiomassOver20yoAge.back()[age - i] =
-                                        abovePhCur * plot.BEF(abovePhCur) * (cohortArea - afforestA) * reciprocalN_FS;
-                            } else {  //  a share of the age cohort has been under final cut or no final cut in current age cohort
-                                // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
-                                cell.N_abovegroundBiomassBelow20yoAge.back()[age - i] =
-                                        abovePhCur * plot.BEF(abovePhCur) * cohortArea * reciprocalN_FS;
-                            }
-                        } else {    // age cohorts older than 20 years
+                    if ((age - i) * modTimeStep <= 20) {    // age cohorts younger than 21 year
+                        // a share of the age cohort has been replanted after final cut
+                        if (afforestA < cohortArea) {
+                            // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
+                            cell.N_abovegroundBiomassBelow20yoAge.back()[age - i] =
+                                abovePhCur * plot.BEF(abovePhCur) * afforestA;
                             // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
                             cell.N_abovegroundBiomassOver20yoAge.back()[age - i] =
-                                    abovePhCur * plot.BEF(abovePhCur) * cohortArea * reciprocalN_FS;
+                                abovePhCur * plot.BEF(abovePhCur) * (cohortArea - afforestA);
+                        } else {  //  a share of the age cohort has been under final cut or no final cut in current age cohort
+                            // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
+                            cell.N_abovegroundBiomassBelow20yoAge.back()[age - i] =
+                                        abovePhCur * plot.BEF(abovePhCur) * cohortArea;
                         }
-                        // increment of biomass in the forest stand of age (Age-ia) * modTimeStep per ha * afforShare[ia] per modTimeStep period
-                        double emissionsBmAfforCur_age = 0;
-                        if (i < age) {
-                            double abovePhPrev = appCohortsN[plot.asID].getBm(
-                                    static_cast<double>(age - i - 1) * modTimeStep);
-                            emissionsBmAfforCur_age =
-                                    (abovePhCur * plot.BEF(abovePhCur) - abovePhPrev * plot.BEF(abovePhPrev)) *
-                                    cohortArea;
+                    } else {    // age cohorts older than 20 years
+                        // afforested biomass of age (Age-ia) * modTimeStep per ha * afforShare[ia]
+                        cell.N_abovegroundBiomassOver20yoAge.back()[age - i] =
+                            abovePhCur * plot.BEF(abovePhCur) * cohortArea;
+                    }
+                    // increment of biomass in the forest stand of age (Age-ia) * modTimeStep per ha * afforShare[ia] per modTimeStep period
+                    double emissionsBmAfforCur_age = 0;
+                    if (i < age) {
+                        double abovePhPrev = appCohortsN[plot.asID].getBm(
+                            static_cast<double>(age - i - 1) * modTimeStep);
+                        emissionsBmAfforCur_age =
+                            (abovePhCur * plot.BEF(abovePhCur) - abovePhPrev * plot.BEF(abovePhPrev)) * cohortArea;
+                    }
+                    abovePhCur *= cohortArea;   // afforested (stem) biomass per ha * afforShare[ia]
+                    cell.N.stemBiomass.back() += abovePhCur; // stem biomass of planted forest, tC in the cell
+
+                    emissionsBmAfforCur_gl += emissionsBmAfforCur_age;  // biomass increment of all stands Gain-Loss method
+                    if ((age - i) * modTimeStep > 20) {    // we track area and phytomass of new forest over 20 y.o.
+                        if (year > 2000)    // 13.04.2023 adjusting to Ireland Fl-Fl reporting
+                            plantArea20_rel += afforestA;   // relative area of forest over 20 y.o.
+                        // biomass increment of all stands of age over 20 years old per ha * afforShare[ia] per modTimeStep period Gain-Loss method
+                        emissionsBmAfforCur_age20o += emissionsBmAfforCur_age;
+                    } else  // we track area and phytomass of new forest below 20 y.o.
+                        // biomass increment of all  stands of age <= 20 years old per ha * afforShare[ia] per modTimeStep period Gain-Loss method
+                        emissionsBmAfforCur_age20b += emissionsBmAfforCur_age;
+                    if (afforestA > 0) {
+                        if (cell.afforestationLitterTimeA[i] < 5 * afforestA * cell.landAreaHa) {
+                            double curEmissionsLitterAfforCur = cell.afforestationLitterInput(i);
+                            emissionsLitterAfforCur += curEmissionsLitterAfforCur;
+                            cell.afforestationLitterTimeA[i] += curEmissionsLitterAfforCur;
+
+                            if ((age - i) * modTimeStep > 20)  // we track litter emissions of new forest over 20 y.o.
+                                emissionsLitterAfforCur20 += curEmissionsLitterAfforCur;
+                            else
+                                emissionsLitterAfforCur20b += curEmissionsLitterAfforCur;
                         }
-                        abovePhCur *= cohortArea;   // afforested (stem) biomass per ha * afforShare[ia]
-                        cell.N.stemBiomass.back() += abovePhCur; // stem biomass of planted forest, tC in the cell
-
-                        emissionsBmAfforCur_gl += emissionsBmAfforCur_age;  // biomass increment of all stands Gain-Loss method
-                        if ((age - i) * modTimeStep > 20) {    // we track area and phytomass of new forest over 20 y.o.
-                            if (year > 2000)    // 13.04.2023 adjusting to Ireland Fl-Fl reporting
-                                plantArea20_rel += afforestA;   // relative area of forest over 20 y.o.
-                            // biomass increment of all stands of age over 20 years old per ha * afforShare[ia] per modTimeStep period Gain-Loss method
-                            emissionsBmAfforCur_age20o += emissionsBmAfforCur_age;
-                        } else  // we track area and phytomass of new forest below 20 y.o.
-                            // biomass increment of all  stands of age <= 20 years old per ha * afforShare[ia] per modTimeStep period Gain-Loss method
-                            emissionsBmAfforCur_age20b += emissionsBmAfforCur_age;
-                        if (afforestA > 0) {
-                            if (cell.afforestationLitterTimeA[i] < 5 * afforestA * cell.landAreaHa) {
-                                double curEmissionsLitterAfforCur = cell.afforestationLitterInput(i);
-                                emissionsLitterAfforCur += curEmissionsLitterAfforCur;
-                                cell.afforestationLitterTimeA[i] += curEmissionsLitterAfforCur;
-
-                                if ((age - i) * modTimeStep >
-                                    20)  // we track litter emissions of new forest over 20 y.o.
-                                    emissionsLitterAfforCur20 += curEmissionsLitterAfforCur;
-                                else
-                                    emissionsLitterAfforCur20b += curEmissionsLitterAfforCur;
-                            }
-                            if (cell.afforestationSoilTimeA[i] <=
-                                1.4 * plot.SOCHa * afforestA * cell.landAreaHa) {
-                                double asi = cell.afforestationSoilInput(i) * plot.afforestationSoilInputCoef();
-                                emissionsSOCAfforCur += asi;
-                                cell.afforestationSoilTimeA[i] += asi;
-                                // we track area and phytomass or soil emissions of new forest over 20 y.o.
-                                if ((age - i) * modTimeStep > 20)
-                                    emissionsSOCAfforCur20o += asi;
-                                else
-                                    emissionsSOCAfforCur20b += asi;
-                                // alternative estimation of SOC change (tC/ha year) due to conversion from farmland to forest
-                                // [Deng et al. (2016) Global patterns of the effects of land-use changes on soil carbon stocks.
-                                // Global Ecology and Conservation N5, pp. 127-138]
-                                emissionsSOCAfforCur1 += 0.52 * modTimeStep * afforestA;
-                            }
+                        if (cell.afforestationSoilTimeA[i] <= 1.4 * plot.SOCHa * afforestA * cell.landAreaHa) {
+                            double asi = cell.afforestationSoilInput(i) * plot.afforestationSoilInputCoef();
+                            emissionsSOCAfforCur += asi;
+                            cell.afforestationSoilTimeA[i] += asi;
+                            // we track area and phytomass or soil emissions of new forest over 20 y.o.
+                            if ((age - i) * modTimeStep > 20)
+                                emissionsSOCAfforCur20o += asi;
+                            else
+                                emissionsSOCAfforCur20b += asi;
+                            // alternative estimation of SOC change (tC/ha year) due to conversion from farmland to forest
+                            // [Deng et al. (2016) Global patterns of the effects of land-use changes on soil carbon stocks.
+                            // Global Ecology and Conservation N5, pp. 127-138]
+                            emissionsSOCAfforCur1 += 0.52 * modTimeStep * afforestA;
                         }
                     }
                 }
                 emissionsSOCAfforCur1 *= cell.landAreaHa;   // tC/year per cell
-                cell.N.stemBiomass.back() *= reciprocalN_FS;
                 // below-ground phytomass
                 cell.N_belowgroundBiomass.back() = cell.N_abovegroundBiomass(-1) * plot.coefBL();
             }
-            // above-ground phytomass increment in the cell, tC / (ha * modTimeStep)
-            double curPlantPhytBmGr = (cell.N_abovegroundBiomass(-1) - cell.N_abovegroundBiomass(-2));
-            // stem phytomass increment in the cell, tC / (ha * modTimeStep)
-            double curPlantPhytStem = (cell.N.stemBiomass.back() - cell.N.stemBiomass.end()[-2]);
-            // below-ground phytomass increment in the cell, tC / (ha * modTimeStep)
-            double curPlantPhytBlGr = (cell.N_belowgroundBiomass.back() - cell.N_belowgroundBiomass.end()[-2]);
 
             // total (negative) emissions from afforestation for current year and current cell
             double emissionsAfforCur =
@@ -3771,8 +3757,8 @@ namespace g4m::application {
                                  cleanedWoodUseCurrent30 * res30Lost.getTotalHarvestedBiomass()) * plot.fTimber;
             }
             // TODO / modTimeStep?
-            cell.N.CAI = (curPlantPhytStem + resN.getTotalHarvestedBiomass() +
-                          cleanedWoodUseCurrent * resNLost.getTotalHarvestedBiomass()) * plot.fTimber;
+            cell.N.CAI = cell.N.forestShare.back() > 0. ? (cell.N.stemBiomassChange() / cell.N.forestShare.back() + resN.getTotalHarvestedBiomass() +
+                          cleanedWoodUseCurrent * resNLost.getTotalHarvestedBiomass()) * plot.fTimber : 0.;
             // 22.12.2015 Net Annual Increment
             double NAI_old_m3ha = (cell.U.stemBiomassChange() / modTimeStep +
                                    resU.getTotalHarvestedBiomass() +
@@ -3888,15 +3874,12 @@ namespace g4m::application {
             countriesAfforestationHaYear.inc(plot.country, year, cell.afforestHaYear / modTimeStep);
             countriesAfforestationAccumulationHa.inc(plot.country, year, cell.afforestHaTotal);
 
-            cell.N.totalBiomass = cell.N_abovegroundBiomass(-1) + cell.N_belowgroundBiomass.back();
-            countriesNForestTotalC.inc(plot.country, year,
-                                       cell.N.totalBiomass * cell.N.forestShare.back() * cell.landAreaHa);
+            cell.N.totalBiomass = cell.N.forestShare.back() > 0. ? (cell.N_abovegroundBiomass(-1) + cell.N_belowgroundBiomass.back()) / cell.N.forestShare.back() : 0.;
+            countriesNForestTotalC.inc(plot.country, year, cell.N.totalBiomass * cell.N.forestShare.back() * cell.landAreaHa);
             // accumulated living stem biomass of planted forest, tC
-            countriesNForestStemC.inc(plot.country, year,
-                                      cell.N.stemBiomass.back() * cell.N.forestShare.back() * cell.landAreaHa);
+            countriesNForestStemC.inc(plot.country, year, cell.N.stemBiomass.back() * cell.landAreaHa);
             // accumulated living above-ground biomass of planted forest, tC
-            countriesNForestAbC.inc(plot.country, year,
-                                    cell.N_abovegroundBiomass(-1) * cell.N.forestShare.back() * cell.landAreaHa);
+            countriesNForestAbC.inc(plot.country, year, cell.N_abovegroundBiomass(-1) * cell.landAreaHa);
             // TODO / modTimeStep?
             cell.N.biomassChangeAb = cell.N_abovegroundBiomassChange() * unitConvCoef;
             cell.N.biomassChangeTotal = cell.N_totalBiomassChange() * unitConvCoef;
@@ -3904,15 +3887,14 @@ namespace g4m::application {
             countriesAfforestationCYear.inc(plot.country, year, emissionsAfforCur * unitConvCoef);
 
             countriesAfforestationCYear_ab.inc(plot.country, year,
-                                               cell.N.biomassChangeAb * cell.N.forestShare.back() *
-                                               cell.landAreaHa);
+                                               cell.N.biomassChangeAb * cell.landAreaHa);
             // ????? per year or modTimeStep???
             countriesAfforestationCYear_bl.inc(plot.country, year,
                                                (cell.N.biomassChangeTotal - cell.N.biomassChangeAb) *
-                                               cell.N.forestShare.back() * cell.landAreaHa);
+                                               cell.landAreaHa);
             // ????? per year or modTimeStep???
             countriesAfforestationCYear_biomass.inc(plot.country, year, cell.N.biomassChangeTotal *
-                                                                        cell.N.forestShare.back() * cell.landAreaHa);
+                                                                        cell.landAreaHa);
 
             countriesAfforestationCYear_dom.inc(plot.country, year, emissionsLitterAfforCur * unitConvCoef);
             countriesAfforestationCYear_soil.inc(plot.country, year, emissionsSOCAfforCur * unitConvCoef);
@@ -3920,17 +3902,15 @@ namespace g4m::application {
             // ????? per year or modTimeStep???
             countriesAfforestationCover20.inc(plot.country, year, plantArea20_rel * cell.landAreaHa);
             countriesAfforestationTotalC20.inc(plot.country, year,
-                                               cell.N_abovegroundBiomassBelow20yo(-1) * cell.N.forestShare.back() *
-                                               cell.landAreaHa);
+                                               cell.N_abovegroundBiomassBelow20yo(-1) * cell.landAreaHa);
             double emAffBm20bs = 0;
             for (size_t i = 0; i < cell.N_abovegroundBiomassBelow20yoAge.end()[-2].size(); ++i)
                 emAffBm20bs += cell.N_abovegroundBiomassBelow20yoAge.back()[i + 1] -
                                cell.N_abovegroundBiomassBelow20yoAge.end()[-2][i];
-            emAffBm20bs *= (1 + plot.coefBL()) * cell.N.forestShare.back() * cell.landAreaHa * unitConvCoef;
+            emAffBm20bs *= (1 + plot.coefBL()) * cell.landAreaHa * unitConvCoef;
 
             countriesAfforestationCYear_biomass20.inc(plot.country, year, emAffBm20bs);
-            double emAffBm20o2 =
-                    cell.N.biomassChangeTotal * cell.N.forestShare.back() * cell.landAreaHa - emAffBm20bs;
+            double emAffBm20o2 = cell.N.biomassChangeTotal * cell.landAreaHa - emAffBm20bs;
             countriesAfforestationCYear_biomass20os.inc(plot.country, year, emAffBm20o2);
             countriesAfforestationCYear_biomass20o.inc(plot.country, year, emissionsBmAfforCur_age20o *
                                                                            (1 + plot.coefBL()) * unitConvCoef *
@@ -4474,7 +4454,7 @@ namespace g4m::application {
 
             double fcDBH = cr.finalCut.DBH;
             double fcH = cr.finalCut.H;
-            double fcGS = cr.getHarvestGrowingStock();
+            double fcGS = cr.getHarvestGrowingStock();  // TODO handle NaN
 
             double thDBH_old = cr.thinning.DBH;
             double thH_old = cr.thinning.H;
